@@ -28,7 +28,7 @@ export default class CircleQuery extends Query {
     let y2 = this.cy + this.r;
     for (let i = x1; i < x2; i++) {
       for (let j = y1; j < y2; j++) {
-        if (result.size() === objects.length) {
+        if (result.size === objects.length) {
           break;
         }
         if (
@@ -38,7 +38,7 @@ export default class CircleQuery extends Query {
         )
           continue;
         let elements = document.elementsFromPoint(i + bbox.left, j + bbox.top);
-        objects.forEach((obj) => {
+        [...objects].forEach((obj) => {
           if (
             obj.node ? elements.includes(obj.node()) : elements.includes(obj)
           ) {

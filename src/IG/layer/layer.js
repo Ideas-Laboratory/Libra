@@ -37,7 +37,7 @@ export default class Layer {
 
   attach(option) {
     if (option.precondition !== undefined) {
-      this._preconditionTools.push(option);
+      this._preconditionTools.push({ ...option });
     } else {
       if (option.tools) {
         this._pureTools = this._pureTools.concat(option.tools);
@@ -94,8 +94,29 @@ Layer.initialize = function initialize(name, ...params) {
       ...(option.extraParams || []),
       ...params
     );
-    for (let tool of option.attach || []) {
-      layer.attach(tool);
+    const remapping = new Map();
+    for (let attach of option.attach || []) {
+      if (attach.tools) {
+        attach.tools = attach.tools.slice(0);
+        for (let i in attach.tools) {
+          const t = attach.tools[i];
+          if (remapping.has(t)) {
+            attach.tools[i] = remapping.get(t);
+          } else {
+            attach.tools[i] = attach.tools[i].clone();
+            remapping.set(t, attach.tools[i]);
+          }
+        }
+      } else if (attach.tool) {
+        const t = attach.tool;
+        if (remapping.has(t)) {
+          attach.tool = remapping.get(t);
+        } else {
+          attach.tool = attach.tool.clone();
+          remapping.set(t, attach.tool);
+        }
+      }
+      layer.attach(attach);
     }
     for (let anotherLayer of option.listen || []) {
       layer.listen(anotherLayer);

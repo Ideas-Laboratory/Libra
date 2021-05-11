@@ -29,11 +29,11 @@ export default class RectQuery extends Query {
     let height = Math.abs(this.height);
     for (let i = x; i < x + width; i++) {
       for (let j = y; j < y + height; j++) {
-        if (result.size() === objects.length) {
+        if (result.size === objects.length) {
           break;
         }
         let elements = document.elementsFromPoint(i + bbox.left, j + bbox.top);
-        objects.forEach((obj) => {
+        [...objects].forEach((obj) => {
           if (
             obj.node ? elements.includes(obj.node()) : elements.includes(obj)
           ) {

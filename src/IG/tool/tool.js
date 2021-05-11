@@ -11,10 +11,12 @@ export default class Tool {
   _query;
   _interactors = [];
   _relations = [];
+  _userListeners = {};
 
   constructor(name = "Tool", options) {
     this._name = name;
     if (options) {
+      this._userListeners = options;
       if (options.activeCommand) {
         this._activeListeners.push(options.activeCommand);
       }
@@ -46,6 +48,7 @@ export default class Tool {
     return {
       query: this._query,
       relations: this._relations.slice(0),
+      extraParams: [this._userListeners],
     };
   }
 
@@ -122,10 +125,15 @@ export default class Tool {
     }
   }
 
-  _notify(type) {
+  _notify(type, event) {
     (this[`_${type}Listeners`] || []).forEach((listener) => {
       if (listener instanceof Function) {
-        listener(this._query ? this._query.result() : []);
+        listener.call(
+          this,
+          this._query ? this._query.result() : [],
+          event,
+          this._query
+        );
       }
     });
   }
@@ -159,6 +167,14 @@ export default class Tool {
       this._relations.push(option.relation);
       this._injectInteractor(option.relation);
     }
+  }
+
+  get query() {
+    return this._query || null;
+  }
+
+  get layer() {
+    return (this._query && this._query._layer) || null;
   }
 }
 

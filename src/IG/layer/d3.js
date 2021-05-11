@@ -11,8 +11,12 @@ export default class D3Layer extends Layer {
     this._name = name;
     this._width = width;
     this._height = height;
+    let listener;
     if (svg) {
       this._root = svg.append("g");
+      listener = svg.node();
+    } else {
+      listener = this._root.node();
     }
     this._root
       .append("rect")
@@ -20,11 +24,11 @@ export default class D3Layer extends Layer {
       .attr("width", this._width)
       .attr("height", this._height)
       .attr("opacity", 0);
-    this._root
-      .on("mousedown", this._dispatchEvent.bind(this))
-      .on("mousemove", this._dispatchEvent.bind(this))
-      .on("mouseup", this._dispatchEvent.bind(this))
-      .on("wheel", this._dispatchEvent.bind(this));
+
+    listener.addEventListener("mousedown", this._dispatchEvent.bind(this));
+    listener.addEventListener("mousemove", this._dispatchEvent.bind(this));
+    listener.addEventListener("mouseup", this._dispatchEvent.bind(this));
+    listener.addEventListener("wheel", this._dispatchEvent.bind(this));
   }
 
   _toTemplate() {
@@ -39,6 +43,7 @@ export default class D3Layer extends Layer {
    * @param {MouseEvent} event
    */
   _dispatchEvent(event) {
+    event.preventDefault();
     let wrappedEvents = [];
     const bbox = this._root.node().getBoundingClientRect();
     switch (event.type) {
@@ -75,7 +80,7 @@ export default class D3Layer extends Layer {
       case "wheel":
         wrappedEvents.push({
           rawEvent: event,
-          type: "pointer",
+          type: "wheel",
           delta: event.deltaY,
         });
         break;
@@ -86,7 +91,7 @@ export default class D3Layer extends Layer {
       }
       for (let option of this._preconditionTools) {
         if (option.precondition instanceof Function) {
-          if (option.precondition(wrappedEvent)) {
+          if (option.precondition.call(this, wrappedEvent, this)) {
             if (option.tools) {
               for (let tool of option.tools) {
                 tool.dispatch(wrappedEvent);
@@ -121,6 +126,14 @@ export default class D3Layer extends Layer {
       this._root.node().contains(element) &&
       element.classList.contains("ig-layer-background")
     );
+  }
+
+  inside(event) {
+    if (event.type !== "pointer") {
+      return false;
+    }
+    const element = document.elementFromPoint(event.rawX, event.rawY);
+    return this._root.node().contains(element);
   }
 
   objects() {
