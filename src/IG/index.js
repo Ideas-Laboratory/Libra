@@ -1,13 +1,7 @@
-import Layer from "./layer";
-import "./layer/d3";
-
-import Tool from "./tool";
-
 import Query from "./query";
-import "./query/point";
-import "./query/rect";
-
 import Interactor from "./interactor";
+import Tool from "./tool";
+import Layer from "./layer";
 
 export default {
   Layer,
