@@ -4,7 +4,7 @@ export default class PointQuery extends Query {
   x = 0;
   y = 0;
 
-  update() {
+  evaluate() {
     if (
       !this._layer ||
       !this._layer.objects ||

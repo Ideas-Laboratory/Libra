@@ -128,12 +128,7 @@ export default class Tool {
   _notify(type, event) {
     (this[`_${type}Listeners`] || []).forEach((listener) => {
       if (listener instanceof Function) {
-        listener.call(
-          this,
-          this._query ? this._query.result() : [],
-          event,
-          this._query
-        );
+        listener.call(this, this._query, event);
       }
     });
   }

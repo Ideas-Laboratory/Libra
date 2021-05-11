@@ -124,7 +124,7 @@ function queryLines() {
     selector.width = bbox.width;
     selector.height = bbox.height;
     selector.update();
-    selector.result().forEach((e) => result.add(e));
+    selector.result.forEach((e) => result.add(e));
   }
   backgroundLayer.getGraphic().selectAll("path").attr("stroke-width", 1);
   for (let e of result) {

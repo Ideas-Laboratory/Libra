@@ -3,6 +3,7 @@ const registeredQuerys = {};
 export default class Query {
   _result = [];
   _layer = null;
+  _dirty = false;
 
   constructor(name = "Query") {
     this._name = name;
@@ -18,11 +19,18 @@ export default class Query {
   }
 
   update() {
+    this._dirty = true;
+  }
+
+  evaluate() {
     // Need override
     this._result = [];
   }
 
-  result() {
+  get result() {
+    if (this._dirty) {
+      this.evaluate();
+    }
     return this._result.slice(0);
   }
 

@@ -25,7 +25,7 @@ g.selectAll("circle")
 
 layer.attach({
   tool: IG.Tool.initialize("HoverTool", {
-    frameCommand: (result) => {
+    frameCommand: ({ result }) => {
       g.selectAll("circle").attr("fill", "red");
       result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
     },

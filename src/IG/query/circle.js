@@ -5,7 +5,7 @@ export default class CircleQuery extends Query {
   cy = 0;
   r = 0;
 
-  update() {
+  evaluate() {
     if (
       !this._layer ||
       !this._layer.objects ||

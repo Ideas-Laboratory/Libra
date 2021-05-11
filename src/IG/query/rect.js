@@ -6,7 +6,7 @@ export default class RectQuery extends Query {
   width = 0;
   height = 0;
 
-  update() {
+  evaluate() {
     if (
       !this._layer ||
       !this._layer.objects ||
