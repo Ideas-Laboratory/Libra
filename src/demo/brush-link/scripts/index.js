@@ -35,6 +35,8 @@ registerBrushableLayer();
 
 const plotLayers = new Map();
 const frameFuncs = new Map();
+const scales = new Map();
+const extents = new Map();
 
 for (let i = 0; i < keys.length; i++) {
   const key = keys[i];
@@ -48,36 +50,23 @@ for (let i = 0; i < keys.length; i++) {
     .getGraphic()
     .attr("transform", `translate(0, ${i * heightBinnedChart})`);
 
-  renderBinnedChart(
+  const frameFunc = renderBinnedChart(
     histogramLayer,
     widthBinnedChart,
     heightBinnedChart,
     cars,
     key
   );
+
+  frameFuncs.set(key, frameFunc);
 }
 
-const plotLayersArr = keys.map(k => plotLayers.get(k));
-
-for(const key of keys) {
-  const plotLayer = plotLayers.get(key);
-  const frameCommand = frameFuncs.get(key);
-  //console.log(plotLayer, frameCommand);
-  plotLayer.listen({
-    layers: plotLayersArr,
-    frameCommand: frameCommand
-  });
-  // plotLayer.listen({
-  //   layers: plotLayers,
-  //   frameCommand: frameCommand
-  // });
-}
 
 const scatterBackgroundLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
 const scatterG = scatterBackgroundLayer
   .getGraphic()
   .attr("transform", `translate(${widthBinnedChart}, 0)`);
-renderScatterPlot(
+const scatterFrameFunc = renderScatterPlot(
   scatterG,
   widthScatterPlot,
   height,
@@ -87,7 +76,28 @@ renderScatterPlot(
   fieldColor
 );
 
-const extents = new Map();
+const plotLayersArr = keys.map(k => plotLayers.get(k));
+for(const key of keys) {
+  const plotLayer = plotLayers.get(key);
+  const frameCommand = frameFuncs.get(key);
+  //console.log(plotLayer, frameCommand);
+  // plotLayer.listen({
+  //   layers: plotLayersArr,
+  //   frameCommand: frameCommand
+  // });
+  plotLayer.listen({
+    layers: plotLayersArr,
+    frameCommand: () => {
+      //requestAnimationFrame(frameCommand.bind(frameCommand.this, extents));
+      requestAnimationFrame(() => {
+        frameCommand(extents);
+        scatterFrameFunc(extents);
+      });
+    },
+  });
+}
+
+
 
 /*********************** functions *************************/
 
@@ -179,8 +189,8 @@ function registerBrushableLayer() {
               g.select("rect").attr("width", width >= 0 ? width : 0);
               const xy = getXYfromTransform(brushLayer.getGraphic());
               //console.log(xy);
-              extents.set(brushableLayer.key, [xy[0], xy[0] + width]);
-              console.log("frame", extents);
+              extents.set(brushableLayer.key, [xy[0], xy[0] + width].map(scales.get(brushableLayer.key)));
+              //console.log("frame", extents);
             },
             terminateCommand: function () {
               console.log("terminate");
@@ -274,6 +284,7 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     );
 
   /******************** layer *********************/
+  scales.set(key, scaleX.invert);
   const plotLayer = IG.Layer.initialize("brushableLayer", width, height, root);
   plotLayer.key = key;
   plotLayers.set(key, plotLayer);
@@ -306,12 +317,14 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .attr("width", bandWidth)
     .attr("height", d => scaleY(0) - scaleY(d.length));
 
-  frameFuncs.set(key, function filterData(filterExtents) {
+  return filterData;
+
+  function filterData(filterExtents) {
     barsFiltered
       .attr("y", (d) => {
         d = d.filter((d) => {
-          for (const key in filterExtents) {
-            const extent = filterExtents[key];
+          for (const key of filterExtents.keys()) {
+            const extent= filterExtents.get(key);
             if (extent && (d[key] < extent[0] || d[key] > extent[1]))
               return false;
           }
@@ -321,8 +334,8 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       })
       .attr("height", (d) => {
         d = d.filter((d) => {
-          for (const key in filterExtents) {
-            const extent = filterExtents[key];
+          for (const key of filterExtents.keys()) {
+            const extent= filterExtents.get(key);
             if (extent && (d[key] < extent[0] || d[key] > extent[1]))
               return false;
           }
@@ -330,17 +343,9 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
         });
         return scaleY(0) - scaleY(d.length);
       });
-  });
+  }
 
-  //return plotLayer;
-  // const barsFiltered = groupMarksFiltered.selectAll("rect")
-  //   .data(binnedData)
-  //   .join("rect")
-  //   .attr("fill", "steelblue")
-  //   .attr("x", (d, i) => i * bandStep + bandPadding)
-  //   .attr("y", d => scaleY(d.length))
-  //   .attr("width", bandWidth)
-  //   .attr("height", d => scaleY(0) - scaleY(d.length));
+
 }
 
 function renderScatterPlot(
@@ -483,6 +488,20 @@ function renderScatterPlot(
     fieldColor,
     scaleColor
   );
+  
+  return filterData;
+
+  function filterData(filterExtents) {
+    circles
+      .attr("stroke", d => {
+        for (const key of filterExtents.keys()) {
+          const extent = filterExtents.get(key);
+          if (extent && (d[key] < extent[0] || d[key] > extent[1])) return colorHidden;
+        }
+        return scaleColor(d[fieldColor]);
+      });
+  }
+  
   //const { showTooltip, updateTooltip } = renderTooltip(groupTooltip, 0, 0, data, tooltipFields);
   //showTooltip(false);
 
@@ -543,4 +562,3 @@ function getXYfromTransform(node) {
     .map((i) => parseFloat(i));
 }
 
-function queryCircles() {}
