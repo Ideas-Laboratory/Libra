@@ -1,8 +1,6 @@
 import IG from "~/IG";
 import * as d3 from "d3";
 import cars from "../../../data/cars.json";
-import D3Layer from "../../../IG/layer/d3";
-import { brush } from "d3";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -61,7 +59,6 @@ for (let i = 0; i < keys.length; i++) {
   frameFuncs.set(key, frameFunc);
 }
 
-
 const scatterBackgroundLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
 const scatterG = scatterBackgroundLayer
   .getGraphic()
@@ -76,19 +73,13 @@ const scatterFrameFunc = renderScatterPlot(
   fieldColor
 );
 
-const plotLayersArr = keys.map(k => plotLayers.get(k));
-for(const key of keys) {
+const plotLayersArr = keys.map((k) => plotLayers.get(k));
+for (const key of keys) {
   const plotLayer = plotLayers.get(key);
   const frameCommand = frameFuncs.get(key);
-  //console.log(plotLayer, frameCommand);
-  // plotLayer.listen({
-  //   layers: plotLayersArr,
-  //   frameCommand: frameCommand
-  // });
   plotLayer.listen({
     layers: plotLayersArr,
     frameCommand: () => {
-      //requestAnimationFrame(frameCommand.bind(frameCommand.this, extents));
       requestAnimationFrame(() => {
         frameCommand(extents);
         scatterFrameFunc(extents);
@@ -96,8 +87,6 @@ for(const key of keys) {
     },
   });
 }
-
-
 
 /*********************** functions *************************/
 
@@ -113,29 +102,13 @@ function registerBrushLayer() {
             activeCommand(_, e) {
               if (!(e.type === "pointer" && this.layer.inside(e))) debugger;
               this.offsetX = e.x;
-              //this.offsetY = e.y;
               this.rawLayer = this.layer;
             },
             frameCommand(_, e) {
-              const extent = [50, 305];
               const node = this.rawLayer.getGraphic();
               const deltaX = e.x - this.offsetX;
-              //const deltaY = e.y - this.offsetY;
-              const base = node
-                .attr("transform")
-                .split("(")[1]
-                .split(")")[0]
-                .split(",")
-                .map((i) => parseFloat(i));
-              const brushWidth = +node.select("rect")?.attr("width") || 0;
+              const base = getXYfromTransform(node);
               node.attr("transform", `translate(${base[0] + deltaX}, ${0})`);
-              // node.attr(
-              //   "transform",
-              //   `translate(${Math.min(
-              //     Math.max(base[0] + deltaX, extent[0]),
-              //     extent[1] - brushWidth
-              //   )}, ${base[1]})`
-              // );
             },
           }),
         ],
@@ -158,7 +131,6 @@ function registerBrushableLayer() {
               const backgroundLayer = this.layer;
               const bg = backgroundLayer.getGraphic();
               const brushHeight = +bg.select("rect").attr("height");
-              const brushWidth = +bg.select("rect").attr("width");
               const brushLayer = IG.Layer.initialize(
                 "brushLayer",
                 0,
@@ -174,23 +146,18 @@ function registerBrushableLayer() {
                 .attr("opacity", 0.3);
               backgroundLayer.brushLayer = brushLayer; // 不太方便
               backgroundLayer.brushStartX = e.x;
-              // backgroundLayer.listen({
-              //   layers: [scatterBackgroundLayer],
-              //   //frameCommand: queryLines,
-              //   frameCommand: () => {},
-              // });
             },
             frameCommand: function (_, e) {
               const brushableLayer = this.layer;
               const brushLayer = brushableLayer.brushLayer;
               const g = brushLayer.getGraphic();
               const width = e.x - this.layer.brushStartX - 1;
-              const start = 1;
               g.select("rect").attr("width", width >= 0 ? width : 0);
               const xy = getXYfromTransform(brushLayer.getGraphic());
-              //console.log(xy);
-              extents.set(brushableLayer.key, [xy[0], xy[0] + width].map(scales.get(brushableLayer.key)));
-              //console.log("frame", extents);
+              extents.set(
+                brushableLayer.key,
+                [xy[0], xy[0] + width].map(scales.get(brushableLayer.key))
+              );
             },
             terminateCommand: function () {
               console.log("terminate");
@@ -215,7 +182,6 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .bin()
     .domain(extent)
     .value((d) => d[key]);
-  //.thresholds(d3.thresholdSturges);
   const binnedData = bin(data);
   let maxY = 0;
   binnedData.forEach((d) => {
@@ -302,20 +268,20 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .data(binnedData)
     .join("rect")
     .attr("fill", "grey")
-    //.attr("fill", "steelblue")
     .attr("x", (d, i) => i * bandStep + bandPadding)
     .attr("y", (d) => scaleY(d.length))
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
-    const barsFiltered = groupMarksFiltered.selectAll("rect")
+  const barsFiltered = groupMarksFiltered
+    .selectAll("rect")
     .data(binnedData)
     .join("rect")
     .attr("fill", "steelblue")
     .attr("x", (d, i) => i * bandStep + bandPadding)
-    .attr("y", d => scaleY(d.length))
+    .attr("y", (d) => scaleY(d.length))
     .attr("width", bandWidth)
-    .attr("height", d => scaleY(0) - scaleY(d.length));
+    .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
   return filterData;
 
@@ -324,7 +290,7 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       .attr("y", (d) => {
         d = d.filter((d) => {
           for (const key of filterExtents.keys()) {
-            const extent= filterExtents.get(key);
+            const extent = filterExtents.get(key);
             if (extent && (d[key] < extent[0] || d[key] > extent[1]))
               return false;
           }
@@ -335,7 +301,7 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       .attr("height", (d) => {
         d = d.filter((d) => {
           for (const key of filterExtents.keys()) {
-            const extent= filterExtents.get(key);
+            const extent = filterExtents.get(key);
             if (extent && (d[key] < extent[0] || d[key] > extent[1]))
               return false;
           }
@@ -344,8 +310,6 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
         return scaleY(0) - scaleY(d.length);
       });
   }
-
-
 }
 
 function renderScatterPlot(
@@ -488,20 +452,20 @@ function renderScatterPlot(
     fieldColor,
     scaleColor
   );
-  
+
   return filterData;
 
   function filterData(filterExtents) {
-    circles
-      .attr("stroke", d => {
-        for (const key of filterExtents.keys()) {
-          const extent = filterExtents.get(key);
-          if (extent && (d[key] < extent[0] || d[key] > extent[1])) return colorHidden;
-        }
-        return scaleColor(d[fieldColor]);
-      });
+    circles.attr("stroke", (d) => {
+      for (const key of filterExtents.keys()) {
+        const extent = filterExtents.get(key);
+        if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+          return colorHidden;
+      }
+      return scaleColor(d[fieldColor]);
+    });
   }
-  
+
   //const { showTooltip, updateTooltip } = renderTooltip(groupTooltip, 0, 0, data, tooltipFields);
   //showTooltip(false);
 
@@ -561,4 +525,3 @@ function getXYfromTransform(node) {
     .split(",")
     .map((i) => parseFloat(i));
 }
-
