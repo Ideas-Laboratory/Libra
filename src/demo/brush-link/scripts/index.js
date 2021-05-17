@@ -30,26 +30,48 @@ const svg = d3
   .attr("height", height)
   .attr("viewbox", `0 0 width height`);
 
-const histogramBackgroundLayers = new Map();
-registerHistogramLayer();
-IG.Layer.register("brushLayer", {constructor: IG.Layer.D3Layer});
+registerBrushLayer();
+registerBrushableLayer();
+
+const plotLayers = new Map();
+const frameFuncs = new Map();
 
 for (let i = 0; i < keys.length; i++) {
   const key = keys[i];
-  const backgroundLayer = IG.Layer.initialize(
-    "histogramLayer",
+  const histogramLayer = IG.Layer.initialize(
+    "D3Layer",
     widthBinnedChart,
     heightBinnedChart,
     svg
   );
-  histogramBackgroundLayers.set(key, backgroundLayer);
-  const g = backgroundLayer
+  const g = histogramLayer
     .getGraphic()
     .attr("transform", `translate(0, ${i * heightBinnedChart})`);
-  renderBinnedChart(g, widthBinnedChart, heightBinnedChart, cars, key);
+
+  renderBinnedChart(
+    histogramLayer,
+    widthBinnedChart,
+    heightBinnedChart,
+    cars,
+    key
+  );
 }
 
-console.log(histogramBackgroundLayers);
+const plotLayersArr = keys.map(k => plotLayers.get(k));
+
+for(const key of keys) {
+  const plotLayer = plotLayers.get(key);
+  const frameCommand = frameFuncs.get(key);
+  //console.log(plotLayer, frameCommand);
+  plotLayer.listen({
+    layers: plotLayersArr,
+    frameCommand: frameCommand
+  });
+  // plotLayer.listen({
+  //   layers: plotLayers,
+  //   frameCommand: frameCommand
+  // });
+}
 
 const scatterBackgroundLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
 const scatterG = scatterBackgroundLayer
@@ -65,179 +87,46 @@ renderScatterPlot(
   fieldColor
 );
 
-//const g = backgroundLayer.getGraphic();
-// g.selectAll("path")
-//   .data(
-//     new Array(10).fill().map(() =>
-//       new Array(11).fill().map((_, i) => ({
-//         x: i * 50,
-//         y: Math.random() * 480 + 10,
-//       }))
-//     )
-//   )
-//   .enter()
-//   .append("path")
-//   .attr("fill", "none")
-//   .attr("stroke-width", 1)
-//   .attr(
-//     "stroke",
-//     () =>
-//       `rgb(${new Array(3)
-//         .fill()
-//         .map(() => Math.floor(Math.random() * 128))
-//         .join(", ")})`
-//   )
-//   .attr(
-//     "d",
-//     d3
-//       .line()
-//       .x((d) => d.x)
-//       .y((d) => d.y)
-//   );
+const extents = new Map();
 
-// IG.Layer.register("TimeboxLayer", {
-//   constructor: IG.Layer.D3Layer,
-//   attach: [
-//     {
-//       precondition: (event, layer) =>
-//         event.type === "pointer" && layer.inside(event),
-//       tools: [
-//         IG.Tool.initialize("DragTool", {
-//           activeCommand(_, e) {
-//             if (!(e.type === "pointer" && this.layer.inside(e))) debugger;
-//             this.offsetX = e.x;
-//             this.offsetY = e.y;
-//             this.rawLayer = this.layer;
-//           },
-//           frameCommand(_, e) {
-//             const node = this.rawLayer.getGraphic();
-//             const deltaX = e.x - this.offsetX;
-//             const deltaY = e.y - this.offsetY;
-//             const base = node
-//               .attr("transform")
-//               .split("(")[1]
-//               .split(")")[0]
-//               .split(",")
-//               .map((i) => parseFloat(i));
-//             node.attr(
-//               "transform",
-//               `translate(${base[0] + deltaX}, ${base[1] + deltaY})`
-//             );
-//             queryLines();
-//           },
-//         }),
-//       ],
-//     },
-//   ],
-// });
+/*********************** functions *************************/
 
-// backgroundLayer.attach({
-//   tool: IG.Tool.initialize("BrushTool", {
-//     activeCommand: (_, e) => {
-//       if (timeboxLayers.find((layer) => layer.inside(e))) {
-//         recentLayer = null;
-//         return;
-//       }
-//       offset = e;
-//       recentLayer = IG.Layer.initialize("TimeboxLayer", 0, 0, svg);
-//       recentLayer
-//         .getGraphic()
-//         .attr("transform", `translate(${e.x},${e.y})`)
-//         .select("rect")
-//         .attr("fill", "black")
-//         .attr("opacity", 0.3);
-//       backgroundLayer.listen({
-//         layers: [recentLayer],
-//         frameCommand: queryLines,
-//       });
-//       timeboxLayers.push(recentLayer);
-//     },
-//     frameCommand: (_, e) => {
-//       if (!recentLayer) return;
-//       recentLayer
-//         .getGraphic()
-//         .select("rect")
-//         .attr("width", e.x - offset.x)
-//         .attr("height", e.y - offset.y);
-//       queryLines();
-//     },
-//   }),
-// });
-
-// const selector = IG.Query.initialize("RectQuery");
-// selector.bindLayer(backgroundLayer);
-
-// function queryLines() {
-//   const result = new Set();
-//   const base = backgroundLayer.getGraphic().node().getBoundingClientRect();
-//   for (let layer of timeboxLayers) {
-//     const bbox = layer.getGraphic().node().getBoundingClientRect();
-//     selector.x = bbox.left - base.left;
-//     selector.y = bbox.top - base.top;
-//     selector.width = bbox.width;
-//     selector.height = bbox.height;
-//     selector.update();
-//     selector.result.forEach((e) => result.add(e));
-//   }
-//   backgroundLayer.getGraphic().selectAll("path").attr("stroke-width", 1);
-//   for (let e of result) {
-//     d3.select(e).attr("stroke-width", 3);
-//   }
-// }
-
-function registerHistogramLayer() {
-  IG.Layer.register("histogramLayer", {
+function registerBrushLayer() {
+  IG.Layer.register("brushLayer", {
     constructor: IG.Layer.D3Layer,
     attach: [
       {
         precondition: (event, layer) =>
           event.type === "pointer" && layer.inside(event),
         tools: [
-          IG.Tool.initialize("BrushTool", {
-            activeCommand: function(_, e) {
-            //console.log(e.type === "pointer" && this.layer.inside(e));
-              // if (timeboxLayers.find((layer) => layer.inside(e))) {
-              //   recentLayer = null;
-              //   return;
-              // }
-              // offset = e;
-              this.layer.brushLayer?.getGraphic().remove();
-              const brushHeight = 90;
-              const backgroundLayer = this.layer;
-              const bg = backgroundLayer.getGraphic();
-              const offsetY = bg.attr("transform").split("translate")[1].split(",")[1].split(")")[0];  // 不太方便
-              const brushLayer = IG.Layer.initialize("brushLayer", 0, 100, svg);
-              brushLayer
-                .getGraphic()
-                .attr("transform", `translate(${e.x},${offsetY})`)
-                .select("rect")
-                .attr("height", brushHeight)  // 不太方便
-                .attr("fill", "black")
-                .attr("opacity", 0.3);
-              backgroundLayer.brushLayer = brushLayer;  // 不太方便
-              backgroundLayer.brushStartX = e.x;
-              backgroundLayer.listen({
-                layers: [scatterBackgroundLayer],
-                //frameCommand: queryLines,
-                frameCommand: () => {},
-              });
+          IG.Tool.initialize("DragTool", {
+            activeCommand(_, e) {
+              if (!(e.type === "pointer" && this.layer.inside(e))) debugger;
+              this.offsetX = e.x;
+              //this.offsetY = e.y;
+              this.rawLayer = this.layer;
             },
-            frameCommand: function(_, e) {
-              // if (!recentLayer) return;
-              // recentLayer
-              //   .getGraphic()
-              //   .select("rect")
-              //   .attr("width", e.x - offset.x)
-              //   .attr("height", e.y - offset.y);
-              const g = this.layer.brushLayer.getGraphic();
-              const width =  e.x - this.layer.brushStartX - 1;
-              g.select("rect").attr("width", width >= 0? width : 0);
-              //queryLines();
-              console.log("frame");
+            frameCommand(_, e) {
+              const extent = [50, 305];
+              const node = this.rawLayer.getGraphic();
+              const deltaX = e.x - this.offsetX;
+              //const deltaY = e.y - this.offsetY;
+              const base = node
+                .attr("transform")
+                .split("(")[1]
+                .split(")")[0]
+                .split(",")
+                .map((i) => parseFloat(i));
+              const brushWidth = +node.select("rect")?.attr("width") || 0;
+              node.attr("transform", `translate(${base[0] + deltaX}, ${0})`);
+              // node.attr(
+              //   "transform",
+              //   `translate(${Math.min(
+              //     Math.max(base[0] + deltaX, extent[0]),
+              //     extent[1] - brushWidth
+              //   )}, ${base[1]})`
+              // );
             },
-            terminateCommand: function() {
-              console.log("terminate");
-            }
           }),
         ],
       },
@@ -245,7 +134,66 @@ function registerHistogramLayer() {
   });
 }
 
-function renderBinnedChart(root, width, height, data, key) {
+function registerBrushableLayer() {
+  IG.Layer.register("brushableLayer", {
+    constructor: IG.Layer.D3Layer,
+    attach: [
+      {
+        precondition: (event, layer) =>
+          event.type === "pointer" && layer.inside(event),
+        tools: [
+          IG.Tool.initialize("BrushTool", {
+            activeCommand: function (_, e) {
+              this.layer.brushLayer?.getGraphic().remove();
+              const backgroundLayer = this.layer;
+              const bg = backgroundLayer.getGraphic();
+              const brushHeight = +bg.select("rect").attr("height");
+              const brushWidth = +bg.select("rect").attr("width");
+              const brushLayer = IG.Layer.initialize(
+                "brushLayer",
+                0,
+                brushHeight,
+                bg
+              );
+              brushLayer
+                .getGraphic()
+                .attr("transform", `translate(${e.x}, 0)`)
+                .select("rect")
+                .attr("height", brushHeight) // 不太方便
+                .attr("fill", "black")
+                .attr("opacity", 0.3);
+              backgroundLayer.brushLayer = brushLayer; // 不太方便
+              backgroundLayer.brushStartX = e.x;
+              // backgroundLayer.listen({
+              //   layers: [scatterBackgroundLayer],
+              //   //frameCommand: queryLines,
+              //   frameCommand: () => {},
+              // });
+            },
+            frameCommand: function (_, e) {
+              const brushableLayer = this.layer;
+              const brushLayer = brushableLayer.brushLayer;
+              const g = brushLayer.getGraphic();
+              const width = e.x - this.layer.brushStartX - 1;
+              const start = 1;
+              g.select("rect").attr("width", width >= 0 ? width : 0);
+              const xy = getXYfromTransform(brushLayer.getGraphic());
+              //console.log(xy);
+              extents.set(brushableLayer.key, [xy[0], xy[0] + width]);
+              console.log("frame", extents);
+            },
+            terminateCommand: function () {
+              console.log("terminate");
+            },
+          }),
+        ],
+      },
+    ],
+  });
+}
+
+function renderBinnedChart(rootLayer, width, height, data, key) {
+  const root = rootLayer.getGraphic();
   // layout
   const margin = { top: 10, right: 10, bottom: 40, left: 50 };
   width -= margin.left + margin.right;
@@ -297,14 +245,6 @@ function renderBinnedChart(root, width, height, data, key) {
       "transform",
       `translate(${margin.left + width / 2}, ${margin.top + height})`
     );
-  const groupPlot = root
-    .append("g")
-    .attr("class", "groupPlot")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  const groupMarks = groupPlot.append("g").attr("class", "groupMarks");
-  const groupMarksFiltered = groupPlot
-    .append("g")
-    .attr("class", "groupMarksFiltered");
 
   // draw
   groupAxisX.call(d3.axisBottom(scaleX));
@@ -332,16 +272,67 @@ function renderBinnedChart(root, width, height, data, key) {
       "y",
       groupAxisX.node().getBBox().height + groupTitle.node().getBBox().height
     );
+
+  /******************** layer *********************/
+  const plotLayer = IG.Layer.initialize("brushableLayer", width, height, root);
+  plotLayer.key = key;
+  plotLayers.set(key, plotLayer);
+
+  const groupPlot = plotLayer
+    .getGraphic()
+    .attr("class", "groupPlot")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+  const groupMarks = groupPlot.append("g").attr("class", "groupMarks");
+  const groupMarksFiltered = groupPlot
+    .append("g")
+    .attr("class", "groupMarksFiltered");
   groupMarks
     .selectAll("rect")
     .data(binnedData)
     .join("rect")
-    //.attr("fill", "grey")
-    .attr("fill", "steelblue")
+    .attr("fill", "grey")
+    //.attr("fill", "steelblue")
     .attr("x", (d, i) => i * bandStep + bandPadding)
     .attr("y", (d) => scaleY(d.length))
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
+
+    const barsFiltered = groupMarksFiltered.selectAll("rect")
+    .data(binnedData)
+    .join("rect")
+    .attr("fill", "steelblue")
+    .attr("x", (d, i) => i * bandStep + bandPadding)
+    .attr("y", d => scaleY(d.length))
+    .attr("width", bandWidth)
+    .attr("height", d => scaleY(0) - scaleY(d.length));
+
+  frameFuncs.set(key, function filterData(filterExtents) {
+    barsFiltered
+      .attr("y", (d) => {
+        d = d.filter((d) => {
+          for (const key in filterExtents) {
+            const extent = filterExtents[key];
+            if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+              return false;
+          }
+          return true;
+        });
+        return scaleY(d.length);
+      })
+      .attr("height", (d) => {
+        d = d.filter((d) => {
+          for (const key in filterExtents) {
+            const extent = filterExtents[key];
+            if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+              return false;
+          }
+          return true;
+        });
+        return scaleY(0) - scaleY(d.length);
+      });
+  });
+
+  //return plotLayer;
   // const barsFiltered = groupMarksFiltered.selectAll("rect")
   //   .data(binnedData)
   //   .join("rect")
@@ -542,3 +533,14 @@ function renderLegends(root, width, height, field, scaleColor) {
     .attr("cy", (d) => scaleY(d))
     .attr("r", radius);
 }
+
+function getXYfromTransform(node) {
+  return node
+    .attr("transform")
+    .split("(")[1]
+    .split(")")[0]
+    .split(",")
+    .map((i) => parseFloat(i));
+}
+
+function queryCircles() {}
