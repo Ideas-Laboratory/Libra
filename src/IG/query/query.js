@@ -1,11 +1,11 @@
-const registeredQuerys = {};
+const registeredSelectors = {};
 
-export default class Query {
+export default class Selector {
   _result = [];
   _layer = null;
   _dirty = false;
 
-  constructor(name = "Query") {
+  constructor(name = "Selector") {
     this._name = name;
   }
 
@@ -39,29 +39,29 @@ export default class Query {
   }
 }
 
-Query.register = function register(name, optionOrQuery) {
+Selector.register = function register(name, optionOrSelector) {
   let option;
-  if (optionOrQuery instanceof Query) {
-    option = optionOrQuery._toTemplate();
-    option.constructor = optionOrQuery.constructor;
+  if (optionOrSelector instanceof Selector) {
+    option = optionOrSelector._toTemplate();
+    option.constructor = optionOrSelector.constructor;
   } else {
-    option = optionOrQuery;
+    option = optionOrSelector;
     option.constructor = option.hasOwnProperty("constructor")
       ? option.constructor
-      : Query;
+      : Selector;
   }
-  registeredQuerys[name] = option;
+  registeredSelectors[name] = option;
   return true;
 };
 
-Query.unregister = function unregister(name) {
-  delete registeredQuerys[name];
+Selector.unregister = function unregister(name) {
+  delete registeredSelectors[name];
   return true;
 };
 
-Query.initialize = function initialize(name, ...params) {
+Selector.initialize = function initialize(name, ...params) {
   let option;
-  if ((option = registeredQuerys[name])) {
+  if ((option = registeredSelectors[name])) {
     const query = new option.constructor(
       name,
       ...(option.extraParams || []),
@@ -72,4 +72,4 @@ Query.initialize = function initialize(name, ...params) {
   return null;
 };
 
-Query.register("Query", { constructor: Query });
+Selector.register("Selector", { constructor: Selector });

@@ -1,6 +1,6 @@
-import Query from "./index";
+import Selector from "./index";
 
-export default class CircleQuery extends Query {
+export default class CircleSelector extends Selector {
   cx = 0;
   cy = 0;
   r = 0;
@@ -51,4 +51,4 @@ export default class CircleQuery extends Query {
   }
 }
 
-Query.register("CircleQuery", { constructor: CircleQuery });
+Selector.register("CircleSelector", { constructor: CircleSelector });

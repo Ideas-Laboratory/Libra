@@ -1,6 +1,6 @@
-import Query from "./index";
+import Selector from "./index";
 
-export default class PointQuery extends Query {
+export default class PointSelector extends Selector {
   x = 0;
   y = 0;
 
@@ -30,4 +30,4 @@ export default class PointQuery extends Query {
   }
 }
 
-Query.register("PointQuery", { constructor: PointQuery });
+Selector.register("PointSelector", { constructor: PointSelector });

@@ -1,7 +1,7 @@
 import helpers from "../helpers";
 
 interface InteractorConstructor {
-  new (name: string): Query;
+  new (name: string): Selector;
 }
 
 export = class Interactor {

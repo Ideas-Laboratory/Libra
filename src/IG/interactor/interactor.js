@@ -1,4 +1,4 @@
-const registeredQuerys = {};
+const registeredSelectors = {};
 
 export default class Interactor {
   _name;
@@ -148,29 +148,29 @@ export default class Interactor {
   }
 }
 
-Interactor.register = function register(name, optionOrQuery) {
+Interactor.register = function register(name, optionOrSelector) {
   let option;
-  if (optionOrQuery instanceof Interactor) {
-    option = optionOrQuery._toTemplate();
-    option.constructor = optionOrQuery.constructor;
+  if (optionOrSelector instanceof Interactor) {
+    option = optionOrSelector._toTemplate();
+    option.constructor = optionOrSelector.constructor;
   } else {
-    option = optionOrQuery;
+    option = optionOrSelector;
     option.constructor = option.hasOwnProperty("constructor")
       ? option.constructor
       : Interactor;
   }
-  registeredQuerys[name] = option;
+  registeredSelectors[name] = option;
   return true;
 };
 
 Interactor.unregister = function unregister(name) {
-  delete registeredQuerys[name];
+  delete registeredSelectors[name];
   return true;
 };
 
 Interactor.initialize = function initialize(name, ...params) {
   let option;
-  if ((option = registeredQuerys[name])) {
+  if ((option = registeredSelectors[name])) {
     const interactor = new option.constructor(
       name,
       ...(option.extraParams || []),

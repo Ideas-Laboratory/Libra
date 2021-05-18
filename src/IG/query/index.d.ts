@@ -1,12 +1,12 @@
 import Layer from "../layer";
 
-interface QueryConstructor {
-  new (name: string): Query;
+interface SelectorConstructor {
+  new (name: string): Selector;
 }
 
-export = class Query {
-  constructor(name: string): Query;
-  clone(): Query;
+export = class Selector {
+  constructor(name: string): Selector;
+  clone(): Selector;
   update(): void;
   result(): any[];
   bindLayer(layer: Layer): void;
@@ -14,14 +14,14 @@ export = class Query {
 
 export function register(
   name: string,
-  optionOrQuery:
-    | Query
+  optionOrSelector:
+    | Selector
     | {
-        constructor?: QueryConstructor;
+        constructor?: SelectorConstructor;
         extraParams?: any[];
       }
 ): boolean;
 
-export function initialize(name: string): Query;
+export function initialize(name: string): Selector;
 
 export function unregister(name: string): boolean;

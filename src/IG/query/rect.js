@@ -1,6 +1,6 @@
-import Query from "./index";
+import Selector from "./index";
 
-export default class RectQuery extends Query {
+export default class RectSelector extends Selector {
   x = 0;
   y = 0;
   width = 0;
@@ -46,4 +46,4 @@ export default class RectQuery extends Query {
   }
 }
 
-Query.register("RectQuery", { constructor: RectQuery });
+Selector.register("RectSelector", { constructor: RectSelector });

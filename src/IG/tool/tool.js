@@ -1,5 +1,5 @@
 import Interactor from "../interactor";
-import Query from "../query";
+import Selector from "../query";
 
 const registeredTools = {};
 
@@ -238,7 +238,7 @@ Tool.register("Tool", {});
 
 const trajectoryInteractor = Interactor.initialize("TrajectoryInteractor");
 Tool.register("ClickTool", {
-  query: Query.initialize("PointQuery"),
+  query: Selector.initialize("PointSelector"),
   relations: [
     {
       attribute: "x",
@@ -254,7 +254,7 @@ Tool.register("ClickTool", {
 });
 
 Tool.register("DragTool", {
-  query: Query.initialize("PointQuery"),
+  query: Selector.initialize("PointSelector"),
   relations: [
     {
       attribute: "x",
@@ -270,7 +270,7 @@ Tool.register("DragTool", {
 });
 
 Tool.register("BrushTool", {
-  query: Query.initialize("RectQuery"),
+  query: Selector.initialize("RectSelector"),
   relations: [
     {
       attribute: "x",
@@ -297,7 +297,7 @@ Tool.register("BrushTool", {
 
 const wheelInteractor = Interactor.initialize("WheelInteractor");
 Tool.register("ZoomTool", {
-  query: Query.initialize("Query"),
+  query: Selector.initialize("Selector"),
   relations: [
     {
       attribute: "wheel",
@@ -308,7 +308,7 @@ Tool.register("ZoomTool", {
 
 const pointerInteractor = Interactor.initialize("PointerInteractor");
 Tool.register("HoverTool", {
-  query: Query.initialize("PointQuery"),
+  query: Selector.initialize("PointSelector"),
   relations: [
     {
       attribute: "x",
