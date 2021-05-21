@@ -191,7 +191,7 @@ Interactor.register("Interactor", {});
 Interactor.register("TrajectoryInteractor", {
   startActions: "mousedown",
   runningActions: "mousemove",
-  outsideActions: "mouseup",
+  outsideActions: ["mouseup", "mouseleave"],
   backInsideActions: "mousedown",
 });
 
