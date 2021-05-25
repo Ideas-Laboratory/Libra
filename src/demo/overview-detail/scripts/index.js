@@ -15,14 +15,15 @@ var margin = { top: 20, right: 20, bottom: 110, left: 40 },
   width = +svg.attr("width") - margin.left - margin.right,
   height = +svg.attr("height") - margin.top - margin.bottom,
   height2 = +svg.attr("height") - margin2.top - margin2.bottom;
+let layer1Root = svg.append("g").attr("id", "layer1Root");
+let layer2Root = svg.append("g").attr("id", "layer2Root");
+const layer1 = IG.Layer.initialize("D3Layer", width, height, layer1Root);
+const layer2 = IG.Layer.initialize("D3Layer", width, height2, layer2Root);
 
-const layer1 = IG.Layer.initialize("D3Layer", width, height, svg);
-const layer2 = IG.Layer.initialize("D3Layer", width, height2, svg);
+const axesLayer = IG.Layer.initialize("D3Layer", width, height, layer1Root);
+const pointsLayer = IG.Layer.initialize("D3Layer", width, height, layer1Root);
 
-const axesLayer = IG.Layer.initialize("D3Layer", width, height, svg);
-const pointsLayer = IG.Layer.initialize("D3Layer", width, height, svg);
-
-const contextAxesLayer = IG.Layer.initialize("D3Layer", width, height2, svg);
+const contextAxesLayer = IG.Layer.initialize("D3Layer", width, height2, layer2Root);
 
 var x = d3.scaleTime().range([0, width]),
   x2 = d3.scaleTime().range([0, width]),
@@ -116,7 +117,7 @@ points.selectAll(".dot")
   .attr("class", "dot")
   .attr("cx", function (d, i) { return x(d.date); })
   .attr("cy", function (d) { return y(d.value); })
-  .attr("r", 3)
+  .attr("r", 5)
   .attr("pointer-events", "all");
 
 
@@ -133,125 +134,311 @@ contextAxes.append("g")
   .call(xAxis2);
 
 
+function updateHover(circle, color) {
+  d3.select(circle)
+    .attr("fill", color)
+    .attr("nothing", function (d) {
+      textg.text(`Value:${d.value} `)
+        .attr("x", function () {
+          return +d3.select(circle).attr("cx") + 40;
+        })
+        .attr("y", function () {
+          return +d3.select(circle).attr("cy") + 40;
+        });
+    });
+}
 
+function rectQuery() {
+  let rect = brushLayer.getGraphic().select("rect");
+  let lx = +rect.attr("x");
+  let width = +rect.attr("width");
+  let rx = width + lx;
+  updateView(lx, rx);
+}
 
+function computeByDelta(delta) {
+  let node = brushLayer.getGraphic().select("rect");
+  let width = +node.attr("width");
+  let x = +node.attr("x");
+  if (delta > 0) {
+    x = +x + 2;
+    width = +width - 4;
+  } else {
+    x = +x - 2;
+    width = +width + 4;
+  }
+  return { x, width };
+}
 
+function updateBrushRect(startX, width, height) {
+  if (width >= 0) {
+    brushLayer
+      .getGraphic()
+      .select("rect")
+      .attr("x", startX)
+      .attr("y", 0)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class", "brush")
+      .attr("fill", "black")
+      .attr("opacity", 0.3);
+  }
+}
 
+function updateView(lx, rx) {
+  if (lx !== rx) {
+    x.domain([x2.invert(lx), x2.invert(rx)]);
+    focus.select(".line").attr("d", d3.line()
+      .x(function (d) { return x(d.date); })
+      .y(function (d) { return y(d.value); })
+    );
+    points.selectAll('circle')
+      .attr("cx", function (d, i) { return x(d.date); })
+      .attr("cy", function (d) { return y(d.value); })
+      .attr("sid", function (d) {
+        let sid = d3.select(this).attr("sid");
+        if (sid !== undefined) {
+          annotationLayers.forEach((annotationLayer) => {
+            let group = annotationLayer.getGraphic();
+            if (group.attr("sid") === sid) {
+              let startX = x(d.date);
+              let startY = y(d.value);
+              updateAnnotationGroup(annotationLayer, startX, startY);
+            }
+          });
+        }
+        return sid;
+      });
+    axes.selectAll(".axis--x *").remove();
+    axes.select(".axis--x").call(xAxis);
+  } else {
+    x.domain(d3.extent(vdata, function (d) { return d.date; }));
+    focus.select(".line").attr("d", d3.line()
+      .x(function (d) { return x(d.date); })
+      .y(function (d) { return y(d.value); })
+    );
+    points.selectAll('circle')
+      .attr("cx", function (d, i) { return x(d.date); })
+      .attr("cy", function (d) { return y(d.value); })
+      .attr("sid", function (d) {
+        let sid = d3.select(this).attr("sid");
+        if (sid !== undefined) {
+          annotationLayers.forEach((annotationLayer) => {
+            let group = annotationLayer.getGraphic();
+            if (group.attr("sid") === sid) {
+              let startX = x(d.date);
+              let startY = y(d.value);
+              updateAnnotationGroup(annotationLayer, startX, startY);
+            }
+          });
+        }
+        return sid;
+      });
+    axes.selectAll(".axis--x *").remove();
+    axes.select(".axis--x").call(xAxis);
+  }
+}
+function createAnnotationLayer() {
+  let annotationLayer = IG.Layer.initialize("D3Layer", 0, 0, layer1Root);
+  annotationLayer.getGraphic()
+    .attr("clip-path", "url(#clip)")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    .attr("class", "annotationLayer")
+    .attr("sid", annotationLayers.length + 1)
+    .append("line")
+    .attr("fill", "black");
+  annotationLayer.getGraphic()
+    .append("rect")
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 3)
+    .attr("class", "rectBound");
+  annotationLayer.getGraphic()
+    .append("text")
+    .attr("dominant-baseline", "middle");
+
+  return annotationLayer;
+}
+let rectBoundWidth = 90;
+let rectBoundHeight = 30;
+function updateAnnotationLayer(annotationLayer, recentCircle, width, height) {
+  let group = annotationLayer.getGraphic();
+  let selection = d3.select(recentCircle)
+    .attr("sid", annotationLayers.length);
+  let info = selection.datum()["product_date"];
+  let startX = +selection.attr("cx");
+  let startY = +selection.attr("cy");
+  let endX = startX + width;
+  let endY = startY + height;
+  group.select("line")
+    .attr("x1", startX)
+    .attr("y1", startY)
+    .attr("x2", endX)
+    .attr("y2", endY)
+    .attr("stroke-width", 2)
+    .attr("stroke", "black");
+  group.select(".rectBound")
+    .attr("x", endX)
+    .attr("y", endY)
+    .attr("width", rectBoundWidth)
+    .attr("height", rectBoundHeight);
+  group.select("text")
+    .text(info)
+    .attr("x", endX)
+    .attr("y", endY + rectBoundHeight / 2);
+}
+function updateAnnotationGroup(annotationLayer, startX, startY) {
+  let group = annotationLayer.getGraphic();
+  let line = group.select("line");
+  let rectBound = group.select(".rectBound");
+  let text = group.select("text");
+  let lineWidth = +line.attr("x2") - (+line.attr("x1"));
+  let lineHeight = +line.attr("y2") - (+line.attr("y1"));
+  let endX = startX + lineWidth;
+  let endY = startY + lineHeight;
+  line
+    .attr("x1", startX)
+    .attr("y1", startY)
+    .attr("x2", endX)
+    .attr("y2", endY);
+  rectBound
+    .attr("x", endX)
+    .attr("y", endY);
+  text
+    .attr("x", endX)
+    .attr("y", endY + rectBoundHeight / 2);
+}
+function computeOffset(obj1, obj2) {
+  let startX = +obj1.x;
+  let startY = +obj1.y;
+  let endX = +obj2.rawEvent.clientX;
+  let endY = + obj2.rawEvent.clientY;
+  let width = endX - startX;
+  let height = endY - startY;
+  return { width, height };
+}
+function updateRectByDrag(offWidth) {
+  let ratio = 0.3;
+  let brushRect = brushLayer.getGraphic()
+    .select("rect");
+  let width = +brushRect.attr("width");
+  if (width <= 0) return;
+  let rectX = +brushRect.attr("x");
+  let newX = offWidth * ratio + rectX;
+  updateBrushRect(newX, width, height2);
+  rectQuery();
+
+}
 
 let textg = tipg.append("text");
-pointsLayer.attach({
-  tool: IG.Tool.initialize("HoverTool", {
-    frameCommand: ({ result, x, y }) => {
-
-      textg.text("");
-      result.forEach((circle) => {
-
-        d3.select(circle)
-          .attr("nothing", function (d) {
-            textg.text(`Value:${d.value} `)
-              .attr("x", function () {
-                return +d3.select(circle).attr("cx") + 40;
-              })
-              .attr("y", function () {
-                return +d3.select(circle).attr("cy") + 40;
-              });
-          });
-
-      });
-
-    },
-  }),
-});
-
-let brushLayer = IG.Layer.initialize("D3Layer", 0, 0, svg);
+let brushLayer = IG.Layer.initialize("D3Layer", 0, 0, layer2Root);
 brushLayer.getGraphic()
   .classed("star", true)
   .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
+
+
+
+let annotationLayers = [];
+let recentCircle;
+let annotationState = false;
+let dragAnnoState = false;
+let annoOffet = { x: 0, y: 0 };
 let offset;
 let brushState = false;
-layer2.attach({
-  tool: IG.Tool.initialize("BrushTool", {
-    activeCommand: (_, e) => {
-      if (brushLayer.inside(e)) {
-        return;
-      }
+let dragState = false;
+let OnCircle ;
 
-      brushState = true;
-      offset = e;
-      brushLayer
-        .getGraphic()
-        .select("rect")
-        .attr("x", `${offset.x}`)
-        .attr("class", "brush")
-        .attr("fill", "black")
-        .attr("opacity", 0.3);
-
-
-    },
-    frameCommand: (_, e) => {
-      if (!brushState) return;
-      brushLayer
-        .getGraphic()
-        .select("rect")
-        .attr("x", `${offset.x}`)
-        .attr("y", 0)
-        .attr("width", Math.abs(e.x - offset.x))
-        .attr("height", height2);
-      if (+brushLayer.getGraphic().select("rect").attr("width") > 0) {
-        updateView(offset.x, e.x);
-      }
-
-    },
-    terminateCommand: () => {
-      brushState = false;
-      let width = +brushLayer.getGraphic().select("rect").attr("width");
-      if (width <= 0) {
-        x.domain(d3.extent(vdata, function (d) { return d.date; }));
-        focus.select(".line").attr("d", d3.line()
-          .x(function (d) { return x(d.date); })
-          .y(function (d) { return y(d.value); })
-        );
-        points.selectAll('circle')
-          .attr("cx", function (d, i) { return x(d.date); })
-          .attr("cy", function (d) { return y(d.value); });
-        //axes.select(".axis--x").call(xAxis);
-        axes.selectAll(".axis--x *").remove();
-        axes.select(".axis--x").call(xAxis);
-      }
+/********************************  The part of interaction！  *********************************/
+// HoverTool 
+pointsLayer.attach({
+  tool: IG.Tool.initialize("HoverTool", {
+    frameCommand: ({ result, x, y }) => {
+      textg.text("");
+      points.selectAll("circle").attr("fill", "black");
+      OnCircle = undefined;
+      result.forEach((circle) => {
+        updateHover(circle, "red");
+        OnCircle = circle;
+      });
     },
   }),
 });
 
-brushLayer.attach({
-  tool: IG.Tool.initialize("ZoomTool", {
-    frameCommand: (_, e) => {
-      let node = brushLayer.getGraphic().select("rect");
-      let delta = 0;
-      let width = +node.attr("width");
-      let x = +node.attr("x");
-      if (e.delta > 0) {
-        x = +x + 2;
-        width = +width - 4;
-      } else {
-        x = +x - 2;
-        width = +width + 4;
-      }
-      if (width > 0) {
-        brushLayer
-          .getGraphic()
-          .select("rect")
-          .attr("x", x)
-          .attr("y", 0)
-          .attr("width", width)
-          .attr("height", height2);
-        updateView(x, x + width);
-      }
+// DragTool
+pointsLayer.attach({
+  tool: IG.Tool.initialize("DragTool", {
+    activeCommand: (obj, e) => {
+      annoOffet.x = e.rawEvent.clientX;
+      annoOffet.y = e.rawEvent.clientY;
 
+      // if (obj.result.length === 0) {
+      //   dragAnnoState = true;
+      //   return;
+      // }
+      if(OnCircle === undefined){
+        dragAnnoState = true;
+        return;
+      }
+      annotationState = true;
+      annotationLayers.push(createAnnotationLayer());
+      recentCircle = OnCircle;
+      //d3.select(obj.result[0]).attr("annotation", "true");
+      d3.select(OnCircle).attr("annotation", "true");
+    },
+    frameCommand: (obj, e) => {
+      let offset = computeOffset(annoOffet, e);
+      if (dragAnnoState) {
+        updateRectByDrag(offset.width);
+        annoOffet.x = e.rawEvent.clientX;
+        annoOffet.y = e.rawEvent.clientY;
+        return;
+      };
+      updateAnnotationLayer(annotationLayers[annotationLayers.length - 1], recentCircle, offset.width, offset.height);
+    },
+    terminateCommand: () => {
+      annotationState = false;
+      dragAnnoState = false;
     }
   })
 });
 
-let dragState = false;
+// Listen
+pointsLayer.listen({
+  layers: [brushLayer],
+  frameCommand: rectQuery
+});
+
+// BrushTool
+layer2.attach({
+  tool: IG.Tool.initialize("BrushTool", {
+    activeCommand: (_, e) => {
+      if (brushLayer.inside(e)) return;
+      brushState = true;
+      offset = e;
+      updateBrushRect(offset.x, 0, height2);
+    },
+    frameCommand: (_, e) => {
+      if (!brushState) return;
+      let width = Math.abs(e.x - offset.x);
+      updateBrushRect(offset.x, width, height2);
+    },
+    terminateCommand: () => {
+      brushState = false;
+    },
+  }),
+});
+
+// ZoomTool
+brushLayer.attach({
+  tool: IG.Tool.initialize("ZoomTool", {
+    frameCommand: (_, e) => {
+      let arg = computeByDelta(e.delta);
+      updateBrushRect(arg.x, arg.width, height2);
+    }
+  })
+});
+
+// DragTool
 brushLayer.attach({
   tool: IG.Tool.initialize("DragTool", {
     activeCommand(_, e) {
@@ -267,22 +454,9 @@ brushLayer.attach({
       const deltaX = e.rawEvent.clientX - this.offsetX;
       node.select("rect").attr("x", this.x + deltaX);
       let width = +node.select("rect").attr("width");
-      updateView(this.x + deltaX, this.x + deltaX + width);
     },
   })
 });
 
-function updateView(lx, rx) {
-  x.domain([x2.invert(lx), x2.invert(rx)]);
-  focus.select(".line").attr("d", d3.line()
-    .x(function (d) { return x(d.date); })
-    .y(function (d) { return y(d.value); })
-  );
-  points.selectAll('circle')
-    .attr("cx", function (d, i) { return x(d.date); })
-    .attr("cy", function (d) { return y(d.value); });
-  axes.selectAll(".axis--x *").remove();
-  axes.select(".axis--x").call(xAxis);
-}
 
 
