@@ -7,13 +7,13 @@ export default class CircleSelectionManager extends SelectionManager {
 
   evaluate() {
     if (
-      !this._layer ||
-      !this._layer.objects ||
-      !(this._layer.objects instanceof Function)
+      !this._layers[0] ||
+      !this._layers[0].objects ||
+      !(this._layers[0].objects instanceof Function)
     )
       return;
-    const objects = this._layer.objects();
-    let root = this._layer._root;
+    const objects = this._layers[0].objects();
+    let root = this._layers[0]._root;
     let bbox = { left: 0, top: 0 };
     if (root) {
       root = root.node ? root.node() : root;
@@ -51,4 +51,6 @@ export default class CircleSelectionManager extends SelectionManager {
   }
 }
 
-SelectionManager.register("CircleSelectionManager", { constructor: CircleSelectionManager });
+SelectionManager.register("CircleSelectionManager", {
+  constructor: CircleSelectionManager,
+});

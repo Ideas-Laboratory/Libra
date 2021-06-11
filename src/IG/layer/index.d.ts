@@ -1,24 +1,22 @@
 import * as helpers from "../helpers";
 import Tool from "../tool";
 
-type LayerAttachOption =
-  | {
-      precondition?: boolean | ((event: helpers.Event) => boolean);
-      tools: Tool[];
-    }
-  | {
-      precondition?: boolean | ((event: helpers.Event) => boolean);
-      tool: Tool;
-    };
-
 type LayerListenOption =
   | {
       layers: Layer[];
-      frameCommand: () => void;
+      updateCommand: () => void;
     }
   | {
       layer: Layer;
-      frameCommand: () => void;
+      updateCommand: () => void;
+    }
+  | {
+      tools: Tool[];
+      [command: string]: () => void;
+    }
+  | {
+      tool: Tool;
+      [command: string]: () => void;
     };
 
 interface LayerConstructor {
@@ -27,8 +25,17 @@ interface LayerConstructor {
 
 export = class Layer {
   constructor(name: string): Layer;
-  attach(option: LayerAttachOption): void;
   listen(option: LayerListenOption): void;
+  getGraphic(): HTMLOrSVGElement;
+  getRootGraphic(): HTMLOrSVGElement;
+  getSharedScale(name: string): any;
+  setSharedScale(name: string, scale: any): void;
+
+  getObjects(): any[];
+  onObject(pointer: helpers.Point): boolean;
+  query(selector: string): any[];
+  pick(shape: helpers.ShapeDescriptor): any[];
+  find(dataFilter: (data: any) => boolean): any[];
 };
 
 export function register(
@@ -37,8 +44,9 @@ export function register(
     | Layer
     | {
         constructor?: LayerConstructor;
-        attach?: LayerAttachOption | LayerListenOption[];
         listen?: LayerListenOption | LayerListenOption[];
+        preInstall?: (layer: Layer) => void;
+        postInstall?: (layer: Layer) => void;
       }
 ): boolean;
 

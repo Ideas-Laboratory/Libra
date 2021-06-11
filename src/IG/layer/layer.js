@@ -2,11 +2,13 @@ const registeredLayers = {};
 const instanceLayers = [];
 
 export default class Layer {
+  _root = document.body;
+  _container = window;
   _name;
-  _pureTools = [];
-  _preconditionTools = [];
   _listeners = [];
-  _observes = [];
+  _initOptions = [];
+  _sharedScale = {};
+  _notifyTimer = null;
 
   constructor(name = "Layer") {
     this._name = name;
@@ -15,16 +17,23 @@ export default class Layer {
 
   _toTemplate() {
     return {
-      attach: [{ tools: _pureTools }, ...this._preconditionTools],
-      listen: this._observes.slice(0),
+      listen: this._initOptions.slice(0),
     };
   }
 
-  _injectTool(tool) {
-    tool._activeListeners.push(this._notify.bind(this));
-    tool._frameListeners.push(this._notify.bind(this));
-    tool._terminateListeners.push(this._notify.bind(this));
-    tool._query?.bindLayer(this);
+  _injectTool(tool, options) {
+    Object.entries(options).forEach(([command, callback]) => {
+      if (!command.endsWith("Command")) return;
+      const _this = this;
+      tool._listeners[command].set(function () {
+        callback.apply(_this, arguments);
+        clearTimeout(_this._notifyTimer);
+        _this._notifyTimer = setTimeout(_this._notify.bind(_this), 0);
+      });
+    });
+    if (!tool._query?.layers.length) {
+      tool._query?.bindLayer(this);
+    }
   }
 
   _notify() {
@@ -35,34 +44,57 @@ export default class Layer {
     });
   }
 
-  attach(option) {
-    if (option.precondition !== undefined) {
-      this._preconditionTools.push({ ...option });
-    } else {
-      if (option.tools) {
-        this._pureTools = this._pureTools.concat(option.tools);
-      } else if (option.tool) {
-        this._pureTools.push(option.tool);
+  listen(options) {
+    this._initOptions.push(options);
+    if (options.layers) {
+      for (let layer of options.layers) {
+        layer._listeners.push(options.updateCommand);
       }
-    }
-    if (option.tools) {
-      for (let tool of option.tools) {
-        this._injectTool(tool);
+    } else if (options.layer) {
+      options.layer._listeners.push(options.updateCommand);
+    } else if (options.tools) {
+      for (let tool of options.tools) {
+        this._injectTool(tool, options);
       }
-    } else if (option.tool) {
-      this._injectTool(option.tool);
+    } else if (options.tool) {
+      this._injectTool(options.tool, options);
     }
   }
 
-  listen(option) {
-    this._observes.push(option);
-    if (option.layers) {
-      for (let layer of option.layers) {
-        layer._listeners.push(option.frameCommand);
-      }
-    } else if (option.layer) {
-      option.layer._listeners.push(option.frameCommand);
-    }
+  getGraphic() {
+    return this._root;
+  }
+
+  getRootGraphic() {
+    return this._container;
+  }
+
+  getObjects() {
+    return [];
+  }
+
+  onObject() {
+    return false;
+  }
+
+  query() {
+    return [];
+  }
+
+  pick() {
+    return [];
+  }
+
+  find() {
+    return [];
+  }
+
+  getSharedScale(name) {
+    return this._sharedScale[name];
+  }
+
+  setSharedScale(name, scale) {
+    this._sharedScale[name] = scale;
   }
 }
 
@@ -87,39 +119,42 @@ Layer.unregister = function unregister(name) {
 };
 
 Layer.initialize = function initialize(name, ...params) {
-  let option;
-  if ((option = registeredLayers[name])) {
-    const layer = new option.constructor(
+  let options;
+  if ((options = registeredLayers[name])) {
+    const layer = new options.constructor(
       name,
-      ...(option.extraParams || []),
+      ...(options.extraParams || []),
       ...params
     );
+    if (options.preInstall && options.preInstall instanceof Function) {
+      options.preInstall.call(layer, layer);
+    }
     const remapping = new Map();
-    for (let attach of option.attach || []) {
-      if (attach.tools) {
-        attach.tools = attach.tools.slice(0);
-        for (let i in attach.tools) {
-          const t = attach.tools[i];
+    for (let option of options.listen || []) {
+      if (option.tools) {
+        option.tools = option.tools.slice(0);
+        for (let i in option.tools) {
+          const t = option.tools[i];
           if (remapping.has(t)) {
-            attach.tools[i] = remapping.get(t);
+            option.tools[i] = remapping.get(t);
           } else {
-            attach.tools[i] = attach.tools[i].clone();
-            remapping.set(t, attach.tools[i]);
+            option.tools[i] = option.tools[i].clone();
+            remapping.set(t, option.tools[i]);
           }
         }
-      } else if (attach.tool) {
-        const t = attach.tool;
+      } else if (option.tool) {
+        const t = option.tool;
         if (remapping.has(t)) {
-          attach.tool = remapping.get(t);
+          option.tool = remapping.get(t);
         } else {
-          attach.tool = attach.tool.clone();
-          remapping.set(t, attach.tool);
+          option.tool = option.tool.clone();
+          remapping.set(t, option.tool);
         }
       }
-      layer.attach(attach);
+      layer.listen(option);
     }
-    for (let anotherLayer of option.listen || []) {
-      layer.listen(anotherLayer);
+    if (options.postInstall && options.postInstall instanceof Function) {
+      options.postInstall.call(layer, layer);
     }
     return layer;
   }

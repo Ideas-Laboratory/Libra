@@ -5,3 +5,4 @@ export type Event =
   | { type: "keyboard" | "mouse"; keyCode: number }
   | { type: "state"; state: "start" | "running" | "outside" };
 export type AvailableFreedomType = number;
+export type ShapeDescriptor = { type: string; [attr: string]: any };
