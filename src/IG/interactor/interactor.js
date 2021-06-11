@@ -1,11 +1,12 @@
+import { makeFlexibleListener } from "../helpers";
+
 const registeredSelectionManagers = {};
 
 export default class Interactor {
   _name;
+  _listeners;
   _state = "start";
-  _activeListeners = [];
-  _frameListeners = [];
-  _terminateListeners = [];
+  _rename = {};
   _startActions = [];
   _runningActions = [];
   _outsideActions = [];
@@ -13,8 +14,10 @@ export default class Interactor {
   _abortActions = [];
   _backInsideActions = [];
 
-  constructor(name = "Interactor") {
+  constructor(name = "Interactor", rename) {
     this._name = name;
+    this._listeners = makeFlexibleListener();
+    this._rename = rename || {};
   }
 
   _toTemplate() {
@@ -25,20 +28,73 @@ export default class Interactor {
       stopActions: this._stopActions.slice(0),
       abortActions: this._abortActions.slice(0),
       backInsideActions: this._backInsideActions.slice(0),
+      extraParams: [JSON.parse(JSON.stringify(this._rename))],
     };
   }
 
   _emit(type, payload) {
-    (this[`_${type}Listeners`] || []).forEach((listener) => {
+    if (this._rename[type]) {
+      type = this._rename[type];
+    }
+    this._listeners[type + "Command"].list().forEach((listener) => {
       if (listener instanceof Function) {
         listener(payload);
       }
     });
   }
 
+  _wrapEvent(event) {
+    event.preventDefault();
+    let wrappedEvents = [];
+    const bbox = event.currentTarget.getBoundingClientRect();
+    switch (event.type) {
+      case "mousedown":
+        wrappedEvents.push({
+          rawEvent: event,
+          type: "pointer",
+          rawX: event.clientX,
+          rawY: event.clientY,
+          x: event.clientX - bbox.left,
+          y: event.clientY - bbox.top,
+        });
+        break;
+      case "mousemove":
+        wrappedEvents.push({
+          rawEvent: event,
+          type: "pointer",
+          rawX: event.clientX,
+          rawY: event.clientY,
+          x: event.clientX - bbox.left,
+          y: event.clientY - bbox.top,
+        });
+        break;
+      case "mouseup":
+        wrappedEvents.push({
+          rawEvent: event,
+          type: "pointer",
+          rawX: event.clientX,
+          rawY: event.clientY,
+          x: event.clientX - bbox.left,
+          y: event.clientY - bbox.top,
+        });
+        break;
+      case "wheel":
+        wrappedEvents.push({
+          rawEvent: event,
+          type: "wheel",
+          delta: event.deltaY,
+        });
+        break;
+    }
+    return wrappedEvents[0];
+  }
+
   clone() {
     const option = this._toTemplate();
-    const interactor = new this.constructor(...(option.extraParams || []));
+    const interactor = new this.constructor(
+      this.name,
+      ...(option.extraParams || [])
+    );
     for (let actionKey of Object.keys(option)) {
       if (actionKey.endsWith("Actions")) {
         interactor[actionKey] = option[actionKey];
@@ -48,7 +104,8 @@ export default class Interactor {
   }
 
   dispatch(event) {
-    const eventType = event.rawEvent.type;
+    const eventType = event.type;
+    event = this._wrapEvent(event);
     switch (this._state) {
       case "start":
         if (this._startActions.includes(eventType)) {
@@ -84,6 +141,15 @@ export default class Interactor {
         }
         break;
     }
+  }
+
+  getActions() {
+    return this._startActions
+      .concat(this._runningActions)
+      .concat(this._outsideActions)
+      .concat(this._stopActions)
+      .concat(this._abortActions)
+      .concat(this._backInsideActions);
   }
 
   set startActions(eventName) {
@@ -173,7 +239,12 @@ Interactor.initialize = function initialize(name, ...params) {
   if ((option = registeredSelectionManagers[name])) {
     const interactor = new option.constructor(
       name,
-      ...(option.extraParams || []),
+      Object.assign(
+        {},
+        (option.extraParams || [{}])[0] || {},
+        option.rename || {}
+      ),
+      ...(option.extraParams || []).slice(1),
       ...params
     );
     for (let actionKey of Object.keys(option)) {
@@ -193,14 +264,27 @@ Interactor.register("TrajectoryInteractor", {
   runningActions: "mousemove",
   outsideActions: "mouseup",
   backInsideActions: "mousedown",
+  rename: {
+    active: "start",
+    frame: "drag",
+    terminate: "end",
+  },
 });
 
 Interactor.register("PointerInteractor", {
   startActions: "mousemove",
   runningActions: "mousemove",
+  rename: {
+    active: "pointer",
+    frame: "pointer",
+  },
 });
 
 Interactor.register("WheelInteractor", {
   startActions: ["mousewheel", "wheel"],
   runningActions: ["mousewheel", "wheel"],
+  rename: {
+    active: "wheel",
+    frame: "wheel",
+  },
 });

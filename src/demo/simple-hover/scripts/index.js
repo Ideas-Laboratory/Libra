@@ -12,7 +12,7 @@ const layer = IG.Layer.initialize("D3Layer", 500, 500, svg);
 const g = layer.getGraphic();
 g.selectAll("circle")
   .data(
-    new Array(10)
+    new Array(100)
       .fill()
       .map(() => ({ x: Math.random() * 480 + 10, y: Math.random() * 480 + 10 }))
   )
@@ -23,11 +23,13 @@ g.selectAll("circle")
   .attr("r", 10)
   .attr("fill", "red");
 
-layer.attach({
-  tool: IG.Tool.initialize("HoverTool", {
-    frameCommand: ({ result }) => {
-      g.selectAll("circle").attr("fill", "red");
-      result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
-    },
-  }),
+const tool = IG.Tool.initialize("HoverTool");
+tool.attach(svg.node());
+
+layer.listen({
+  tool,
+  pointerCommand: ({ result }) => {
+    g.selectAll("circle").attr("fill", "red");
+    result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
+  },
 });
