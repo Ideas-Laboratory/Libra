@@ -1,11 +1,11 @@
-const registeredSelectors = {};
+const registeredSelectionManagers = {};
 
-export default class Selector {
+export default class SelectionManager {
   _result = [];
   _layer = null;
   _dirty = false;
 
-  constructor(name = "Selector") {
+  constructor(name = "SelectionManager") {
     this._name = name;
   }
 
@@ -39,29 +39,29 @@ export default class Selector {
   }
 }
 
-Selector.register = function register(name, optionOrSelector) {
+SelectionManager.register = function register(name, optionOrSelectionManager) {
   let option;
-  if (optionOrSelector instanceof Selector) {
-    option = optionOrSelector._toTemplate();
-    option.constructor = optionOrSelector.constructor;
+  if (optionOrSelectionManager instanceof SelectionManager) {
+    option = optionOrSelectionManager._toTemplate();
+    option.constructor = optionOrSelectionManager.constructor;
   } else {
-    option = optionOrSelector;
+    option = optionOrSelectionManager;
     option.constructor = option.hasOwnProperty("constructor")
       ? option.constructor
-      : Selector;
+      : SelectionManager;
   }
-  registeredSelectors[name] = option;
+  registeredSelectionManagers[name] = option;
   return true;
 };
 
-Selector.unregister = function unregister(name) {
-  delete registeredSelectors[name];
+SelectionManager.unregister = function unregister(name) {
+  delete registeredSelectionManagers[name];
   return true;
 };
 
-Selector.initialize = function initialize(name, ...params) {
+SelectionManager.initialize = function initialize(name, ...params) {
   let option;
-  if ((option = registeredSelectors[name])) {
+  if ((option = registeredSelectionManagers[name])) {
     const query = new option.constructor(
       name,
       ...(option.extraParams || []),
@@ -72,4 +72,4 @@ Selector.initialize = function initialize(name, ...params) {
   return null;
 };
 
-Selector.register("Selector", { constructor: Selector });
+SelectionManager.register("SelectionManager", { constructor: SelectionManager });

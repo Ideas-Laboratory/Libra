@@ -1,12 +1,12 @@
 import Layer from "../layer";
 
-interface SelectorConstructor {
-  new (name: string): Selector;
+interface SelectionManagerConstructor {
+  new (name: string): SelectionManager;
 }
 
-export = class Selector {
-  constructor(name: string): Selector;
-  clone(): Selector;
+export = class SelectionManager {
+  constructor(name: string): SelectionManager;
+  clone(): SelectionManager;
   update(): void;
   result(): any[];
   bindLayer(layer: Layer): void;
@@ -14,14 +14,14 @@ export = class Selector {
 
 export function register(
   name: string,
-  optionOrSelector:
-    | Selector
+  optionOrSelectionManager:
+    | SelectionManager
     | {
-        constructor?: SelectorConstructor;
+        constructor?: SelectionManagerConstructor;
         extraParams?: any[];
       }
 ): boolean;
 
-export function initialize(name: string): Selector;
+export function initialize(name: string): SelectionManager;
 
 export function unregister(name: string): boolean;

@@ -1,6 +1,6 @@
-import Selector from "./index";
+import SelectionManager from "./index";
 
-export default class RectSelector extends Selector {
+export default class RectSelectionManager extends SelectionManager {
   x = 0;
   y = 0;
   width = 0;
@@ -46,4 +46,4 @@ export default class RectSelector extends Selector {
   }
 }
 
-Selector.register("RectSelector", { constructor: RectSelector });
+SelectionManager.register("RectSelectionManager", { constructor: RectSelectionManager });

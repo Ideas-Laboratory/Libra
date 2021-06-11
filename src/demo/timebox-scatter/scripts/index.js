@@ -107,7 +107,7 @@ backgroundLayer.attach({
   }),
 });
 
-const selector = IG.Selector.initialize("RectSelector");
+const selector = IG.SelectionManager.initialize("RectSelectionManager");
 selector.bindLayer(backgroundLayer);
 
 function queryLines() {

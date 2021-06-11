@@ -1,6 +1,6 @@
-import Selector from "./index";
+import SelectionManager from "./index";
 
-export default class PointSelector extends Selector {
+export default class PointSelectionManager extends SelectionManager {
   x = 0;
   y = 0;
 
@@ -30,4 +30,4 @@ export default class PointSelector extends Selector {
   }
 }
 
-Selector.register("PointSelector", { constructor: PointSelector });
+SelectionManager.register("PointSelectionManager", { constructor: PointSelectionManager });

@@ -1,6 +1,6 @@
-import Selector from "./index";
+import SelectionManager from "./index";
 
-export default class CircleSelector extends Selector {
+export default class CircleSelectionManager extends SelectionManager {
   cx = 0;
   cy = 0;
   r = 0;
@@ -51,4 +51,4 @@ export default class CircleSelector extends Selector {
   }
 }
 
-Selector.register("CircleSelector", { constructor: CircleSelector });
+SelectionManager.register("CircleSelectionManager", { constructor: CircleSelectionManager });

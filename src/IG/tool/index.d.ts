@@ -1,10 +1,10 @@
 import * as helpers from "../helpers";
-import Selector from "../query";
+import SelectionManager from "../query";
 import Interactor from "../interactor";
 
 type ConvertEventToFreedom = (
   event: helpers.Event,
-  query: Selector
+  query: SelectionManager
 ) => helpers.AvailableFreedomType;
 
 type ToolRelationOption =
@@ -23,11 +23,11 @@ type ToolRelationOption =
 
 type ToolAssociateOption =
   | {
-      query?: Selector;
+      query?: SelectionManager;
       relations: ToolRelationOption[];
     }
   | {
-      query?: Selector;
+      query?: SelectionManager;
       relation: ToolRelationOption;
     };
 
@@ -48,7 +48,7 @@ export function register(
     | Tool
     | {
         constructor?: ToolConstructor;
-        query: Selector;
+        query: SelectionManager;
         relations?: ToolRelationOption[];
       }
 ): boolean;
