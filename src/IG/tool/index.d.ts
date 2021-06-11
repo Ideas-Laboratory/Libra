@@ -1,6 +1,7 @@
 import * as helpers from "../helpers";
 import SelectionManager from "../query";
 import Interactor from "../interactor";
+import Layer from "../layer";
 
 type ConvertEventToFreedom = (
   event: helpers.Event,
@@ -31,6 +32,13 @@ type ToolAssociateOption =
       relation: ToolRelationOption;
     };
 
+type ToolAttachOption = {
+  container: SVGSVGElement | HTMLCanvasElement;
+  onLayers?: Layer[];
+  onLayer?: Layer;
+  
+};
+
 interface ToolConstructor {
   new (name: string): Tool;
 }
@@ -40,6 +48,7 @@ export = class Tool {
   clone(): Tool;
   dispatch(event: helpers.Event): void;
   associate(option: ToolAssociateOption): void;
+  attach(option: ToolAttachOption): void;
 };
 
 export function register(
