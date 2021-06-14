@@ -74,6 +74,7 @@ const scatterFrameFunc = renderScatterPlot(
 );
 
 const plotLayersArr = keys.map((k) => plotLayers.get(k));
+console.log(plotLayersArr);
 for (const key of keys) {
   const plotLayer = plotLayers.get(key);
   const frameCommand = frameFuncs.get(key);
@@ -250,6 +251,38 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     );
 
   /******************** layer *********************/
+  const brushTool = IG.Tool.initialize("BrushTool");
+  brushTool.attach(root.node());
+  //let brushLayer = null;
+  let brushLayer = null;
+  let start = 0;  // 不同command共享变量不方便, 需要在command外设置全局变量, 不方便重用.
+  rootLayer.listen({
+    tools: [brushTool],
+    startCommand: (_, e) => {
+      console.log("start", e);
+      //root.selectAll(".ig-layer-background").remove();
+      brushLayer = IG.Layer.initialize("D3Layer", 0, height, root);
+      brushLayer.getGraphic().attr(
+        "transform",
+        `translate(${e.x}, ${margin.top})`
+      );
+      const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
+      rect.attr("opacity", 0.3);
+      start = e.x;
+    },
+    dragCommand: (_, e) => {
+      const rect = d3.select(brushLayer.query("rect")[0]); 
+      const width = e.x - start - 1;
+      rect.attr("width", width >= 0 ? width : 0);
+      const xy = getXYfromTransform(brushLayer.getGraphic());
+      console.log(xy);
+      // extents.set(
+      //   brushableLayer.key,
+      //   [xy[0], xy[0] + width].map(scales.get(brushableLayer.key))
+      // );
+    },
+  });
+
   scales.set(key, scaleX.invert);
   const plotLayer = IG.Layer.initialize("brushableLayer", width, height, root);
   plotLayer.key = key;

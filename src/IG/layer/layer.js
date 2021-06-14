@@ -45,6 +45,7 @@ export default class Layer {
   }
 
   listen(options) {
+    console.log("options", options);
     this._initOptions.push(options);
     if (options.layers) {
       for (let layer of options.layers) {
