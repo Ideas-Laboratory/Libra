@@ -32,11 +32,11 @@ registerBrushLayer();
 registerBrushableLayer();
 
 const mainLayers = new Map();
-const viceLayers = new Map();
+// const viceLayers = new Map();
 const brushTools = new Map();
-const frameFuncs = new Map();
-const scales = new Map();
 const extents = new Map();
+const updateHistFuncs = new Map();
+const scales = new Map();
 
 for (let i = 0; i < keys.length; i++) {
   const key = keys[i];
@@ -50,15 +50,13 @@ for (let i = 0; i < keys.length; i++) {
     .getGraphic()
     .attr("transform", `translate(0, ${i * heightBinnedChart})`);
 
-  const frameFunc = renderBinnedChart(
+  renderBinnedChart(
     histogramLayer,
     widthBinnedChart,
     heightBinnedChart,
     cars,
     key
   );
-
-  frameFuncs.set(key, frameFunc);
 }
 
 const scatterBackgroundLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
@@ -75,21 +73,33 @@ const scatterFrameFunc = renderScatterPlot(
   fieldColor
 );
 
-const mainLayersArr = keys.map((k) => mainLayers.get(k));
-console.log(mainLayersArr);
+const tools = Array.from(brushTools.values());
 for (const key of keys) {
-  const mainLayer = mainLayers.get(key);
-  const frameCommand = frameFuncs.get(key);
-  mainLayer.listen({
-    layers: mainLayersArr,
-    frameCommand: () => {
-      requestAnimationFrame(() => {
-        frameCommand(extents);
-        scatterFrameFunc(extents);
-      });
+  const layer = mainLayers.get(key);
+  layer.listen({
+    tools: tools,
+    dragCommand: () => {
+      updateHistFuncs.get(key)(extents);
+      console.log(`${key} layer updated`);
     },
   });
 }
+
+// const mainLayersArr = keys.map((k) => mainLayers.get(k));
+// console.log(mainLayersArr);
+// for (const key of keys) {
+//   const mainLayer = mainLayers.get(key);
+//   const frameCommand = updateHistFuncs.get(key);
+//   mainLayer.listen({
+//     layers: mainLayersArr,
+//     frameCommand: () => {
+//       requestAnimationFrame(() => {
+//         frameCommand(extents);
+//         scatterFrameFunc(extents);
+//       });
+//     },
+//   });
+// }
 
 /*********************** functions *************************/
 
@@ -253,16 +263,14 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     );
 
   /******************** main layer and vice layer *********************/
-  scales.set(key, scaleX.invert);
-  
   // vice layer
   const viceLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  viceLayers.set(key, viceLayer);
   const viceGroup = viceLayer
     .getGraphic()
     .attr("class", "vice-layer")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  viceGroup.selectAll("new-rect")
+  viceGroup
+    .selectAll("new-rect")
     .data(binnedData)
     .join("rect")
     .attr("fill", "grey")
@@ -273,13 +281,15 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
 
   // main layer
   const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  mainLayers.set(key, mainLayer);
-  const mainGroup = mainLayer.getGraphic()
+  const mainGroup = mainLayer
+    .getGraphic()
     .attr("class", "main-layer")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  mainGroup.selectAll("new-rect")
+  const mainRects = mainGroup
+    .selectAll("new-rect")
     .data(binnedData)
     .join("rect")
+    .attr("class", "mark")
     .attr("fill", "steelblue")
     .attr("x", (d, i) => i * bandStep + bandPadding)
     .attr("y", (d) => scaleY(d.length))
@@ -297,7 +307,12 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     startCommand: (_, e) => {
       console.log("start", e);
       mainLayer.getGraphic().selectAll(".brush-layer").remove();
-      brushLayer = IG.Layer.initialize("D3Layer", 0, height, mainLayer.getGraphic());
+      brushLayer = IG.Layer.initialize(
+        "D3Layer",
+        0,
+        height,
+        mainLayer.getGraphic()
+      );
       brushLayer
         .getGraphic()
         .attr("transform", `translate(${e.x}, 0)`)
@@ -305,6 +320,8 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
       rect.attr("opacity", 0.3);
       start = e.x;
+      const startData = scaleX.invert(start);
+      extents.set(key, [startData, startData]);
     },
     dragCommand: (_, e) => {
       const rect = d3.select(brushLayer.query("rect")[0]);
@@ -316,10 +333,16 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     },
   });
 
-  return filterData;
+  // set shared things
+  scales.set(key, scaleX.invert);
+  //viceLayers.set(key, viceLayer);
+  mainLayers.set(key, mainLayer);
+  brushTools.set(key, brushTool);
+  extents.set(key, [...extent]);
+  updateHistFuncs.set(key, filterData);
 
   function filterData(filterExtents) {
-    barsFiltered
+    mainRects
       .attr("y", (d) => {
         d = d.filter((d) => {
           for (const key of filterExtents.keys()) {
