@@ -32,6 +32,8 @@ registerBrushLayer();
 registerBrushableLayer();
 
 const mainLayers = new Map();
+const viceLayers = new Map();
+const brushTools = new Map();
 const frameFuncs = new Map();
 const scales = new Map();
 const extents = new Map();
@@ -250,22 +252,17 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       groupAxisX.node().getBBox().height + groupTitle.node().getBBox().height
     );
 
-  /******************** main layer *********************/
+  /******************** main layer and vice layer *********************/
   scales.set(key, scaleX.invert);
-  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  mainLayer.key = key;
-  mainLayers.set(key, mainLayer);
-
-  const groupPlot = mainLayer
+  
+  // vice layer
+  const viceLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  viceLayers.set(key, viceLayer);
+  const viceGroup = viceLayer
     .getGraphic()
-    .attr("class", "groupPlot")
+    .attr("class", "vice-layer")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  const groupMarks = groupPlot.append("g").attr("class", "groupMarks");
-  const groupMarksFiltered = groupPlot
-    .append("g")
-    .attr("class", "groupMarksFiltered");
-  groupMarks
-    .selectAll("rect")
+  viceGroup.selectAll("new-rect")
     .data(binnedData)
     .join("rect")
     .attr("fill", "grey")
@@ -274,8 +271,13 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
-  const barsFiltered = groupMarksFiltered
-    .selectAll("rect")
+  // main layer
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  mainLayers.set(key, mainLayer);
+  const mainGroup = mainLayer.getGraphic()
+    .attr("class", "main-layer")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+  mainGroup.selectAll("new-rect")
     .data(binnedData)
     .join("rect")
     .attr("fill", "steelblue")
@@ -284,8 +286,10 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
+  // attach tool
   const brushTool = IG.Tool.initialize("BrushTool");
-  brushTool.attach(groupPlot.node());
+  brushTool.attach(mainGroup.node());
+  brushTools.set(key, brushTool);
   let brushLayer = null;
   let start = 0; // 不同command共享变量不方便, 需要在command外设置全局变量, 不方便重用.
   mainLayer.listen({
