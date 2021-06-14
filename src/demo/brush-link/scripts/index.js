@@ -31,7 +31,7 @@ const svg = d3
 registerBrushLayer();
 registerBrushableLayer();
 
-const plotLayers = new Map();
+const mainLayers = new Map();
 const frameFuncs = new Map();
 const scales = new Map();
 const extents = new Map();
@@ -73,13 +73,13 @@ const scatterFrameFunc = renderScatterPlot(
   fieldColor
 );
 
-const plotLayersArr = keys.map((k) => plotLayers.get(k));
-console.log(plotLayersArr);
+const mainLayersArr = keys.map((k) => mainLayers.get(k));
+console.log(mainLayersArr);
 for (const key of keys) {
-  const plotLayer = plotLayers.get(key);
+  const mainLayer = mainLayers.get(key);
   const frameCommand = frameFuncs.get(key);
-  plotLayer.listen({
-    layers: plotLayersArr,
+  mainLayer.listen({
+    layers: mainLayersArr,
     frameCommand: () => {
       requestAnimationFrame(() => {
         frameCommand(extents);
@@ -223,7 +223,7 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       `translate(${margin.left + width / 2}, ${margin.top + height})`
     );
 
-  // draw
+  // draw things except main layer
   groupAxisX.call(d3.axisBottom(scaleX));
   groupAxisY
     .call(d3.axisLeft(scaleY))
@@ -250,45 +250,13 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       groupAxisX.node().getBBox().height + groupTitle.node().getBBox().height
     );
 
-  /******************** layer *********************/
-  const brushTool = IG.Tool.initialize("BrushTool");
-  brushTool.attach(root.node());
-  //let brushLayer = null;
-  let brushLayer = null;
-  let start = 0;  // 不同command共享变量不方便, 需要在command外设置全局变量, 不方便重用.
-  rootLayer.listen({
-    tools: [brushTool],
-    startCommand: (_, e) => {
-      console.log("start", e);
-      //root.selectAll(".ig-layer-background").remove();
-      brushLayer = IG.Layer.initialize("D3Layer", 0, height, root);
-      brushLayer.getGraphic().attr(
-        "transform",
-        `translate(${e.x}, ${margin.top})`
-      );
-      const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
-      rect.attr("opacity", 0.3);
-      start = e.x;
-    },
-    dragCommand: (_, e) => {
-      const rect = d3.select(brushLayer.query("rect")[0]); 
-      const width = e.x - start - 1;
-      rect.attr("width", width >= 0 ? width : 0);
-      const xy = getXYfromTransform(brushLayer.getGraphic());
-      console.log(xy);
-      // extents.set(
-      //   brushableLayer.key,
-      //   [xy[0], xy[0] + width].map(scales.get(brushableLayer.key))
-      // );
-    },
-  });
-
+  /******************** main layer *********************/
   scales.set(key, scaleX.invert);
-  const plotLayer = IG.Layer.initialize("brushableLayer", width, height, root);
-  plotLayer.key = key;
-  plotLayers.set(key, plotLayer);
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  mainLayer.key = key;
+  mainLayers.set(key, mainLayer);
 
-  const groupPlot = plotLayer
+  const groupPlot = mainLayer
     .getGraphic()
     .attr("class", "groupPlot")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
@@ -315,6 +283,34 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .attr("y", (d) => scaleY(d.length))
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
+
+  const brushTool = IG.Tool.initialize("BrushTool");
+  brushTool.attach(groupPlot.node());
+  let brushLayer = null;
+  let start = 0; // 不同command共享变量不方便, 需要在command外设置全局变量, 不方便重用.
+  mainLayer.listen({
+    tools: [brushTool],
+    startCommand: (_, e) => {
+      console.log("start", e);
+      mainLayer.getGraphic().selectAll(".brush-layer").remove();
+      brushLayer = IG.Layer.initialize("D3Layer", 0, height, mainLayer.getGraphic());
+      brushLayer
+        .getGraphic()
+        .attr("transform", `translate(${e.x}, 0)`)
+        .attr("class", "brush-layer");
+      const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
+      rect.attr("opacity", 0.3);
+      start = e.x;
+    },
+    dragCommand: (_, e) => {
+      const rect = d3.select(brushLayer.query("rect")[0]);
+      const width = e.x - start - 1;
+      rect.attr("width", width >= 0 ? width : 0);
+      const xy = getXYfromTransform(brushLayer.getGraphic());
+      console.log(xy);
+      extents.set(key, [xy[0], xy[0] + width].map(scales.get(key)));
+    },
+  });
 
   return filterData;
 
