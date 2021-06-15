@@ -5,29 +5,20 @@ export default class PointSelectionManager extends SelectionManager {
   y = 0;
 
   evaluate() {
-    if (
-      !this._layer ||
-      !this._layer.objects ||
-      !(this._layer.objects instanceof Function)
-    )
-      return;
-    const objects = [...this._layer.objects()];
-    let root = this._layer._root;
-    let bbox = { left: 0, top: 0 };
-    if (root) {
-      root = root.node ? root.node() : root;
-      if (root.getBoundingClientRect) {
-        bbox = root.getBoundingClientRect();
-      }
-    }
-    let elements = document.elementsFromPoint(
-      this.x + bbox.left,
-      this.y + bbox.top
-    );
-    this._result = objects.filter((obj) =>
-      obj.node ? elements.includes(obj.node()) : elements.includes(obj)
-    );
+    let result = [];
+    this._layers.forEach((layer) => {
+      result = result.concat(
+        layer.pick({
+          type: "point",
+          x: this.x,
+          y: this.y,
+        })
+      );
+    });
+    this._result = [...new Set(result)];
   }
 }
 
-SelectionManager.register("PointSelectionManager", { constructor: PointSelectionManager });
+SelectionManager.register("PointSelectionManager", {
+  constructor: PointSelectionManager,
+});

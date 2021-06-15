@@ -23,6 +23,9 @@ export function register(
         stopActions?: string[];
         abortActions?: string[];
         backInsideActions?: string[];
+        rename?: { [key: string]: string };
+        preInstall?: (interactor: Interactor) => void;
+        postInstall?: (interactor: Interactor) => void;
       }
 ): boolean;
 

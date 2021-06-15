@@ -16,28 +16,18 @@ type ToolRelationOption =
   | {
       attribute: string;
       interactor: Interactor;
-      command?: ConvertEventToFreedom;
-      activeCommand?: ConvertEventToFreedom;
-      frameCommand?: ConvertEventToFreedom;
-      terminateCommand?: ConvertEventToFreedom;
+      [command: string]: ConvertEventToFreedom;
     };
 
 type ToolAssociateOption =
   | {
-      query?: SelectionManager;
+      selectionManager?: SelectionManager;
       relations: ToolRelationOption[];
     }
   | {
-      query?: SelectionManager;
+      selectionManager?: SelectionManager;
       relation: ToolRelationOption;
     };
-
-type ToolAttachOption = {
-  container: SVGSVGElement | HTMLCanvasElement;
-  onLayers?: Layer[];
-  onLayer?: Layer;
-  
-};
 
 interface ToolConstructor {
   new (name: string): Tool;
@@ -46,9 +36,9 @@ interface ToolConstructor {
 export = class Tool {
   constructor(name: string): Tool;
   clone(): Tool;
-  dispatch(event: helpers.Event): void;
+  dispatch(event: Event): void;
   associate(option: ToolAssociateOption): void;
-  attach(option: ToolAttachOption): void;
+  attach(views: HTMLOrSVGElement | HTMLOrSVGElement[]): void;
 };
 
 export function register(
@@ -57,8 +47,12 @@ export function register(
     | Tool
     | {
         constructor?: ToolConstructor;
-        query: SelectionManager;
+        selectionManager: SelectionManager;
         relations?: ToolRelationOption[];
+        views?: HTMLOrSVGElement[];
+        view?: HTMLOrSVGElement;
+        preInstall?: (tool: Tool) => void;
+        postInstall?: (tool: Tool) => void;
       }
 ): boolean;
 

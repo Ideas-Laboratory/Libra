@@ -2,7 +2,7 @@ const registeredSelectionManagers = {};
 
 export default class SelectionManager {
   _result = [];
-  _layer = null;
+  _layers = [];
   _dirty = false;
 
   constructor(name = "SelectionManager") {
@@ -27,6 +27,10 @@ export default class SelectionManager {
     this._result = [];
   }
 
+  get layers() {
+    return this._layers.slice(0);
+  }
+
   get result() {
     if (this._dirty) {
       this.evaluate();
@@ -35,7 +39,7 @@ export default class SelectionManager {
   }
 
   bindLayer(layer) {
-    this._layer = layer;
+    this._layers = [layer];
   }
 }
 
@@ -72,4 +76,6 @@ SelectionManager.initialize = function initialize(name, ...params) {
   return null;
 };
 
-SelectionManager.register("SelectionManager", { constructor: SelectionManager });
+SelectionManager.register("SelectionManager", {
+  constructor: SelectionManager,
+});

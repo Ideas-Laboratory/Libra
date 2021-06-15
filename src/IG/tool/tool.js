@@ -1,3 +1,4 @@
+import { makeFlexibleListener } from "../helpers";
 import Interactor from "../interactor";
 import SelectionManager from "../query";
 
@@ -5,6 +6,8 @@ const registeredTools = {};
 
 export default class Tool {
   _name;
+  _views = [];
+  _listeners;
   _activeListeners = [];
   _frameListeners = [];
   _terminateListeners = [];
@@ -12,42 +15,26 @@ export default class Tool {
   _interactors = [];
   _relations = [];
   _userListeners = {};
+  _eventQueue = [];
+  _next = null;
 
   constructor(name = "Tool", options) {
     this._name = name;
+    this._listeners = makeFlexibleListener();
     if (options) {
       this._userListeners = options;
-      if (options.activeCommand) {
-        this._activeListeners.push(options.activeCommand);
-      }
-      if (options.activeCommands) {
-        this._activeListeners = this._activeListeners.concat(
-          options.activeCommands
-        );
-      }
-      if (options.frameCommand) {
-        this._frameListeners.push(options.frameCommand);
-      }
-      if (options.frameCommands) {
-        this._frameListeners = this._frameListeners.concat(
-          options.frameCommands
-        );
-      }
-      if (options.terminateCommand) {
-        this._terminateListeners.push(options.terminateCommand);
-      }
-      if (options.terminateCommands) {
-        this._terminateListeners = this._terminateListeners.concat(
-          options.terminateCommands
-        );
-      }
+      Object.entries(options).forEach(([command, callback]) => {
+        if (!command.endsWith("Command")) return;
+        this._listeners[command].set(callback);
+      });
     }
   }
 
   _toTemplate() {
     return {
-      query: this._query,
+      selectionManager: this._query,
       relations: this._relations.slice(0),
+      views: this._views.slice(0),
       extraParams: [this._userListeners],
     };
   }
@@ -62,75 +49,58 @@ export default class Tool {
       if (!relation.interactor) return;
       if (!this._interactors.includes(relation.interactor)) {
         this._interactors.push(relation.interactor);
-        relation.interactor._activeListeners.push(
-          this._notify.bind(this, "active")
-        );
-        relation.interactor._frameListeners.push(
-          this._notify.bind(this, "frame")
-        );
-        relation.interactor._terminateListeners.push(
-          this._notify.bind(this, "terminate")
-        );
+        for (let type of this._listeners) {
+          relation.interactor._listeners[type].set(
+            this._notify.bind(this, type)
+          );
+        }
       }
-      if (relation.command instanceof Function) {
-        relation.interactor._activeListeners.push((event) => {
-          this._query[relation.attribute] = relation.command(
-            event,
-            this._query
-          );
+      Object.entries(relation).forEach(([command, listener]) => {
+        if (!command.endsWith("Command")) return;
+        relation.interactor._listeners[command].set((event) => {
+          this._query[relation.attribute] = listener(event, this._query);
           this._query.update();
+          this._notify(command, event);
         });
-        relation.interactor._frameListeners.push((event) => {
-          this._query[relation.attribute] = relation.command(
-            event,
-            this._query
-          );
-          this._query.update();
-        });
-        relation.interactor._terminateListeners.push((event) => {
-          this._query[relation.attribute] = relation.command(
-            event,
-            this._query
-          );
-          this._query.update();
-        });
-      }
-      if (relation.activeCommand instanceof Function) {
-        relation.interactor._activeListeners.push((event) => {
-          this._query[relation.attribute] = relation.activeCommand(
-            event,
-            this._query
-          );
-          this._query.update();
-        });
-      }
-      if (relation.frameCommand instanceof Function) {
-        relation.interactor._frameListeners.push((event) => {
-          this._query[relation.attribute] = relation.frameCommand(
-            event,
-            this._query
-          );
-          this._query.update();
-        });
-      }
-      if (relation.terminateCommand instanceof Function) {
-        relation.interactor._terminateListeners.push((event) => {
-          this._query[relation.attribute] = relation.terminateCommand(
-            event,
-            this._query
-          );
-          this._query.update();
-        });
-      }
+      });
+    }
+  }
+
+  _injectView(view) {
+    let events = [];
+    for (let interactor of this._interactors) {
+      events = events.concat(interactor.getActions());
+    }
+    events = [...new Set(events)];
+    for (let event of events) {
+      view.addEventListener(event, this.dispatch.bind(this));
     }
   }
 
   _notify(type, event) {
-    (this[`_${type}Listeners`] || []).forEach((listener) => {
-      if (listener instanceof Function) {
-        listener.call(this, this._query, event);
-      }
-    });
+    if (!this._next) this._next = requestAnimationFrame(this._run.bind(this));
+    if (
+      this._eventQueue.find(
+        (pendingEvent) =>
+          pendingEvent.type === type && pendingEvent.event === event
+      )
+    )
+      return;
+    this._eventQueue.push({ type, event });
+  }
+
+  _run() {
+    let pendingEvent = this._eventQueue.shift();
+    while (pendingEvent) {
+      let { type, event } = pendingEvent;
+      this._listeners[type].list().forEach((listener) => {
+        if (listener instanceof Function) {
+          listener.call(this, this._query, event);
+        }
+      });
+      pendingEvent = this._eventQueue.shift();
+    }
+    this._next = null;
   }
 
   clone() {
@@ -147,8 +117,8 @@ export default class Tool {
   }
 
   associate(option) {
-    if (option.query) {
-      this._query = option.query;
+    if (option.selectionManager) {
+      this._query = option.selectionManager;
       for (let relation of this._relations) {
         this._injectInteractor(relation);
       }
@@ -161,6 +131,16 @@ export default class Tool {
     } else if (option.relation) {
       this._relations.push(option.relation);
       this._injectInteractor(option.relation);
+    }
+  }
+
+  attach(views) {
+    if (!(views instanceof Array)) {
+      views = [views];
+    }
+    this._views = this._views.concat(views);
+    for (let view of views) {
+      this._injectView(view);
     }
   }
 
@@ -201,19 +181,23 @@ Tool.initialize = function initialize(name, ...params) {
   return null;
 };
 
-function initWithOption(name, option, ...params) {
-  const tool = new option.constructor(
+function initWithOption(name, options, ...params) {
+  const tool = new options.constructor(
     name,
-    ...(option.extraParams || []),
+    ...(options.extraParams || []),
     ...params
   );
-  if (option.query || option.relations) {
+  if (options.preInstall && options.preInstall instanceof Function) {
+    options.preInstall(tool);
+  }
+  if (options.selectionManager || options.relations) {
     const remapping = new Map();
     tool.associate({
-      query: option.query && option.query.clone(),
+      selectionManager:
+        options.selectionManager && options.selectionManager.clone(),
       relations:
-        option.relations &&
-        option.relations.map((relation) => {
+        options.relations &&
+        options.relations.map((relation) => {
           if (relation.interactor) {
             let newInteractor;
             if (remapping.has(relation.interactor)) {
@@ -231,6 +215,12 @@ function initWithOption(name, option, ...params) {
         }),
     });
   }
+  if (options.views || options.view) {
+    tool.attach(options.views || options.view);
+  }
+  if (options.postInstall && options.postInstall instanceof Function) {
+    options.postInstall(tool);
+  }
   return tool;
 }
 
@@ -238,66 +228,66 @@ Tool.register("Tool", {});
 
 const trajectoryInteractor = Interactor.initialize("TrajectoryInteractor");
 Tool.register("ClickTool", {
-  query: SelectionManager.initialize("PointSelectionManager"),
+  selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
       attribute: "x",
       interactor: trajectoryInteractor,
-      terminateCommand: (e) => e.x,
+      endCommand: (e) => e.x,
     },
     {
       attribute: "y",
       interactor: trajectoryInteractor,
-      terminateCommand: (e) => e.y,
+      endCommand: (e) => e.y,
     },
   ],
 });
 
 Tool.register("DragTool", {
-  query: SelectionManager.initialize("PointSelectionManager"),
+  selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
       attribute: "x",
       interactor: trajectoryInteractor,
-      frameCommand: (e) => e.x,
+      dragCommand: (e) => e.x,
     },
     {
       attribute: "y",
       interactor: trajectoryInteractor,
-      frameCommand: (e) => e.y,
+      dragCommand: (e) => e.y,
     },
   ],
 });
 
 Tool.register("BrushTool", {
-  query: SelectionManager.initialize("RectSelectionManager"),
+  selectionManager: SelectionManager.initialize("RectSelectionManager"),
   relations: [
     {
       attribute: "x",
       interactor: trajectoryInteractor,
-      activeCommand: (e) => e.x,
+      startCommand: (e) => e.x,
     },
     {
       attribute: "y",
       interactor: trajectoryInteractor,
-      activeCommand: (e) => e.y,
+      startCommand: (e) => e.y,
     },
     {
       attribute: "width",
       interactor: trajectoryInteractor,
-      frameCommand: (e, query) => e.x - query.x,
+      dragCommand: (e, query) => e.x - query.x,
     },
     {
       attribute: "height",
       interactor: trajectoryInteractor,
-      frameCommand: (e, query) => e.y - query.y,
+      dragCommand: (e, query) => e.y - query.y,
     },
   ],
 });
 
 const wheelInteractor = Interactor.initialize("WheelInteractor");
 Tool.register("ZoomTool", {
-  query: SelectionManager.initialize("SelectionManager"),
+  selectionManager: SelectionManager.initialize("SelectionManager"),
   relations: [
     {
       attribute: "wheel",
@@ -308,17 +298,17 @@ Tool.register("ZoomTool", {
 
 const pointerInteractor = Interactor.initialize("PointerInteractor");
 Tool.register("HoverTool", {
-  query: SelectionManager.initialize("PointSelectionManager"),
+  selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
       attribute: "x",
       interactor: pointerInteractor,
-      frameCommand: (e) => e.x,
+      pointerCommand: (e) => e.x,
     },
     {
       attribute: "y",
       interactor: pointerInteractor,
-      frameCommand: (e) => e.y,
+      pointerCommand: (e) => e.y,
     },
   ],
 });

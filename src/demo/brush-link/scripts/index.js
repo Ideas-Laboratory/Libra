@@ -28,13 +28,14 @@ const svg = d3
   .attr("height", height)
   .attr("viewbox", `0 0 width height`);
 
-registerBrushLayer();
-registerBrushableLayer();
+// registerBrushLayer();
+// registerBrushableLayer();
 
-const plotLayers = new Map();
-const frameFuncs = new Map();
-const scales = new Map();
+const mainLayers = new Map();
+const brushTools = new Map();
 const extents = new Map();
+const updateHistFuncs = new Map();
+const scales = new Map();
 
 for (let i = 0; i < keys.length; i++) {
   const key = keys[i];
@@ -48,22 +49,20 @@ for (let i = 0; i < keys.length; i++) {
     .getGraphic()
     .attr("transform", `translate(0, ${i * heightBinnedChart})`);
 
-  const frameFunc = renderBinnedChart(
+  renderBinnedChart(
     histogramLayer,
     widthBinnedChart,
     heightBinnedChart,
     cars,
     key
   );
-
-  frameFuncs.set(key, frameFunc);
 }
 
 const scatterBackgroundLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
 const scatterG = scatterBackgroundLayer
   .getGraphic()
   .attr("transform", `translate(${widthBinnedChart}, 0)`);
-const scatterFrameFunc = renderScatterPlot(
+const {mainLayer: scatterMainLayer, listener: scatterListener} = renderScatterPlot(
   scatterG,
   widthScatterPlot,
   height,
@@ -73,101 +72,121 @@ const scatterFrameFunc = renderScatterPlot(
   fieldColor
 );
 
-const plotLayersArr = keys.map((k) => plotLayers.get(k));
+const tools = Array.from(brushTools.values());
 for (const key of keys) {
-  const plotLayer = plotLayers.get(key);
-  const frameCommand = frameFuncs.get(key);
-  plotLayer.listen({
-    layers: plotLayersArr,
-    frameCommand: () => {
-      requestAnimationFrame(() => {
-        frameCommand(extents);
-        scatterFrameFunc(extents);
-      });
+  const layer = mainLayers.get(key);
+  layer.listen({
+    tools: tools,
+    dragCommand: () => {
+      updateHistFuncs.get(key)(extents);
+      console.log(`${key} layer updated`);
     },
   });
 }
+scatterMainLayer.listen({
+  tools: tools,
+  dragCommand: () => {
+    scatterListener(extents);
+  }
+});
+
+
+// const mainLayersArr = keys.map((k) => mainLayers.get(k));
+// console.log(mainLayersArr);
+// for (const key of keys) {
+//   const mainLayer = mainLayers.get(key);
+//   const frameCommand = updateHistFuncs.get(key);
+//   mainLayer.listen({
+//     layers: mainLayersArr,
+//     frameCommand: () => {
+//       requestAnimationFrame(() => {
+//         frameCommand(extents);
+//         scatterFrameFunc(extents);
+//       });
+//     },
+//   });
+// }
 
 /*********************** functions *************************/
 
-function registerBrushLayer() {
-  IG.Layer.register("brushLayer", {
-    constructor: IG.Layer.D3Layer,
-    attach: [
-      {
-        precondition: (event, layer) =>
-          event.type === "pointer" && layer.inside(event),
-        tools: [
-          IG.Tool.initialize("DragTool", {
-            activeCommand(_, e) {
-              if (!(e.type === "pointer" && this.layer.inside(e))) debugger;
-              this.offsetX = e.x;
-              this.rawLayer = this.layer;
-            },
-            frameCommand(_, e) {
-              const node = this.rawLayer.getGraphic();
-              const deltaX = e.x - this.offsetX;
-              const base = getXYfromTransform(node);
-              node.attr("transform", `translate(${base[0] + deltaX}, ${0})`);
-            },
-          }),
-        ],
-      },
-    ],
-  });
-}
+// function registerBrushLayer() {
+//   IG.Layer.register("brushLayer", {
+//     constructor: IG.Layer.D3Layer,
+//     attach: [
+//       {
+//         precondition: (event, layer) =>
+//           event.type === "pointer" && layer.inside(event),
+//         tools: [
+//           IG.Tool.initialize("DragTool", {
+//             activeCommand(_, e) {
+//               if (!(e.type === "pointer" && this.layer.inside(e))) debugger;
+//               this.offsetX = e.x;
+//               this.rawLayer = this.layer;
+//             },
+//             frameCommand(_, e) {
+//               const node = this.rawLayer.getGraphic();
+//               const deltaX = e.x - this.offsetX;
+//               const base = getXYfromTransform(node);
+//               node.attr("transform", `translate(${base[0] + deltaX}, ${0})`);
+//             },
+//           }),
+//         ],
+//       },
+//     ],
+//   });
+// }
 
-function registerBrushableLayer() {
-  IG.Layer.register("brushableLayer", {
-    constructor: IG.Layer.D3Layer,
-    attach: [
-      {
-        precondition: (event, layer) =>
-          event.type === "pointer" && layer.inside(event),
-        tools: [
-          IG.Tool.initialize("BrushTool", {
-            activeCommand: function (_, e) {
-              this.layer.brushLayer?.getGraphic().remove();
-              const backgroundLayer = this.layer;
-              const bg = backgroundLayer.getGraphic();
-              const brushHeight = +bg.select("rect").attr("height");
-              const brushLayer = IG.Layer.initialize(
-                "brushLayer",
-                0,
-                brushHeight,
-                bg
-              );
-              brushLayer
-                .getGraphic()
-                .attr("transform", `translate(${e.x}, 0)`)
-                .select("rect")
-                .attr("height", brushHeight) // 不太方便
-                .attr("fill", "black")
-                .attr("opacity", 0.3);
-              backgroundLayer.brushLayer = brushLayer; // 不太方便
-              backgroundLayer.brushStartX = e.x;
-            },
-            frameCommand: function (_, e) {
-              const brushableLayer = this.layer;
-              const brushLayer = brushableLayer.brushLayer;
-              const g = brushLayer.getGraphic();
-              const width = e.x - this.layer.brushStartX - 1;
-              g.select("rect").attr("width", width >= 0 ? width : 0);
-              const xy = getXYfromTransform(brushLayer.getGraphic());
-              extents.set(
-                brushableLayer.key,
-                [xy[0], xy[0] + width].map(scales.get(brushableLayer.key))
-              );
-            },
-            terminateCommand: function () {
-              console.log("terminate");
-            },
-          }),
-        ],
-      },
-    ],
-  });
-}
+// function registerBrushableLayer() {
+//   IG.Layer.register("brushableLayer", {
+//     constructor: IG.Layer.D3Layer,
+//     attach: [
+//       {
+//         precondition: (event, layer) =>
+//           event.type === "pointer" && layer.inside(event),
+//         tools: [
+//           IG.Tool.initialize("BrushTool", {
+//             activeCommand: function (_, e) {
+//               this.layer.brushLayer?.getGraphic().remove();
+//               const backgroundLayer = this.layer;
+//               const bg = backgroundLayer.getGraphic();
+//               const brushHeight = +bg.select("rect").attr("height");
+//               const brushLayer = IG.Layer.initialize(
+//                 "brushLayer",
+//                 0,
+//                 brushHeight,
+//                 bg
+//               );
+//               brushLayer
+//                 .getGraphic()
+//                 .attr("transform", `translate(${e.x}, 0)`)
+//                 .select("rect")
+//                 .attr("height", brushHeight) // 不太方便
+//                 .attr("fill", "black")
+//                 .attr("opacity", 0.3);
+//               backgroundLayer.brushLayer = brushLayer; // 不太方便
+//               backgroundLayer.brushStartX = e.x;
+//             },
+//             frameCommand: function (_, e) {
+//               const brushableLayer = this.layer;
+//               const brushLayer = brushableLayer.brushLayer;
+//               const g = brushLayer.getGraphic();
+//               const width = e.x - this.layer.brushStartX - 1;
+//               g.select("rect").attr("width", width >= 0 ? width : 0);
+//               const xy = getXYfromTransform(brushLayer.getGraphic());
+//               extents.set(
+//                 brushableLayer.key,
+//                 [xy[0], xy[0] + width].map(scales.get(brushableLayer.key))
+//               );
+//             },
+//             terminateCommand: function () {
+//               console.log("terminate");
+//             },
+//           }),
+//         ],
+//       },
+//     ],
+//   });
+// }
 
 function renderBinnedChart(rootLayer, width, height, data, key) {
   const root = rootLayer.getGraphic();
@@ -222,7 +241,7 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       `translate(${margin.left + width / 2}, ${margin.top + height})`
     );
 
-  // draw
+  // draw things except main layer
   groupAxisX.call(d3.axisBottom(scaleX));
   groupAxisY
     .call(d3.axisLeft(scaleY))
@@ -249,22 +268,15 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
       groupAxisX.node().getBBox().height + groupTitle.node().getBBox().height
     );
 
-  /******************** layer *********************/
-  scales.set(key, scaleX.invert);
-  const plotLayer = IG.Layer.initialize("brushableLayer", width, height, root);
-  plotLayer.key = key;
-  plotLayers.set(key, plotLayer);
-
-  const groupPlot = plotLayer
+  /******************** main layer and vice layer *********************/
+  // vice layer
+  const viceLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  const viceGroup = viceLayer
     .getGraphic()
-    .attr("class", "groupPlot")
+    .attr("class", "vice-layer")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  const groupMarks = groupPlot.append("g").attr("class", "groupMarks");
-  const groupMarksFiltered = groupPlot
-    .append("g")
-    .attr("class", "groupMarksFiltered");
-  groupMarks
-    .selectAll("rect")
+  viceGroup
+    .selectAll("new-rect")
     .data(binnedData)
     .join("rect")
     .attr("fill", "grey")
@@ -273,20 +285,70 @@ function renderBinnedChart(rootLayer, width, height, data, key) {
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
-  const barsFiltered = groupMarksFiltered
-    .selectAll("rect")
+  // main layer
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  const mainGroup = mainLayer
+    .getGraphic()
+    .attr("class", "main-layer")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+  const mainRects = mainGroup
+    .selectAll("new-rect")
     .data(binnedData)
     .join("rect")
+    .attr("class", "mark")
     .attr("fill", "steelblue")
     .attr("x", (d, i) => i * bandStep + bandPadding)
     .attr("y", (d) => scaleY(d.length))
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
-  return filterData;
+  // attach tool
+  const brushTool = IG.Tool.initialize("BrushTool");
+  brushTool.attach(mainGroup.node());
+  brushTools.set(key, brushTool);
+  let brushLayer = null;
+  let start = 0; // 不同command共享变量不方便, 需要在command外设置全局变量, 不方便重用.
+  mainLayer.listen({
+    tools: [brushTool],
+    startCommand: (_, e) => {
+      console.log("start", e);
+      mainLayer.getGraphic().selectAll(".brush-layer").remove();
+      brushLayer = IG.Layer.initialize(
+        "D3Layer",
+        0,
+        height,
+        mainLayer.getGraphic()
+      );
+      brushLayer
+        .getGraphic()
+        .attr("transform", `translate(${e.x}, 0)`)
+        .attr("class", "brush-layer");
+      const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
+      rect.attr("opacity", 0.3);
+      start = e.x;
+      const startData = scaleX.invert(start);
+      extents.set(key, [startData, startData]);
+    },
+    dragCommand: (_, e) => {
+      const rect = d3.select(brushLayer.query("rect")[0]);
+      const width = e.x - start - 1;
+      rect.attr("width", width >= 0 ? width : 0);
+      const xy = getXYfromTransform(brushLayer.getGraphic());
+      console.log(xy);
+      extents.set(key, [xy[0], xy[0] + width].map(scales.get(key)));
+    },
+  });
+
+  // set shared things
+  scales.set(key, scaleX.invert);
+  //viceLayers.set(key, viceLayer);
+  mainLayers.set(key, mainLayer);
+  brushTools.set(key, brushTool);
+  extents.set(key, [...extent]);
+  updateHistFuncs.set(key, filterData);
 
   function filterData(filterExtents) {
-    barsFiltered
+    mainRects
       .attr("y", (d) => {
         d = d.filter((d) => {
           for (const key of filterExtents.keys()) {
@@ -383,10 +445,6 @@ function renderScatterPlot(
       "transform",
       `translate(${margin.left + width / 2}, ${margin.top + height})`
     );
-  const groupMarks = root
-    .append("g")
-    .attr("class", "groupMarks")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
   const groupLegends = root
     .append("g")
     .attr("class", "groupLegends")
@@ -434,7 +492,13 @@ function renderScatterPlot(
     .style("writing-mode", "tb")
     .attr("transform", "rotate(180)");
 
-  const circles = groupMarks
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  const groupMain= mainLayer
+    .getGraphic()
+    .append("g")
+    .attr("class", "groupMarks")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+  const circles = groupMain
     .selectAll("circle")
     .data(data)
     .join("circle")
@@ -453,7 +517,10 @@ function renderScatterPlot(
     scaleColor
   );
 
-  return filterData;
+  return {
+    mainLayer: mainLayer,
+    listener: filterData
+  };
 
   function filterData(filterExtents) {
     circles.attr("stroke", (d) => {
