@@ -482,14 +482,16 @@ function renderScatterPlot(
       rect.attr("width", width >= 0 ? width : 0);
       rect.attr("height", height2 >= 0 ? height2 : 0);
       const xy = getXYfromTransform(brushLayer.getGraphic());
+      console.log("xy", xy);
       extents.set(
         fieldX,
         [xy[0], xy[0] + width].map(scaleX.invert)
       );
       extents.set(
         fieldY,
-        [xy[0], xy[0] + height2].map(scaleY.invert).reverse().map(d => d)
+        [xy[1] + height2, xy[1]].map(scaleY.invert)
       );
+      console.log(height-xy[1], height-xy[1]-height2);
         console.log(extents.get(fieldY));
     },
   });
