@@ -15,6 +15,8 @@ export default class Tool {
   _interactors = [];
   _relations = [];
   _userListeners = {};
+  _eventQueue = [];
+  _next = null;
 
   constructor(name = "Tool", options) {
     this._name = name;
@@ -76,11 +78,29 @@ export default class Tool {
   }
 
   _notify(type, event) {
-    this._listeners[type].list().forEach((listener) => {
-      if (listener instanceof Function) {
-        listener.call(this, this._query, event);
-      }
-    });
+    if (!this._next) this._next = requestAnimationFrame(this._run.bind(this));
+    if (
+      this._eventQueue.find(
+        (pendingEvent) =>
+          pendingEvent.type === type && pendingEvent.event === event
+      )
+    )
+      return;
+    this._eventQueue.push({ type, event });
+  }
+
+  _run() {
+    let pendingEvent = this._eventQueue.shift();
+    while (pendingEvent) {
+      let { type, event } = pendingEvent;
+      this._listeners[type].list().forEach((listener) => {
+        if (listener instanceof Function) {
+          listener.call(this, this._query, event);
+        }
+      });
+      pendingEvent = this._eventQueue.shift();
+    }
+    this._next = null;
   }
 
   clone() {
