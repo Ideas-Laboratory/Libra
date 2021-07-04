@@ -28,7 +28,7 @@ function renderIndexChart(root, width, height, data) {
 
   // atomatic generate G with margin?
   const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  const mainGroup = mainLayer.getGraphic().attr("class", "main").attr("transform", `translate(${margin.left}, ${margin.top})`);
+  layer.getGraphic().attr("class", "main").attr("transform", `translate(${margin.left}, ${margin.top})`)
   const xGroup = root
     .append("g")
     .attr("class", "xAxis")
@@ -55,9 +55,7 @@ function renderIndexChart(root, width, height, data) {
   );
   const bisect = d3.bisector((d) => d.date).left;
   const formatDate = d3.utcFormat("%B, %Y");
-  const line = d3.line()
-    .x(d => x(d.date))
-    .y(d => y(d.value));
+
 
   const x = d3
     .scaleUtc()
@@ -91,20 +89,9 @@ function renderIndexChart(root, width, height, data) {
     )
     .call((g) => g.select(".domain").remove());
   
-  const rule = mainGroup.append("g")
-    .append("line")
-      .attr("y1", height)
-      .attr("y2", 0)
-      .attr("x1", width/2)
-      .attr("x2", width/2)
-      .attr("stroke", "black");
+
   
-  // const serie = root.append("g")
-  //     .style("font", "bold 10px sans-serif")
-  //   .selectAll("g")
-  //   .data(series)
-  //   .join("g");
-  
+  renderMainLayer(mainLayer, x, y, series);
   // serie.append("path")
   //     .attr("fill", "none")
   //     .attr("stroke-width", 1.5)
@@ -129,6 +116,28 @@ function renderIndexChart(root, width, height, data) {
   // atomatic generate scale with margin?
   // const xScale = d3.scaleUtc().domain().range();
   // const ySclae = d3.scaleLog().domain().range();
+}
+
+function renderMainLayer(layer, xScale, yScale, data){
+  const mainGroup = layer.getGraphic();
+  
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.value));
+
+  const rule = mainGroup.append("g")
+    .append("line")
+      .attr("y1", height)
+      .attr("y2", 0)
+      .attr("x1", width/2)
+      .attr("x2", width/2)
+      .attr("stroke", "black");
+  
+  const serie = mainGroup.append("g")
+      .style("font", "bold 10px sans-serif")
+    .selectAll("g")
+    .data(series)
+    .join("g");
 }
 
 async function loadData() {
