@@ -27,6 +27,7 @@ async function init() {
   layer.listen({
     tool: hoverTool,
     pointerCommand: (_, event) => {
+      // if we need update the other view, this way, which pass the udpate function directly, will not work
       const update = layer.getSharedScale("update");
       update(event.x);
     },
