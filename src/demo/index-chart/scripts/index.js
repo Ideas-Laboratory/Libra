@@ -5,6 +5,7 @@ import GOOGURL from "/src/data/stocks/GOOG.csv";
 import MSFTURL from "/src/data/stocks/MSFT.csv";
 import AAPLURL from "/src/data/stocks/AAPL.csv";
 import AMZNURL from "/src/data/stocks/AMZN.csv";
+import { bisect } from "d3";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -28,7 +29,10 @@ function renderIndexChart(root, width, height, data) {
 
   // atomatic generate G with margin?
   const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  layer.getGraphic().attr("class", "main").attr("transform", `translate(${margin.left}, ${margin.top})`)
+  mainLayer
+    .getGraphic()
+    .attr("class", "main")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
   const xGroup = root
     .append("g")
     .attr("class", "xAxis")
@@ -40,22 +44,19 @@ function renderIndexChart(root, width, height, data) {
 
   // data manimulation
 
-  const series = d3
+  let series = d3
     .groups(data, (d) => d.name)
     .map(([key, values]) => {
       const v = values[0].value;
       return {
         key,
-        values: values.map(({ date, value }) => ({ date, value: values / v })),
+        values: values.map(({ date, value }) => ({ date, value: value / v })),
       };
     });
   const k = d3.max(
     d3.group(data, (d) => d.name),
     ([, group]) => d3.max(group, (d) => d.value) / d3.min(group, (d) => d.value)
   );
-  const bisect = d3.bisector((d) => d.date).left;
-  const formatDate = d3.utcFormat("%B, %Y");
-
 
   const x = d3
     .scaleUtc()
@@ -66,9 +67,6 @@ function renderIndexChart(root, width, height, data) {
     .domain([1 / k, k])
     .rangeRound([height - margin.bottom, margin.top])
     .range([height, 0]);
-  const z = d3
-    .scaleOrdinal(d3.schemeCategory10)
-    .domain(data.map((d) => d.name));
 
   xGroup
     .call(
@@ -88,9 +86,7 @@ function renderIndexChart(root, width, height, data) {
         .attr("x2", width)
     )
     .call((g) => g.select(".domain").remove());
-  
 
-  
   renderMainLayer(mainLayer, x, y, series);
   // serie.append("path")
   //     .attr("fill", "none")
@@ -118,26 +114,67 @@ function renderIndexChart(root, width, height, data) {
   // const ySclae = d3.scaleLog().domain().range();
 }
 
-function renderMainLayer(layer, xScale, yScale, data){
+function renderMainLayer(layer, xScale, yScale, data) {
+  const width = xScale.range()[1] - xScale.range()[0];
+  const height = yScale.range()[0] - yScale.range()[1];
+  console.log(width, height);
   const mainGroup = layer.getGraphic();
-  
-  const line = d3.line()
-    .x(d => x(d.date))
-    .y(d => y(d.value));
 
-  const rule = mainGroup.append("g")
+  const z = d3
+    .scaleOrdinal(d3.schemeCategory10)
+    .domain(data.map((d) => d.name));
+  const line = d3
+    .line()
+    .x((d) => xScale(d.date))
+    .y((d) => yScale(d.value));
+  const bisect = d3.bisector((d) => d.date).left;
+  const formatDate = d3.utcFormat("%B, %Y");
+
+  const rule = mainGroup
+    .append("g")
     .append("line")
-      .attr("y1", height)
-      .attr("y2", 0)
-      .attr("x1", width/2)
-      .attr("x2", width/2)
-      .attr("stroke", "black");
-  
-  const serie = mainGroup.append("g")
-      .style("font", "bold 10px sans-serif")
+    .attr("y1", height)
+    .attr("y2", 0)
+    .attr("x1", 0)
+    .attr("x2", 0)
+    .attr("stroke", "black");
+
+  const serie = mainGroup
+    .append("g")
+    .style("font", "bold 10px sans-serif")
     .selectAll("g")
-    .data(series)
+    .data(data)
     .join("g");
+  serie
+    .append("path")
+    .attr("fill", "none")
+    .attr("stroke-width", 1.5)
+    .attr("stroke-linejoin", "round")
+    .attr("stroke-linecap", "round")
+    .attr("stroke", (d) => z(d.key))
+    .attr("d", (d) => line(d.values));
+
+  const update = (date) => {
+    date = d3.utcDay.round(date);
+    rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
+    serie.attr("transform", ({values}) => {
+      const i = bisect(values, date);
+      return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
+    });
+  };
+
+  const hoverTool = IG.Tool.initialize("HoverTool");
+  hoverTool.attach(mainGroup.node());
+  //hoverTool.attach(d3.select("#ctner").node());
+  layer.listen({
+    tool: hoverTool,
+    pointerCommand: (_, event) => {
+      console.log("hello");
+      //console.log(args);
+      update(xScale.invert(event.x));
+    },
+  });
+  mainGroup.select(".ig-layer-background").raise();
 }
 
 async function loadData() {
