@@ -13,24 +13,13 @@ if (process.env.NODE_ENV === "development") {
 
 init();
 
-
 async function init() {
   const width = 600;
   const height = 400;
   const svg = d3.select("#ctner").attr("width", width).attr("height", height);
   const data = await loadData();
-
-  const layer = renderIndexChart(svg, width, height, data);
-
-  const hoverTool = IG.Tool.initialize("HoverTool");
-  hoverTool.attach(layer.getGraphic().node());
-  layer.listen({
-    tool: hoverTool,
-    pointerCommand: (_, event) => {
-      const update = layer.getSharedScale("update");
-      update(event.x);
-    },
-  });
+  console.log(data);
+  renderIndexChart(svg, width, height, data);
 }
 
 function renderIndexChart(root, width, height, data) {
@@ -99,7 +88,6 @@ function renderIndexChart(root, width, height, data) {
     .call((g) => g.select(".domain").remove());
 
   renderMainLayer(mainLayer, x, y, series);
-  return mainLayer;
 }
 
 function renderMainLayer(layer, xScale, yScale, data) {
@@ -151,7 +139,14 @@ function renderMainLayer(layer, xScale, yScale, data) {
     });
   };
 
-  layer.setSharedScale("update", update);
+  const hoverTool = IG.Tool.initialize("HoverTool");
+  hoverTool.attach(mainGroup.node());
+  layer.listen({
+    tool: hoverTool,
+    pointerCommand: (_, event) => {
+      update(event.x);
+    },
+  });
 }
 
 async function loadData() {
