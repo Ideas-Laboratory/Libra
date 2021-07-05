@@ -13,10 +13,9 @@ if (process.env.NODE_ENV === "development") {
 
 main();
 
-
 /**
  * the interaction part and rendering part are totally seperated.
- * the rendring function share only the basic parts, not a update function directly.
+ * we define the update function inside the rendering function, and share it.
  */
 async function main() {
   const width = 600;
@@ -30,21 +29,13 @@ async function main() {
   // add interaction
   const hoverTool = IG.Tool.initialize("HoverTool");
   hoverTool.attach(layer.getGraphic().node());
-  const bisect = d3.bisector((d) => d.date).left;
   layer.listen({
     tool: hoverTool,
     pointerCommand: (_, event) => {
-      const xScale = layer.getSharedScale("xScale");
-      const yScale = layer.getSharedScale("yScale");
-      const rule = layer.getSharedScale("ruleMark");
-      const serie = layer.getSharedScale("serieMark");
-
-      const date = d3.utcDay.round(xScale.invert(event.x));
-      rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
-      serie.attr("transform", ({values}) => {
-        const i = bisect(values, date);
-        return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
-      });
+      // we need layer to store some information in advance, otherwise it is hard to write the command to update the view.
+      // for multi-view, if we need update the other view, this way, which pass the udpate function directly, will not work
+      const update = layer.getSharedScale("update");
+      update(event.x);
     },
   });
 }
@@ -166,21 +157,16 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("d", (d) => line(d.values));
 
   /* shared information, which is useful for add interaction*/
-  // const bisect = d3.bisector((d) => d.date).left;
-  // const update = (x) => {
-  //   let date = xScale.invert(x);
-  //   date = d3.utcDay.round(date);
-  //   rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
-  //   serie.attr("transform", ({values}) => {
-  //     const i = bisect(values, date);
-  //     return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
-  //   });
-  // };
-  // layer.setSharedScale("update", update);
-  layer.setSharedScale("xScale", xScale);
-  layer.setSharedScale("yScale", yScale);
-  layer.setSharedScale("ruleMark", rule);
-  layer.setSharedScale("serieMark", serie);
+  const bisect = d3.bisector((d) => d.date).left;
+  const update = (x) => {
+    const date = d3.utcDay.round(xScale.invert(x));
+    rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
+    serie.attr("transform", ({values}) => {
+      const i = bisect(values, date);
+      return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
+    });
+  };
+  layer.setSharedScale("update", update);
 }
 
 async function loadData() {

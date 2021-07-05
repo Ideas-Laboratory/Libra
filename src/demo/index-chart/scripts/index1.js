@@ -11,9 +11,13 @@ if (process.env.NODE_ENV === "development") {
   require("../index.html");
 }
 
-init();
+main();
 
-async function init() {
+
+/**
+ * the interacion part and rendering part are not totally seperated.
+ */
+async function main() {
   const width = 600;
   const height = 400;
   const svg = d3.select("#ctner").attr("width", width).attr("height", height);
@@ -130,8 +134,7 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("d", (d) => line(d.values));
 
   const update = (x) => {
-    let date = xScale.invert(x);
-    date = d3.utcDay.round(date);
+    const date = d3.utcDay.round(xScale.invert(x));
     rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
     serie.attr("transform", ({values}) => {
       const i = bisect(values, date);
