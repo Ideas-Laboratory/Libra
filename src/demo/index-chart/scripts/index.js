@@ -88,36 +88,11 @@ function renderIndexChart(root, width, height, data) {
     .call((g) => g.select(".domain").remove());
 
   renderMainLayer(mainLayer, x, y, series);
-  // serie.append("path")
-  //     .attr("fill", "none")
-  //     .attr("stroke-width", 1.5)
-  //     .attr("stroke-linejoin", "round")
-  //     .attr("stroke-linecap", "round")
-  //     .attr("stroke", d => z(d.key))
-  //     .attr("d", d => line(d.values));
-
-  // serie.append("text")
-  //     .datum(d => ({key: d.key, value: d.values[d.values.length - 1].value}))
-  //     .attr("fill", "none")
-  //     .attr("stroke", "white")
-  //     .attr("stroke-width", 3)
-  //     .attr("x", x.range()[1] + 3)
-  //     .attr("y", d => y(d.value))
-  //     .attr("dy", "0.35em")
-  //     .text(d => d.key)
-  //   .clone(true)
-  //     .attr("fill", d => z(d.key))
-  //     .attr("stroke", null);
-
-  // atomatic generate scale with margin?
-  // const xScale = d3.scaleUtc().domain().range();
-  // const ySclae = d3.scaleLog().domain().range();
 }
 
 function renderMainLayer(layer, xScale, yScale, data) {
   const width = xScale.range()[1] - xScale.range()[0];
   const height = yScale.range()[0] - yScale.range()[1];
-  console.log(width, height);
   const mainGroup = layer.getGraphic();
 
   const z = d3
@@ -165,12 +140,9 @@ function renderMainLayer(layer, xScale, yScale, data) {
 
   const hoverTool = IG.Tool.initialize("HoverTool");
   hoverTool.attach(mainGroup.node());
-  //hoverTool.attach(d3.select("#ctner").node());
   layer.listen({
     tool: hoverTool,
     pointerCommand: (_, event) => {
-      console.log("hello");
-      //console.log(args);
       update(xScale.invert(event.x));
     },
   });
@@ -190,27 +162,3 @@ async function loadData() {
     }))
   );
 }
-// const g = layer.getGraphic();
-// g.selectAll("circle")
-//   .data(
-//     new Array(100)
-//       .fill()
-//       .map(() => ({ x: Math.random() * 480 + 10, y: Math.random() * 480 + 10 }))
-//   )
-//   .enter()
-//   .append("circle")
-//   .attr("cx", (d) => d.x)
-//   .attr("cy", (d) => d.y)
-//   .attr("r", 10)
-//   .attr("fill", "red");
-
-// const tool = IG.Tool.initialize("HoverTool");
-// tool.attach(svg.node());
-
-// layer.listen({
-//   tool,
-//   pointerCommand: ({ result }) => {
-//     g.selectAll("circle").attr("fill", "red");
-//     result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
-//   },
-// });
