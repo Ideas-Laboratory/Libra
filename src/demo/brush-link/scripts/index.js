@@ -87,6 +87,9 @@ extents.set(fieldY, scatterScaleY.domain());
 /***** attach tools *****/
 //const tools = Array.from(brushTools.values());
 // attach tools to histograms
+const brushTool = IG.Tool.initialize("BrushTool");
+brushTools.push(brushTool);
+
 for (const key of histFields) {
   const histLayer = mainLayers.get(key);
   histLayer.listen({
@@ -98,43 +101,45 @@ for (const key of histFields) {
 }
 
 const scatterGroup = scatterMainLayer.getGraphic();
-const brushTool = IG.Tool.initialize("BrushTool");
 brushTool.attach(scatterGroup.node());
-brushTools.push(brushTool);
 // listen to brush tool
 
 addDrawRectTool(scatterMainLayer, brushTool);
 scatterMainLayer.listen({
   tool: brushTool,
   startCommand: function() {
-    const start = this.getSharedScale("start");
     const xScale = this.getSharedScale("scaleX");
     const yScale = this.getSharedScale("scaleY");
     extents.set(fieldX, xScale.domain());
     extents.set(fieldY, yScale.domain());
-    console.log(start);
   },
   dragCommand: function(selectionManager, e) {
     const start = this.getSharedScale("start");
     const end = this.getSharedScale("end");
     const scaleX = this.getSharedScale("scaleX");
     const scaleY = this.getSharedScale("scaleY");
-    // console.log(start, end);
-    // console.log(selectionManager.result);
-    const height2 = e.y - start[1] - 1;
+    const height = e.y - start[1] - 1;
     extents.set(fieldX, [end[0], end[0] + width].map(scaleX.invert));
-    extents.set(fieldY, [end[1] + height2, end[1]].map(scaleY.invert));
-    // console.log(height - end[1], height - end[1] - height2);
-    // console.log(extents.get(fieldY));
+    extents.set(fieldY, [end[1] + height, end[1]].map(scaleY.invert));
   }
 });
 
 // attach tools to scatter plot
+const colorHidden = "#ddd";
 scatterMainLayer.listen({
   tools: brushTools,
   dragCommand: function() {
-    const filterData = this.getSharedScale("filterData");
-    filterData(extents);
+    //const filterData = this.getSharedScale("filterData");
+    const scaleColor = this.getSharedScale("scaleColor");
+    const circles = this.getGraphic().selectAll("circle");
+    circles.attr("stroke", (d) => {
+      for (const key of extents.keys()) {
+        const extent = extents.get(key);
+        if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+          return colorHidden;
+      }
+      return scaleColor(d[fieldColor]);
+    });
   },
 });
 
@@ -289,20 +294,6 @@ function renderBinnedChart(root, width, height, data, key) {
     },
   });
 
-  // const clearTool = IG.Tool.initialize("ClickTool");
-  // clearTool.attach(mainGroup.node());
-  // mainLayer.listen({
-  //   tool: clearTool,
-  //   startCommand: () => {  // 需要给ClickTool添加startCommand的relations
-  //     console.log("start");
-  //     extents.set(key, extent);
-  //   },
-  //   endCommand: () => {
-  //     console.log("end");
-  //     extents.set(key, extent);
-  //   },
-  // });
-
   return {
     mainLayer: mainLayer,
     scaleX: scaleX,
@@ -350,7 +341,6 @@ function renderScatterPlot(
 ) {
   // settings
   const radius = 3;
-  const colorHidden = "#ddd";
   const tooltipFields = [
     "Miles_per_Gallon",
     "Cylinders",
@@ -489,26 +479,9 @@ function renderScatterPlot(
   mainLayer.setSharedScale("scaleColor", scaleColor);
   mainLayer.setSharedScale("extentX", extentX);
   mainLayer.setSharedScale("extentY", extentY);
-  mainLayer.setSharedScale("filterData", filterData);
 
   /***** attach tool *****/
   return mainLayer;
-
-  function filterData(filterExtents) {
-    circles.attr("stroke", (d) => {
-      for (const key of filterExtents.keys()) {
-        const extent = filterExtents.get(key);
-        if (extent && (d[key] < extent[0] || d[key] > extent[1]))
-          return colorHidden;
-      }
-      return scaleColor(d[fieldColor]);
-    });
-  }
-
-  //const { showTooltip, updateTooltip } = renderTooltip(groupTooltip, 0, 0, data, tooltipFields);
-  //showTooltip(false);
-
-  //groupTooltip.attr("display", null)
 }
 
 function renderLegends(root, width, height, field, scaleColor) {
@@ -580,6 +553,37 @@ layer.listen({
     brushLayer
       .getGraphic()
       .attr("transform", `translate(${start[0]}, ${start[1]})`)
+      .attr("class", "brush-layer");
+    const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
+    rect.attr("opacity", 0.3);
+    this.setSharedScale("brushLayer", brushLayer);
+    this.setSharedScale("start", start);
+  },
+  dragCommand: function (_, e) {
+    const brushLayer = this.getSharedScale("brushLayer");
+    const start = this.getSharedScale("start");
+
+    const rect = d3.select(brushLayer.query("rect")[0]);
+    const width = e.x - start[0] - 1;
+    const height2 = e.y - start[1] - 1;
+    rect.attr("width", width >= 0 ? width : 0);
+    rect.attr("height", height2 >= 0 ? height2 : 0);
+    const xy = getXYfromTransform(brushLayer.getGraphic());
+    this.setSharedScale("end", xy);
+  },
+});
+}
+
+function addDrawRectXTool(layer, brushTool){
+layer.listen({
+  tool: brushTool,
+  startCommand: function (_, e) {
+    this.getGraphic().selectAll(".brush-layer").remove();
+    const start = [e.x, 0];
+    const brushLayer = IG.Layer.initialize("D3Layer", 0, 0, this.getGraphic());
+    brushLayer
+      .getGraphic()
+      .attr("transform", `translate(${start[0]}, ${0})`)
       .attr("class", "brush-layer");
     const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
     rect.attr("opacity", 0.3);
