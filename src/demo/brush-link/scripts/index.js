@@ -1,7 +1,7 @@
 import IG from "~/IG";
 import * as d3 from "d3";
 import cars from "../../../data/cars.json";
-import { brush } from "d3";
+import { brush, select } from "d3";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -100,20 +100,32 @@ for (const key of histFields) {
 const scatterGroup = scatterMainLayer.getGraphic();
 const brushTool = IG.Tool.initialize("BrushTool");
 brushTool.attach(scatterGroup.node());
-//brushTools.push(brushTool);
+brushTools.push(brushTool);
 // listen to brush tool
 
-addBrushLayerTool(scatterMainLayer, brushTool);
+addDrawRectTool(scatterMainLayer, brushTool);
 scatterMainLayer.listen({
   tool: brushTool,
   startCommand: function() {
     const start = this.getSharedScale("start");
+    const xScale = this.getSharedScale("scaleX");
+    const yScale = this.getSharedScale("scaleY");
+    extents.set(fieldX, xScale.domain());
+    extents.set(fieldY, yScale.domain());
     console.log(start);
   },
-  dragCommand: function() {
+  dragCommand: function(selectionManager, e) {
     const start = this.getSharedScale("start");
     const end = this.getSharedScale("end");
-    console.log(start, end);
+    const scaleX = this.getSharedScale("scaleX");
+    const scaleY = this.getSharedScale("scaleY");
+    // console.log(start, end);
+    // console.log(selectionManager.result);
+    const height2 = e.y - start[1] - 1;
+    extents.set(fieldX, [end[0], end[0] + width].map(scaleX.invert));
+    extents.set(fieldY, [end[1] + height2, end[1]].map(scaleY.invert));
+    // console.log(height - end[1], height - end[1] - height2);
+    // console.log(extents.get(fieldY));
   }
 });
 
@@ -558,12 +570,10 @@ function getXYfromTransform(node) {
   }
 }
 
-function addBrushLayerTool(layer, brushTool){
+function addDrawRectTool(layer, brushTool){
 layer.listen({
   tool: brushTool,
   startCommand: function (_, e) {
-    const xScale = this.getSharedScale("scaleX");
-    const yScale = this.getSharedScale("scaleY");
     this.getGraphic().selectAll(".brush-layer").remove();
     const start = [e.x, e.y];
     const brushLayer = IG.Layer.initialize("D3Layer", 0, 0, this.getGraphic());
@@ -575,8 +585,6 @@ layer.listen({
     rect.attr("opacity", 0.3);
     this.setSharedScale("brushLayer", brushLayer);
     this.setSharedScale("start", start);
-    extents.set(fieldX, xScale.domain());
-    extents.set(fieldY, yScale.domain());
   },
   dragCommand: function (_, e) {
     const brushLayer = this.getSharedScale("brushLayer");
@@ -589,11 +597,6 @@ layer.listen({
     rect.attr("height", height2 >= 0 ? height2 : 0);
     const xy = getXYfromTransform(brushLayer.getGraphic());
     this.setSharedScale("end", xy);
-    // console.log("xy", xy);
-    // extents.set(fieldX, [xy[0], xy[0] + width].map(scaleX.invert));
-    // extents.set(fieldY, [xy[1] + height2, xy[1]].map(scaleY.invert));
-    // console.log(height - xy[1], height - xy[1] - height2);
-    // console.log(extents.get(fieldY));
   },
 });
 }
