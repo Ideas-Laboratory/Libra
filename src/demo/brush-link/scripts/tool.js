@@ -5,7 +5,7 @@ import IG from "~/IG";
  * @param {} layer 
  * @param {*} brushTool 
  */
-function addDrawRectTool(layer, brushTool) {
+function setDrawRectCommands(layer, brushTool) {
   layer.listen({
     tool: brushTool,
     startCommand: function (_, e) {
@@ -46,7 +46,7 @@ function addDrawRectTool(layer, brushTool) {
  * @param {} layer 
  * @param {*} brushTool 
  */
-function addDrawRectXTool(layer, brushTool) {
+function setDrawRectXCommands(layer, brushTool) {
   layer.listen({
     tool: brushTool,
     startCommand: function (_, e) {
@@ -83,4 +83,4 @@ function addDrawRectXTool(layer, brushTool) {
 }
 
 
-export {addDrawRectTool, addDrawRectXTool};
+export {setDrawRectCommands, setDrawRectXCommands};

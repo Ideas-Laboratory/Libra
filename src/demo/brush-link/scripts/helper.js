@@ -1,4 +1,4 @@
-// 最好在background创建时，就在实例对象中保存一个对它的引用。
+// IG最好提供这个功能。在background创建时，就在实例对象中保存一个对它的引用。
 function getBackground(layer) {
   return layer.getGraphic().select(".ig-layer-background") ?? null;
 }

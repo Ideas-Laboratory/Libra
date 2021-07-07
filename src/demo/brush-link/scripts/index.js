@@ -3,19 +3,19 @@ import * as d3 from "d3";
 import cars from "../../../data/cars.json";
 import { brush, extent, select } from "d3";
 import { getBackground, getXYfromTransform } from "./helper";
-import { addDrawRectTool, addDrawRectXTool } from "./tool";
+import { setDrawRectCommands, setDrawRectXCommands } from "./tool";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
 }
 
-const mainLayers = new Map();
-const extents = new Map();
-const brushTools = [];
-
 main();
 
+/**
+ * the entry point
+ */
 function main() {
+  /*********************** 1. basic settings ******************/
   // fields to bin
   const histFields = [
     "Cylinders",
@@ -26,7 +26,6 @@ function main() {
   const fieldX = "Horsepower";
   const fieldY = "Miles_per_Gallon";
   const fieldColor = "Origin";
-  const keys = [...histFields].concat([fieldX, fieldY]);
 
   // layout
   const width = 950,
@@ -36,13 +35,15 @@ function main() {
   const widthScatterPlot = width - widthHist,
     heightScatterPlot = height;
 
+
+  /******************* 2. render static visualization with IG.Layer ********************/
   const svg = d3
     .select("#ctner")
     .attr("width", width)
     .attr("height", height)
     .attr("viewbox", `0 0 width height`);
-
-  /***** histograms *****/
+  const mainLayers = new Map(); // make it under the control of IG?
+  // histograms 
   for (let i = 0; i < histFields.length; i++) {
     const key = histFields[i];
     const histLayer = IG.Layer.initialize(
@@ -63,8 +64,7 @@ function main() {
     );
     mainLayers.set(key, histMainLayer);
   }
-
-  /***** scatter plot *****/
+  // scatter plot
   const scatterLayer = IG.Layer.initialize("D3Layer", 500, 500, svg);
   const scatterG = scatterLayer
     .getGraphic()
@@ -79,15 +79,45 @@ function main() {
     fieldColor
   );
 
-  /* add interactions */
-  for (const histMainLayer of mainLayers) {
-    addInteractionToHist(histMainLayer);
+  /******************* 3. create tools ***************************/
+  const brushTools = [];
+  for (const key of histFields) {
+    const histBrushTool = IG.Tool.initialize("BrushTool");
+    brushTools.push(histBrushTool);
   }
-  addInteractionToScatter(scatterMainLayer);
+  const scatterBrushTool = IG.Tool.initialize("BrushTool");
+  brushTools.push(scatterBrushTool);
+
+
+  /******* 4. attach tools to layers, and set commands on layers **********/
+  // information shared among layers
+  const extents = new Map();
+  for (let i = 0; i < histFields.length; i++) {
+    const key = histFields[i];
+    attachToolAndSetCommandsForHist(
+      mainLayers.get(key),
+      brushTools[i],
+      brushTools,
+      extents
+    );
+  }
+  attachToolAndSetCommandsForScatter(
+    scatterMainLayer,
+    scatterBrushTool,
+    brushTools,
+    extents
+  );
 }
 
-/*********************** functions *************************/
-
+/**
+ * 
+ * @param {d3.Selection<SVGGElement, unknown, unknown, unknown>} root 
+ * @param {number} width 
+ * @param {number} height 
+ * @param {unknown} data 
+ * @param {string} key bin data with the "key" property
+ * @returns 
+ */
 function renderHistogram(root, width, height, data, key) {
   // layout
   const margin = { top: 10, right: 10, bottom: 40, left: 50 };
@@ -197,8 +227,10 @@ function renderHistogram(root, width, height, data, key) {
     .attr("width", bandWidth)
     .attr("height", (d) => scaleY(0) - scaleY(d.length));
 
-  mainLayer.setSharedFiled("key", key);
+  // share some information
+  mainLayer.setSharedScale("key", key);
   mainLayer.setSharedScale("scaleX", scaleX);
+  mainLayer.setSharedScale("scaleY", scaleY);
   mainLayer.setSharedScale("initialExtent", extent);
   mainLayer.setSharedScale("listener", filterData);
   mainLayer.setSharedScale("mainRects", mainRects);
@@ -238,12 +270,12 @@ function renderHistogram(root, width, height, data, key) {
  *   2. bind some information to layer with `layer.setSharedScale`. The information will be used for successive commands.
  *   3. return the layer
  * @param {d3.Selection<SVGGElement, unknown, unknown, unknown>} root
- * @param {*} width
- * @param {*} height
- * @param {*} data
- * @param {*} fieldX
- * @param {*} fieldY
- * @param {*} fieldColor
+ * @param {number} width
+ * @param {number} height
+ * @param {unknown} data
+ * @param {string} fieldX
+ * @param {string} fieldY
+ * @param {string} fieldColor
  * @returns
  */
 function renderScatterPlot(
@@ -402,6 +434,14 @@ function renderScatterPlot(
   return mainLayer;
 }
 
+/**
+ * render the legends of scatter plot
+ * @param {d3.Selection<SVGGElement, unknwon, unknwon, unknwon>} root 
+ * @param {*} width 
+ * @param {*} height 
+ * @param {*} field 
+ * @param {*} scaleColor 
+ */
 function renderScatterLegends(root, width, height, field, scaleColor) {
   // settings
   const radius = 4;
@@ -447,9 +487,70 @@ function renderScatterLegends(root, width, height, field, scaleColor) {
     .attr("r", radius);
 }
 
-function addInteractionToHist() {}
+function attachToolAndSetCommandsForHist(mainLayer, histBrushTool, brushTools, extents) {
+  const key = mainLayer.getSharedScale("key");
+  const scaleX = mainLayer.getSharedScale("scaleX");
+  const scaleY = mainLayer.getSharedScale("scaleY");
+  const initialExtent = mainLayer.getSharedScale("initialExtent");
+  const listener = mainLayer.getSharedScale("listener");
+  const mainRects = mainLayer.getSharedScale("mainRects");
 
-function addInteractionToScatter(scatterMainLayer) {
+  const mainGroup = mainLayer.getGraphic();
+
+  histBrushTool.attach(mainGroup.node());
+
+  setDrawRectXCommands(mainLayer, histBrushTool);
+
+  // set extents depends on the histBrushTool of itself
+  mainLayer.listen({
+    tool: histBrushTool,
+    startCommand: function () {
+      extents.set(key, scaleX.domain());
+    },
+    dragCommand: function () {
+      const start = this.getSharedScale("start");
+      const end = this.getSharedScale("end");
+      extents.set(key, [start[0], end[0]].map(scaleX.invert));
+    },
+  });
+
+  // filter marks depends on every brushtools
+  mainLayer.listen({
+    tools: brushTools,
+    dragCommand: function () {
+      mainRects
+        .attr("y", (d) => {
+          d = d.filter((d) => {
+            for (const key of extents.keys()) {
+              const extent = extents.get(key);
+              if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+                return false;
+            }
+            return true;
+          });
+          return scaleY(d.length);
+        })
+        .attr("height", (d) => {
+          d = d.filter((d) => {
+            for (const key of extents.keys()) {
+              const extent = extents.get(key);
+              if (extent && (d[key] < extent[0] || d[key] > extent[1]))
+                return false;
+            }
+            return true;
+          });
+          return scaleY(0) - scaleY(d.length);
+        });
+    },
+  });
+}
+
+function attachToolAndSetCommandsForScatter(
+  scatterMainLayer,
+  scatterBrushTool,
+  brushTools,
+  extents
+) {
   const fieldX = scatterMainLayer.getSharedScale("fieldX");
   const fieldY = scatterMainLayer.getSharedScale("fieldY");
   const fieldColor = scatterMainLayer.getSharedScale("fieldColor");
@@ -457,17 +558,14 @@ function addInteractionToScatter(scatterMainLayer) {
   const scaleY = scatterMainLayer.getSharedScale("scaleY");
   const scaleColor = scatterMainLayer.getSharedScale("scaleColor");
 
-  const brushTool = IG.Tool.initialize("BrushTool");
-  brushTools.push(brushTool);
   const colorHidden = "#ddd";
   const scatterGroup = scatterMainLayer.getGraphic();
-  console.log(scatterGroup.node());
-  brushTool.attach(scatterGroup.node());
-  //addDrawRectTool(scatterMainLayer, brushTool);
-  addDrawRectXTool(scatterMainLayer, brushTool);
-  // set extents
+  scatterBrushTool.attach(scatterGroup.node());
+  //setsDrawRectCommands(scatterMainLayer, brushTool);
+  setDrawRectXCommands(scatterMainLayer, scatterBrushTool);
+  // set extents depends on the brushTool on scatterPlot itself.
   scatterMainLayer.listen({
-    tool: brushTool,
+    tool: scatterBrushTool,
     startCommand: function () {
       extents.set(fieldX, scaleX.domain());
       extents.set(fieldY, scaleY.domain());
@@ -479,11 +577,11 @@ function addInteractionToScatter(scatterMainLayer) {
       extents.set(fieldY, [end[1], start[1]].map(scaleY.invert));
     },
   });
-  // filter marks
+  // filter marks depends on all the brush tools
   const circles = scatterMainLayer.getGraphic().selectAll("circle");
   scatterMainLayer.listen({
     tools: brushTools,
-    dragCommand: function (selectionManager, e) {
+    dragCommand: function () {
       circles.attr("stroke", (d) => {
         for (const key of extents.keys()) {
           const extent = extents.get(key);
