@@ -323,6 +323,20 @@ function renderBinnedChart(root, width, height, data, key) {
   }
 }
 
+/**
+ * It contains only the rendering part, except:
+ *   1. Need to define a layer, which will do some interaction on it latter 
+ *   2. bind some information to layer with `layer.setSharedScale`. The information will be used for successive commands.
+ *   3. return the layer
+ * @param {d3.Selection<SVGGElement, unknown, unknown, unknown>} root 
+ * @param {*} width 
+ * @param {*} height 
+ * @param {*} data 
+ * @param {*} fieldX 
+ * @param {*} fieldY 
+ * @param {*} fieldColor 
+ * @returns 
+ */
 function renderScatterPlot(
   root,
   width,
