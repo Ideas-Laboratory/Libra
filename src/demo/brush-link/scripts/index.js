@@ -1,7 +1,9 @@
 import IG from "~/IG";
 import * as d3 from "d3";
 import cars from "../../../data/cars.json";
-import { brush, select } from "d3";
+import { brush, extent, select } from "d3";
+import { getBackground, getXYfromTransform } from "./helper";
+import { addDrawRectTool, addDrawRectXTool } from "./tool";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -100,36 +102,27 @@ for (const key of histFields) {
   });
 }
 
+const colorHidden = "#ddd";
 const scatterGroup = scatterMainLayer.getGraphic();
 brushTool.attach(scatterGroup.node());
-// listen to brush tool
-
-addDrawRectTool(scatterMainLayer, brushTool);
+//addDrawRectTool(scatterMainLayer, brushTool);
+addDrawRectXTool(scatterMainLayer, brushTool);
 scatterMainLayer.listen({
-  tool: brushTool,
-  startCommand: function() {
+  tools: brushTools,
+  startCommand: function () {
     const xScale = this.getSharedScale("scaleX");
     const yScale = this.getSharedScale("scaleY");
     extents.set(fieldX, xScale.domain());
     extents.set(fieldY, yScale.domain());
   },
-  dragCommand: function(selectionManager, e) {
+  dragCommand: function (selectionManager, e) {
     const start = this.getSharedScale("start");
     const end = this.getSharedScale("end");
     const scaleX = this.getSharedScale("scaleX");
     const scaleY = this.getSharedScale("scaleY");
-    const height = e.y - start[1] - 1;
-    extents.set(fieldX, [end[0], end[0] + width].map(scaleX.invert));
-    extents.set(fieldY, [end[1] + height, end[1]].map(scaleY.invert));
-  }
-});
+    extents.set(fieldX, [start[0], end[0]].map(scaleX.invert));
+    extents.set(fieldY, [end[1], start[1]].map(scaleY.invert));
 
-// attach tools to scatter plot
-const colorHidden = "#ddd";
-scatterMainLayer.listen({
-  tools: brushTools,
-  dragCommand: function() {
-    //const filterData = this.getSharedScale("filterData");
     const scaleColor = this.getSharedScale("scaleColor");
     const circles = this.getGraphic().selectAll("circle");
     circles.attr("stroke", (d) => {
@@ -529,78 +522,3 @@ function renderLegends(root, width, height, field, scaleColor) {
     .attr("r", radius);
 }
 
-function getXYfromTransform(node) {
-  try {
-    const transform = node
-      .attr("transform")
-      .split("(")[1]
-      .split(")")[0]
-      .split(",")
-      .map((i) => parseFloat(i));
-    return transform;
-  } catch (e) {
-    return [0, 0];
-  }
-}
-
-function addDrawRectTool(layer, brushTool){
-layer.listen({
-  tool: brushTool,
-  startCommand: function (_, e) {
-    this.getGraphic().selectAll(".brush-layer").remove();
-    const start = [e.x, e.y];
-    const brushLayer = IG.Layer.initialize("D3Layer", 0, 0, this.getGraphic());
-    brushLayer
-      .getGraphic()
-      .attr("transform", `translate(${start[0]}, ${start[1]})`)
-      .attr("class", "brush-layer");
-    const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
-    rect.attr("opacity", 0.3);
-    this.setSharedScale("brushLayer", brushLayer);
-    this.setSharedScale("start", start);
-  },
-  dragCommand: function (_, e) {
-    const brushLayer = this.getSharedScale("brushLayer");
-    const start = this.getSharedScale("start");
-
-    const rect = d3.select(brushLayer.query("rect")[0]);
-    const width = e.x - start[0] - 1;
-    const height2 = e.y - start[1] - 1;
-    rect.attr("width", width >= 0 ? width : 0);
-    rect.attr("height", height2 >= 0 ? height2 : 0);
-    const xy = getXYfromTransform(brushLayer.getGraphic());
-    this.setSharedScale("end", xy);
-  },
-});
-}
-
-function addDrawRectXTool(layer, brushTool){
-layer.listen({
-  tool: brushTool,
-  startCommand: function (_, e) {
-    this.getGraphic().selectAll(".brush-layer").remove();
-    const start = [e.x, 0];
-    const brushLayer = IG.Layer.initialize("D3Layer", 0, 0, this.getGraphic());
-    brushLayer
-      .getGraphic()
-      .attr("transform", `translate(${start[0]}, ${0})`)
-      .attr("class", "brush-layer");
-    const rect = d3.select(brushLayer.query("rect")[0]); //.attr("opacity", 0.3).attr("fill", "grey");
-    rect.attr("opacity", 0.3);
-    this.setSharedScale("brushLayer", brushLayer);
-    this.setSharedScale("start", start);
-  },
-  dragCommand: function (_, e) {
-    const brushLayer = this.getSharedScale("brushLayer");
-    const start = this.getSharedScale("start");
-
-    const rect = d3.select(brushLayer.query("rect")[0]);
-    const width = e.x - start[0] - 1;
-    const height2 = e.y - start[1] - 1;
-    rect.attr("width", width >= 0 ? width : 0);
-    rect.attr("height", height2 >= 0 ? height2 : 0);
-    const xy = getXYfromTransform(brushLayer.getGraphic());
-    this.setSharedScale("end", xy);
-  },
-});
-}
