@@ -562,7 +562,7 @@ function attachToolAndSetCommandsForScatter(
   const scatterGroup = scatterMainLayer.getGraphic();
   scatterBrushTool.attach(scatterGroup.node());
   //setsDrawRectCommands(scatterMainLayer, brushTool);
-  setDrawRectXCommands(scatterMainLayer, scatterBrushTool);
+  setDrawRectCommands(scatterMainLayer, scatterBrushTool);
   // set extents depends on the brushTool on scatterPlot itself.
   scatterMainLayer.listen({
     tool: scatterBrushTool,

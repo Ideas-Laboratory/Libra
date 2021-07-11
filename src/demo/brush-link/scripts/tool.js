@@ -1,5 +1,6 @@
 import {getBackground} from "./helper";
 import IG from "~/IG";
+import * as d3 from 'd3';
 /**
  * 通过setSharedScale暴露出三个对象：start/end/brushLayer
  * @param {} layer 
