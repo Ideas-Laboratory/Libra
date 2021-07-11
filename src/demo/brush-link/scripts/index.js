@@ -3,7 +3,8 @@ import * as d3 from "d3";
 import cars from "../../../data/cars.json";
 import { brush, extent, select } from "d3";
 import { getBackground, getXYfromTransform } from "./helper";
-import { setDrawRectCommands, setDrawRectXCommands } from "./tool";
+import setDrawRectCommands from "./setDrawRectCommands";
+import setDrawRectXCommands from "./setDrawRectXCommands";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
