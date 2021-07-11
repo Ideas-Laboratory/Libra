@@ -33,11 +33,11 @@ async function main() {
   const bisect = d3.bisector((d) => d.date).left;
   layer.listen({
     tool: hoverTool,
-    pointerCommand: (_, event) => {
-      const xScale = layer.getSharedScale("xScale");
-      const yScale = layer.getSharedScale("yScale");
-      const rule = layer.getSharedScale("ruleMark");
-      const serie = layer.getSharedScale("serieMark");
+    pointerCommand: function(_, event) {
+      const xScale = this.getSharedScale("xScale");
+      const yScale = this.getSharedScale("yScale");
+      const rule = this.getSharedScale("ruleMark");
+      const serie = this.getSharedScale("serieMark");
 
       const date = d3.utcDay.round(xScale.invert(event.x));
       rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
