@@ -1,33 +1,31 @@
 import IG from "~/IG";
 import * as d3 from "d3";
+import { maxIndex } from "d3";
+import { render } from "node-sass";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
 }
 
-const svg = d3.select("#ctner");
+max();
 
-const layer = IG.Layer.initialize("D3Layer", 500, 500, svg);
+function main() {
+  const width = 800,
+    height = 600;
 
-const g = layer.getGraphic();
-g.selectAll("circle")
-  .data(
-    new Array(10)
-      .fill()
-      .map(() => ({ x: Math.random() * 480 + 10, y: Math.random() * 480 + 10 }))
-  )
-  .enter()
-  .append("circle")
-  .attr("cx", (d) => d.x)
-  .attr("cy", (d) => d.y)
-  .attr("r", 10)
-  .attr("fill", "red");
+  const svg = d3
+    .select("#ctner")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewbox", `0 0 width height`);
 
-layer.attach({
-  tool: IG.Tool.initialize("HoverTool", {
-    frameCommand: (result) => {
-      g.selectAll("circle").attr("fill", "red");
-      result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
-    },
-  }),
-});
+  const layer = render(svg, width, height, data);
+  
+  const dragTool = IG.Tool.initialize("DragTool");
+  
+  attachToolAndSetCommands(layer, dragTool);
+}
+
+function attachToolAndSetCommands(layer, dragTool) {
+  
+}
