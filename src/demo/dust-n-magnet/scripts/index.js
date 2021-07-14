@@ -1,33 +1,70 @@
 import IG from "~/IG";
 import * as d3 from "d3";
+import { getBackground } from "./helper";
+import setCreateMagnetCommands from "./setCreateMagnetCommands";
+import cars from "../../../data/cars.json";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
 }
 
-const svg = d3.select("#ctner");
+main();
 
-const layer = IG.Layer.initialize("D3Layer", 500, 500, svg);
+function main() {
+  const data = processData(cars);
 
-const g = layer.getGraphic();
-g.selectAll("circle")
-  .data(
-    new Array(10)
-      .fill()
-      .map(() => ({ x: Math.random() * 480 + 10, y: Math.random() * 480 + 10 }))
-  )
-  .enter()
-  .append("circle")
-  .attr("cx", (d) => d.x)
-  .attr("cy", (d) => d.y)
-  .attr("r", 10)
-  .attr("fill", "red");
+  const width = 800,
+    height = 600;
 
-layer.attach({
-  tool: IG.Tool.initialize("HoverTool", {
-    frameCommand: (result) => {
-      g.selectAll("circle").attr("fill", "red");
-      result.forEach((circle) => d3.select(circle).attr("fill", "blue"));
-    },
-  }),
-});
+  const svg = d3
+    .select("#ctner")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewbox", `0 0 width height`);
+
+  const layer = render(svg, width, height, data);
+
+  const clickTool = IG.Tool.initialize("ClickTool");
+
+  clickTool.attach(svg.node());
+  setCreateMagnetCommands(layer, clickTool);
+}
+
+function processData(data) {
+  return data.slice(0, 10);
+}
+
+function render(root, width, height, data) {
+  const radius = 10;
+
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+
+  const background = getBackground(mainLayer);
+  background.attr("fill", "#eee").attr("opacity", 1);
+
+  const mainGroup = mainLayer.getGraphic();
+  const dusts = mainGroup
+    .selectAll("circle")
+    .data(data)
+    .join("circle")
+    .attr("cx", width / 2)
+    .attr("cy", height / 2)
+    .attr("r", radius);
+
+  const properties = [];
+  const datum = data[0];
+  for (const property in datum) {
+    const value = datum[property];
+    if (typeof value === "number") {
+      properties.push(property);
+    }
+  }
+  console.log(properties);
+
+  mainLayer.setSharedScale("dusts", dusts);
+  mainLayer.setSharedScale("properties", properties);
+  mainLayer.setSharedScale("next", 0);
+  return mainLayer;
+}
+
+function attachToolAndSetCommands(layer, dragTool) {}
