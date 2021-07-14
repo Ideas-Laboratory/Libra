@@ -17,4 +17,16 @@ function getXYfromTransform(node) {
   }
 }
 
-export {getBackground, getXYfromTransform};
+function isPointerOnLayerBackground(layer, x, y) {
+  x = Math.round(x);
+  y = Math.round(y);
+  if (!layer) return false;
+  const elemUnderPointer = document.elementFromPoint(x, y);
+  const rect = getBackground(layer).node();
+  if (elemUnderPointer === rect) {
+    return true;
+  }
+  return false;
+}
+
+export {getBackground, getXYfromTransform, isPointerOnLayerBackground};
