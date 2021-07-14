@@ -15,17 +15,27 @@ function setCreateMagnetCommands(layer, clickTool) {
       const dusts = this.getSharedScale("dusts");
       const magnetsProperties = this.getSharedScale("properties");
       const next = this.getSharedScale("next");
+      const property = magnetsProperties[next % magnetsProperties.length];
 
+      renderMagnet(this.getGraphic(), e.x, e.y, magnetWidth, magnetHeight, property);
+
+
+      this.setSharedScale("next", next + 1);
+    },
+  });
+}
+
+function renderMagnet(root, x, y, magnetWidth, magnetHeight, property){
       const magnetLayer = IG.Layer.initialize(
         "D3Layer",
         magnetWidth,
         magnetHeight,
-        this.getGraphic()
+        root
       );
       const magnetGroup = magnetLayer.getGraphic();
 
       magnetGroup
-        .attr("transform", `translate(${e.x}, ${e.y})`);
+        .attr("transform", `translate(${x}, ${y})`);
 
       getBackground(magnetLayer)
         .attr("x", -magnetWidth / 2)
@@ -33,7 +43,6 @@ function setCreateMagnetCommands(layer, clickTool) {
         .attr("fill", "orange")
         .attr("opacity", 1);
 
-      const property = magnetsProperties[next % magnetsProperties.length];
       magnetGroup
         .append("text")
         .text(property)
@@ -41,10 +50,6 @@ function setCreateMagnetCommands(layer, clickTool) {
         .style("font-size", "12")
         .style("font-weight", "700");
       magnetLayer.setSharedScale("property", property);
-
-      this.setSharedScale("next", next + 1);
-    },
-  });
 }
 
 export default setCreateMagnetCommands;
