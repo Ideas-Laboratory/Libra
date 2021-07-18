@@ -1,11 +1,9 @@
-import IG from "~/IG";
 import * as d3 from "d3";
 import IBMURL from "/src/data/stocks/IBM.csv";
 import GOOGURL from "/src/data/stocks/GOOG.csv";
 import MSFTURL from "/src/data/stocks/MSFT.csv";
 import AAPLURL from "/src/data/stocks/AAPL.csv";
 import AMZNURL from "/src/data/stocks/AMZN.csv";
-import getLineTooltipTool from "./getLineTooltipTool";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -25,30 +23,24 @@ async function main() {
   const data = await loadData();
 
   // we need a layer, which will add interaction for it latter.
-  const layer = renderIndexChart(svg, width, height, data);
+  renderIndexChart(svg, width, height, data);
 
-  // add interaction
-  const lineTooltipTool = getLineTooltipTool(layer, IG.Tool.initialize("HoverTool"));
+  // // listen
+  // const bisect = d3.bisector((d) => d.date).left;
+  // layer.listen({
+  //   tool: lineTooltipTool,
+  //   pointerCommand: function(_, event) {
+  //     const xScale = this.getSharedScale("xScale");
+  //     const yScale = this.getSharedScale("yScale");
+  //     const serie = this.getSharedScale("serieMark");
 
-  // attach
-  lineTooltipTool.attach(layer.getGraphic().node());
-
-  // listen
-  const bisect = d3.bisector((d) => d.date).left;
-  layer.listen({
-    tool: lineTooltipTool,
-    pointerCommand: function(_, event) {
-      const xScale = this.getSharedScale("xScale");
-      const yScale = this.getSharedScale("yScale");
-      const serie = this.getSharedScale("serieMark");
-
-      const date = d3.utcDay.round(xScale.invert(event.x));
-      serie.attr("transform", ({values}) => {
-        const i = bisect(values, date);
-        return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
-      });
-    },
-  });
+  //     const date = d3.utcDay.round(xScale.invert(event.x));
+  //     serie.attr("transform", ({values}) => {
+  //       const i = bisect(values, date);
+  //       return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
+  //     });
+  //   },
+  // });
 }
 
 function renderIndexChart(root, width, height, data) {
@@ -74,9 +66,8 @@ function renderIndexChart(root, width, height, data) {
 
   /* layers and groups */
   // atomatic generate G with margin?
-  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  mainLayer
-    .getGraphic()
+  const mainGroup = root
+    .append("g")
     .attr("class", "main")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
   const xGroup = root
@@ -120,14 +111,10 @@ function renderIndexChart(root, width, height, data) {
     .call((g) => g.select(".domain").remove());
 
   /* draw main layer */
-  renderMainLayer(mainLayer, x, y, series);
-  return mainLayer;
+  renderMainLayer(mainGroup, width, height, x, y, series);
 }
 
-function renderMainLayer(layer, xScale, yScale, data) {
-  /* layers and groups */
-  const mainGroup = layer.getGraphic();
-
+function renderMainLayer(mainGroup, width, height, xScale, yScale, data) {
   /* scales */
   const z = d3
     .scaleOrdinal(d3.schemeCategory10)
@@ -153,9 +140,30 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("stroke", (d) => z(d.key))
     .attr("d", (d) => line(d.values));
 
-  layer.setSharedScale("xScale", xScale);
-  layer.setSharedScale("yScale", yScale);
-  layer.setSharedScale("serieMark", serie);
+  /******* add interaction *****/
+  const background = mainGroup
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("opacity", 0);
+  const rule = mainGroup
+    .append("g")
+    .append("line")
+    .attr("y1", height)
+    .attr("y2", 0)
+    .attr("x1", 0)
+    .attr("x2", 0)
+    .attr("stroke", "black");
+  const bisect = d3.bisector((d) => d.date).left;
+  background.on("mousemove", function (event) {
+    const pos = d3.pointer(event);
+    rule.attr("transform", `translate(${pos[0] + 0.5}, 0)`);
+    const date = d3.utcDay.round(xScale.invert(event.x));
+    serie.attr("transform", ({ values }) => {
+      const i = bisect(values, date);
+      return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
+    });
+  });
 }
 
 async function loadData() {
