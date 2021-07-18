@@ -5,7 +5,7 @@ import GOOGURL from "/src/data/stocks/GOOG.csv";
 import MSFTURL from "/src/data/stocks/MSFT.csv";
 import AAPLURL from "/src/data/stocks/AAPL.csv";
 import AMZNURL from "/src/data/stocks/AMZN.csv";
-import { bisect } from "d3";
+import getLineTooltipTool from "./getLineTooltipTool";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -28,19 +28,21 @@ async function main() {
   const layer = renderIndexChart(svg, width, height, data);
 
   // add interaction
-  const hoverTool = IG.Tool.initialize("HoverTool");
-  hoverTool.attach(layer.getGraphic().node());
+  const lineTooltipTool = getLineTooltipTool(layer, IG.Tool.initialize("HoverTool"));
+
+  // attach
+  lineTooltipTool.attach(layer.getGraphic().node());
+
+  // listen
   const bisect = d3.bisector((d) => d.date).left;
   layer.listen({
-    tool: hoverTool,
+    tool: lineTooltipTool,
     pointerCommand: function(_, event) {
       const xScale = this.getSharedScale("xScale");
       const yScale = this.getSharedScale("yScale");
-      const rule = this.getSharedScale("ruleMark");
       const serie = this.getSharedScale("serieMark");
 
       const date = d3.utcDay.round(xScale.invert(event.x));
-      rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
       serie.attr("transform", ({values}) => {
         const i = bisect(values, date);
         return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
@@ -141,15 +143,15 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .x((d) => xScale(d.date))
     .y((d) => yScale(d.value));
 
-  /* draw marks */
-  const rule = mainGroup
-    .append("g")
-    .append("line")
-    .attr("y1", height)
-    .attr("y2", 0)
-    .attr("x1", 0)
-    .attr("x2", 0)
-    .attr("stroke", "black");
+  // /* draw marks */
+  // const rule = mainGroup
+  //   .append("g")
+  //   .append("line")
+  //   .attr("y1", height)
+  //   .attr("y2", 0)
+  //   .attr("x1", 0)
+  //   .attr("x2", 0)
+  //   .attr("stroke", "black");
   const serie = mainGroup
     .append("g")
     .style("font", "bold 10px sans-serif")
@@ -165,21 +167,9 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("stroke", (d) => z(d.key))
     .attr("d", (d) => line(d.values));
 
-  /* shared information, which is useful for add interaction*/
-  // const bisect = d3.bisector((d) => d.date).left;
-  // const update = (x) => {
-  //   let date = xScale.invert(x);
-  //   date = d3.utcDay.round(date);
-  //   rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
-  //   serie.attr("transform", ({values}) => {
-  //     const i = bisect(values, date);
-  //     return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
-  //   });
-  // };
-  // layer.setSharedScale("update", update);
   layer.setSharedScale("xScale", xScale);
   layer.setSharedScale("yScale", yScale);
-  layer.setSharedScale("ruleMark", rule);
+  // layer.setSharedScale("ruleMark", rule);
   layer.setSharedScale("serieMark", serie);
 }
 
