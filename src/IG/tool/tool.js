@@ -284,14 +284,9 @@ Tool.register("DragTool", {
   selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: trajectoryInteractor,
-      dragCommand: (e) => e.x,
-    },
-    {
-      attribute: "y",
-      interactor: trajectoryInteractor,
-      dragCommand: (e) => e.y,
+      dragCommand: (e) => [e.x, e.y],
     },
   ],
 });
@@ -300,24 +295,14 @@ Tool.register("BrushTool", {
   selectionManager: SelectionManager.initialize("RectSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: trajectoryInteractor,
-      startCommand: (e) => e.x,
+      startCommand: (e) => [e.x, e.y],
     },
     {
-      attribute: "y",
+      attribute: ["width", "height"],
       interactor: trajectoryInteractor,
-      startCommand: (e) => e.y,
-    },
-    {
-      attribute: "width",
-      interactor: trajectoryInteractor,
-      dragCommand: (e, query) => e.x - query.x,
-    },
-    {
-      attribute: "height",
-      interactor: trajectoryInteractor,
-      dragCommand: (e, query) => e.y - query.y,
+      dragCommand: (e, query) => [e.x - query.x, e.y - query.y],
     },
   ],
 });
@@ -338,14 +323,9 @@ Tool.register("HoverTool", {
   selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: pointerInteractor,
-      pointerCommand: (e) => e.x,
-    },
-    {
-      attribute: "y",
-      interactor: pointerInteractor,
-      pointerCommand: (e) => e.y,
+      pointerCommand: (e) => [e.x, e.y],
     },
   ],
 });

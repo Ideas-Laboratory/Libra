@@ -1,4 +1,5 @@
 import { makeFlexibleListener } from "../helpers";
+import History from "../history";
 
 const registeredInteractors = {};
 export const instanceInteractors = [];
@@ -48,6 +49,11 @@ export default class Interactor {
         }
       });
       if (action === "Command" && this._listeners[type + action].size()) {
+        if (rawType === "frame" || rawType === "$running") {
+          History.replace();
+        } else {
+          History.push();
+        }
       } // Commit Context
     });
   }
