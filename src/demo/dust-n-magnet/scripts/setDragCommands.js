@@ -4,7 +4,7 @@ import IG from "~/IG";
 import * as d3 from "d3";
 
 /**
- * 通过setSharedScale暴露出个对象：offset: [dx, dy]
+ * 通过setSharedVar暴露出个对象：offset: [dx, dy]
  * @param {} layer
  * @param {*} dragTool
  */
@@ -16,7 +16,7 @@ function setDragCommands(layer, dragTool) {
       console.log("start command executed");
       _pre = null;
       // _pre = [e.x, e.y];
-      // this.setSharedScale("offset", [0, 0]);
+      // this.setSharedVar("offset", [0, 0]);
       // console.log("dragTool start");
     },
     dragCommand: function (_, e) {
@@ -28,7 +28,7 @@ function setDragCommands(layer, dragTool) {
         offset = [0, 0];
       }
       _pre = [pos[0], pos[1]];
-      this.setSharedScale("offset", offset);
+      this.setSharedVar("offset", offset);
     },
   });
 }

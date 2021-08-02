@@ -231,11 +231,11 @@ function renderHistogram(root, width, height, data, key) {
 
   /*********** The second difference compared with using pure d3 ********* */
   // share some information
-  mainLayer.setSharedScale("key", key);
-  mainLayer.setSharedScale("scaleX", scaleX);
-  mainLayer.setSharedScale("scaleY", scaleY);
-  mainLayer.setSharedScale("initialExtent", extent);
-  mainLayer.setSharedScale("mainRects", mainRects);
+  mainLayer.setSharedVar("key", key);
+  mainLayer.setSharedVar("scaleX", scaleX);
+  mainLayer.setSharedVar("scaleY", scaleY);
+  mainLayer.setSharedVar("initialExtent", extent);
+  mainLayer.setSharedVar("mainRects", mainRects);
 
   return mainLayer;
 }
@@ -243,7 +243,7 @@ function renderHistogram(root, width, height, data, key) {
 /**
  * It contains only the rendering part, except:
  *   1. Need to define a layer, which will do some interaction on it latter
- *   2. bind some information to layer with `layer.setSharedScale`. The information will be used for successive commands.
+ *   2. bind some information to layer with `layer.setSharedVar`. The information will be used for successive commands.
  *   3. return the layer
  * @param {d3.Selection<SVGGElement, unknown, unknown, unknown>} root
  * @param {number} width
@@ -400,14 +400,14 @@ function renderScatterPlot(
 
   /*********** The second difference compared with using pure d3 ********* */
   // share some information
-  mainLayer.setSharedScale("fieldX", fieldX);
-  mainLayer.setSharedScale("fieldY", fieldY);
-  mainLayer.setSharedScale("fieldColor", fieldColor);
-  mainLayer.setSharedScale("scaleX", scaleX);
-  mainLayer.setSharedScale("scaleY", scaleY);
-  mainLayer.setSharedScale("scaleColor", scaleColor);
-  mainLayer.setSharedScale("extentX", extentX);
-  mainLayer.setSharedScale("extentY", extentY);
+  mainLayer.setSharedVar("fieldX", fieldX);
+  mainLayer.setSharedVar("fieldY", fieldY);
+  mainLayer.setSharedVar("fieldColor", fieldColor);
+  mainLayer.setSharedVar("scaleX", scaleX);
+  mainLayer.setSharedVar("scaleY", scaleY);
+  mainLayer.setSharedVar("scaleColor", scaleColor);
+  mainLayer.setSharedVar("extentX", extentX);
+  mainLayer.setSharedVar("extentY", extentY);
 
   return mainLayer;
 }
@@ -466,12 +466,12 @@ function renderScatterLegends(root, width, height, field, scaleColor) {
 }
 
 function attachToolAndSetCommandsForHist(mainLayer, histBrushTool, layersToListen, extents) {
-  const key = mainLayer.getSharedScale("key");
-  const scaleX = mainLayer.getSharedScale("scaleX");
-  const scaleY = mainLayer.getSharedScale("scaleY");
-  const initialExtent = mainLayer.getSharedScale("initialExtent");
-  const listener = mainLayer.getSharedScale("listener");
-  const mainRects = mainLayer.getSharedScale("mainRects");
+  const key = mainLayer.getSharedVar("key");
+  const scaleX = mainLayer.getSharedVar("scaleX");
+  const scaleY = mainLayer.getSharedVar("scaleY");
+  const initialExtent = mainLayer.getSharedVar("initialExtent");
+  const listener = mainLayer.getSharedVar("listener");
+  const mainRects = mainLayer.getSharedVar("mainRects");
 
   const mainGroup = mainLayer.getGraphic();
 
@@ -486,8 +486,8 @@ function attachToolAndSetCommandsForHist(mainLayer, histBrushTool, layersToListe
       extents.set(key, scaleX.domain());
     },
     dragCommand: function () {
-      const start = this.getSharedScale("start");
-      const end = this.getSharedScale("end");
+      const start = this.getSharedVar("start");
+      const end = this.getSharedVar("end");
       extents.set(key, [start[0], end[0]].map(scaleX.invert));
     },
   });
@@ -529,12 +529,12 @@ function attachToolAndSetCommandsForScatter(
   layersToListen,
   extents
 ) {
-  const fieldX = scatterMainLayer.getSharedScale("fieldX");
-  const fieldY = scatterMainLayer.getSharedScale("fieldY");
-  const fieldColor = scatterMainLayer.getSharedScale("fieldColor");
-  const scaleX = scatterMainLayer.getSharedScale("scaleX");
-  const scaleY = scatterMainLayer.getSharedScale("scaleY");
-  const scaleColor = scatterMainLayer.getSharedScale("scaleColor");
+  const fieldX = scatterMainLayer.getSharedVar("fieldX");
+  const fieldY = scatterMainLayer.getSharedVar("fieldY");
+  const fieldColor = scatterMainLayer.getSharedVar("fieldColor");
+  const scaleX = scatterMainLayer.getSharedVar("scaleX");
+  const scaleY = scatterMainLayer.getSharedVar("scaleY");
+  const scaleColor = scatterMainLayer.getSharedVar("scaleColor");
 
   const colorHidden = "#ddd";
   const scatterGroup = scatterMainLayer.getGraphic();
@@ -549,8 +549,8 @@ function attachToolAndSetCommandsForScatter(
       extents.set(fieldY, scaleY.domain());
     },
     dragCommand: function () {
-      const start = this.getSharedScale("start");
-      const end = this.getSharedScale("end");
+      const start = this.getSharedVar("start");
+      const end = this.getSharedVar("end");
       extents.set(fieldX, [start[0], end[0]].map(scaleX.invert));
       extents.set(fieldY, [end[1], start[1]].map(scaleY.invert));
     },

@@ -30,9 +30,9 @@ async function main() {
   // layer.listen({
   //   tool: lineTooltipTool,
   //   pointerCommand: function(_, event) {
-  //     const xScale = this.getSharedScale("xScale");
-  //     const yScale = this.getSharedScale("yScale");
-  //     const serie = this.getSharedScale("serieMark");
+  //     const xScale = this.getSharedVar("xScale");
+  //     const yScale = this.getSharedVar("yScale");
+  //     const serie = this.getSharedVar("serieMark");
 
   //     const date = d3.utcDay.round(xScale.invert(event.x));
   //     serie.attr("transform", ({values}) => {

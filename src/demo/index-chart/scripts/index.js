@@ -38,9 +38,9 @@ async function main() {
   layer.listen({
     tool: lineTooltipTool,
     pointerCommand: function(_, event) {
-      const xScale = this.getSharedScale("xScale");
-      const yScale = this.getSharedScale("yScale");
-      const serie = this.getSharedScale("serieMark");
+      const xScale = this.getSharedVar("xScale");
+      const yScale = this.getSharedVar("yScale");
+      const serie = this.getSharedVar("serieMark");
 
       const date = d3.utcDay.round(xScale.invert(event.x));
       serie.attr("transform", ({values}) => {
@@ -153,9 +153,9 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("stroke", (d) => z(d.key))
     .attr("d", (d) => line(d.values));
 
-  layer.setSharedScale("xScale", xScale);
-  layer.setSharedScale("yScale", yScale);
-  layer.setSharedScale("serieMark", serie);
+  layer.setSharedVar("xScale", xScale);
+  layer.setSharedVar("yScale", yScale);
+  layer.setSharedVar("serieMark", serie);
 }
 
 async function loadData() {

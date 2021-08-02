@@ -28,8 +28,8 @@ export = class Layer {
   listen(option: LayerListenOption): void;
   getGraphic(): HTMLOrSVGElement;
   getRootGraphic(): HTMLOrSVGElement;
-  getSharedScale(name: string): any;
-  setSharedScale(name: string, scale: any): void;
+  getSharedVar(name: string): any;
+  setSharedVar(name: string, scale: any): void;
 
   getObjects(): any[];
   onObject(pointer: helpers.Point): boolean;

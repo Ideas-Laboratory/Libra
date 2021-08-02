@@ -25,3 +25,5 @@ export function register(
 export function initialize(name: string): SelectionManager;
 
 export function unregister(name: string): boolean;
+
+export const instanceSelectionManager: SelectionManager[];

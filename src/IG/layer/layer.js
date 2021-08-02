@@ -7,7 +7,7 @@ export default class Layer {
   _name;
   _listeners = [];
   _initOptions = [];
-  _sharedScale = {};
+  _sharedVar = {};
   _notifyTimer = null;
 
   constructor(name = "Layer") {
@@ -23,7 +23,7 @@ export default class Layer {
 
   _injectTool(tool, options) {
     Object.entries(options).forEach(([command, callback]) => {
-      if (!command.endsWith("Command")) return;
+      if (!command.endsWith("Command") && !command.endsWith("Feedback")) return;
       const _this = this;
       tool._listeners[command].set(function () {
         callback.apply(_this, arguments);
@@ -48,10 +48,15 @@ export default class Layer {
     this._initOptions.push(options);
     if (options.layers) {
       for (let layer of options.layers) {
-        layer._listeners.push(options.updateCommand);
+        options.updateCommand &&
+          layer._listeners.unshift(options.updateCommand);
+        options.updateFeedback && layer._listeners.push(options.updateFeedback);
       }
     } else if (options.layer) {
-      options.layer._listeners.push(options.updateCommand);
+      options.updateCommand &&
+        options.layer._listeners.unshift(options.updateCommand);
+      options.updateFeedback &&
+        options.layer._listeners.push(options.updateFeedback);
     } else if (options.tools) {
       for (let tool of options.tools) {
         this._injectTool(tool, options);
@@ -89,12 +94,12 @@ export default class Layer {
     return [];
   }
 
-  getSharedScale(name) {
-    return this._sharedScale[name];
+  getSharedVar(name) {
+    return this._sharedVar[name];
   }
 
-  setSharedScale(name, scale) {
-    this._sharedScale[name] = scale;
+  setSharedVar(name, scale) {
+    this._sharedVar[name] = scale;
   }
 }
 

@@ -1,6 +1,7 @@
 import { makeFlexibleListener } from "../helpers";
 
-const registeredSelectionManagers = {};
+const registeredInteractors = {};
+export const instanceInteractors = [];
 
 export default class Interactor {
   _name;
@@ -13,11 +14,13 @@ export default class Interactor {
   _stopActions = [];
   _abortActions = [];
   _backInsideActions = [];
+  _middleware = [];
 
   constructor(name = "Interactor", rename) {
     this._name = name;
     this._listeners = makeFlexibleListener();
     this._rename = rename || {};
+    instanceInteractors.push(this);
   }
 
   _toTemplate() {
@@ -29,17 +32,23 @@ export default class Interactor {
       abortActions: this._abortActions.slice(0),
       backInsideActions: this._backInsideActions.slice(0),
       extraParams: [JSON.parse(JSON.stringify(this._rename))],
+      middlewares: this._middleware.slice(0),
     };
   }
 
   _emit(type, payload) {
+    const rawType = type;
     if (this._rename[type]) {
       type = this._rename[type];
     }
-    this._listeners[type + "Command"].list().forEach((listener) => {
-      if (listener instanceof Function) {
-        listener(payload);
-      }
+    ["Command", "Feedback"].forEach((action) => {
+      this._listeners[type + action].list().forEach((listener) => {
+        if (listener instanceof Function) {
+          listener(payload);
+        }
+      });
+      if (action === "Command" && this._listeners[type + action].size()) {
+      } // Commit Context
     });
   }
 
@@ -85,6 +94,15 @@ export default class Interactor {
           delta: event.deltaY,
         });
         break;
+      default:
+        const maybeCustomEvent = {
+          rawEvent: event,
+          type: event.type,
+        };
+        Object.entries(event.emit || {}).forEach(
+          ([k, v]) => (maybeCustomEvent[k] = v)
+        );
+        wrappedEvents.push(maybeCustomEvent);
     }
     return wrappedEvents[0];
   }
@@ -100,47 +118,43 @@ export default class Interactor {
         interactor[actionKey] = option[actionKey];
       }
     }
+    if (option.middlewares) interactor.appendMiddlewares(...option.middlewares);
     return interactor;
   }
 
   dispatch(event) {
+    for (middleware in this._middleware) {
+      event = middleware(event);
+    }
     const eventType = event.type;
     event = this._wrapEvent(event);
-    switch (this._state) {
-      case "start":
-        if (this._startActions.includes(eventType)) {
-          this._state = "running";
-          this._emit("active", event);
-          this._emit("frame", event);
-        }
-        break;
-      case "running":
-        if (this._runningActions.includes(eventType)) {
-          this._emit("frame", event);
-        } else if (
-          this._stopActions.includes(eventType) ||
-          this._abortActions.includes(eventType)
-        ) {
-          this._state = "start";
-          this._emit("terminate", event);
-        } else if (this._outsideActions.includes(eventType)) {
-          this._state = "outside";
-          this._emit("terminate", event);
-        }
-        break;
-      case "outside":
-        if (this._backInsideActions.includes(eventType)) {
-          this._state = "running";
-          this._emit("active", event);
-          this._emit("frame", event);
-        } else if (
-          this._abortActions.includes(eventType) ||
-          this._stopActions.includes(eventType)
-        ) {
-          this._state = "start";
-        }
-        break;
-    }
+    const transitionMap = {
+      start: {
+        start: ["running", ["active", "frame"]],
+        stop: ["start", []],
+      },
+      running: {
+        running: ["running", ["frame"]],
+        outside: ["outside", ["terminate"]],
+        stop: ["start", ["terminate"]],
+        abort: ["start", ["terminate"]],
+      },
+      outside: {
+        backInside: ["running", ["active", "frame"]],
+        abort: ["start", []],
+        stop: ["start", []],
+      },
+    };
+    const trans = transitionMap[this._state];
+    Object.keys(trans).find((key) => {
+      if (this[`_${key}Actions`].includes(eventType)) {
+        this._state = trans[key][0];
+        this._emit(`$${key}`, event);
+        trans[key][1].forEach((type) => this._emit(type, event));
+        return true;
+      }
+      return false;
+    });
   }
 
   getActions() {
@@ -150,6 +164,44 @@ export default class Interactor {
       .concat(this._stopActions)
       .concat(this._abortActions)
       .concat(this._backInsideActions);
+  }
+
+  getBaseResponse() {
+    return [
+      "active",
+      "frame",
+      "terminate",
+      "$start",
+      "$stop",
+      "$running",
+      "$outside",
+      "$abort",
+      "$backInside",
+    ].map((type) => (this._rename[type] ? this._rename[type] : type));
+  }
+
+  getCommands() {
+    const base = this.getBaseResponse();
+    return base.map((type) => type + "Command");
+  }
+
+  getFeedbacks() {
+    const base = this.getBaseResponse();
+    return base.map((type) => type + "Feedback");
+  }
+
+  prependMiddlewares(...middleware) {
+    this._middleware.unshift(
+      ...middleware.filter((x) => x instanceof Function)
+    );
+  }
+
+  appendMiddlewares(...middleware) {
+    this._middleware.push(...middleware.filter((x) => x instanceof Function));
+  }
+
+  clearMiddlewares() {
+    this._middleware = [];
   }
 
   set startActions(eventName) {
@@ -225,18 +277,18 @@ Interactor.register = function register(name, optionOrSelectionManager) {
       ? option.constructor
       : Interactor;
   }
-  registeredSelectionManagers[name] = option;
+  registeredInteractors[name] = option;
   return true;
 };
 
 Interactor.unregister = function unregister(name) {
-  delete registeredSelectionManagers[name];
+  delete registeredInteractors[name];
   return true;
 };
 
 Interactor.initialize = function initialize(name, ...params) {
   let option;
-  if ((option = registeredSelectionManagers[name])) {
+  if ((option = registeredInteractors[name])) {
     const interactor = new option.constructor(
       name,
       Object.assign(
@@ -252,6 +304,7 @@ Interactor.initialize = function initialize(name, ...params) {
         interactor[actionKey] = option[actionKey];
       }
     }
+    if (option.middlewares) interactor.appendMiddlewares(...option.middlewares);
     return interactor;
   }
   return null;

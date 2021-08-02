@@ -1,3 +1,3 @@
 import "./tool";
 
-export { default } from "./tool";
+export { default, instanceTools } from "./tool";
