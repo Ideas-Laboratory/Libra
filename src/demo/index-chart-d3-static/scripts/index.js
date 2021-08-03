@@ -5,7 +5,6 @@ import GOOGURL from "/src/data/stocks/GOOG.csv";
 import MSFTURL from "/src/data/stocks/MSFT.csv";
 import AAPLURL from "/src/data/stocks/AAPL.csv";
 import AMZNURL from "/src/data/stocks/AMZN.csv";
-import { bisect } from "d3";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -15,39 +14,25 @@ main();
 
 
 /**
- * the interacion part and rendering part are not totally seperated.
+ * the interaction part and rendering part are totally seperated.
+ * the rendring function share only the basic parts, not a update function directly.
  */
 async function main() {
   const width = 600;
   const height = 400;
   const svg = d3.select("#ctner").attr("width", width).attr("height", height);
   const data = await loadData();
-  console.log(data);
+
   renderIndexChart(svg, width, height, data);
 }
 
 function renderIndexChart(root, width, height, data) {
+  /* layout information */
   const margin = { top: 20, left: 50, bottom: 50, right: 20 };
   width = width - margin.left - margin.right;
   height = height - margin.top - margin.bottom;
 
-  // atomatic generate G with margin?
-  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  mainLayer
-    .getGraphic()
-    .attr("class", "main")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
-  const xGroup = root
-    .append("g")
-    .attr("class", "xAxis")
-    .attr("transform", `translate(${margin.left}, ${margin.top + height})`);
-  const yGroup = root
-    .append("g")
-    .attr("class", "yAxis")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-  // data manimulation
-
+  /* data manimulation */
   let series = d3
     .groups(data, (d) => d.name)
     .map(([key, values]) => {
@@ -62,6 +47,23 @@ function renderIndexChart(root, width, height, data) {
     ([, group]) => d3.max(group, (d) => d.value) / d3.min(group, (d) => d.value)
   );
 
+  /* layers and groups */
+  // atomatic generate G with margin?
+  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
+  const mainGroup = root
+    .append("g")
+    .attr("class", "main")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+  const xGroup = root
+    .append("g")
+    .attr("class", "xAxis")
+    .attr("transform", `translate(${margin.left}, ${margin.top + height})`);
+  const yGroup = root
+    .append("g")
+    .attr("class", "yAxis")
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+  /* scales */
   const x = d3
     .scaleUtc()
     .domain(d3.extent(data, (d) => d.date))
@@ -72,6 +74,7 @@ function renderIndexChart(root, width, height, data) {
     .rangeRound([height - margin.bottom, margin.top])
     .range([height, 0]);
 
+  /* draw decorations: xAxis, yAxis */
   xGroup
     .call(
       d3
@@ -91,14 +94,12 @@ function renderIndexChart(root, width, height, data) {
     )
     .call((g) => g.select(".domain").remove());
 
-  renderMainLayer(mainLayer, x, y, series);
+  /* draw main layer */
+  renderMainGroup(mainGroup, width, height, x, y, series);
 }
 
-function renderMainLayer(layer, xScale, yScale, data) {
-  const width = xScale.range()[1] - xScale.range()[0];
-  const height = yScale.range()[0] - yScale.range()[1];
-  const mainGroup = layer.getGraphic();
-
+function renderMainGroup(mainGroup, width, height, xScale, yScale, data) {
+  /* scales */
   const z = d3
     .scaleOrdinal(d3.schemeCategory10)
     .domain(data.map((d) => d.name));
@@ -106,18 +107,8 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .line()
     .x((d) => xScale(d.date))
     .y((d) => yScale(d.value));
-  const bisect = d3.bisector((d) => d.date).left;
-  const formatDate = d3.utcFormat("%B, %Y");
 
-  const rule = mainGroup
-    .append("g")
-    .append("line")
-    .attr("y1", height)
-    .attr("y2", 0)
-    .attr("x1", 0)
-    .attr("x2", 0)
-    .attr("stroke", "black");
-
+  /* draw marks */
   const serie = mainGroup
     .append("g")
     .style("font", "bold 10px sans-serif")
@@ -132,24 +123,6 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("stroke-linecap", "round")
     .attr("stroke", (d) => z(d.key))
     .attr("d", (d) => line(d.values));
-
-  const update = (x) => {
-    const date = d3.utcDay.round(xScale.invert(x));
-    rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
-    serie.attr("transform", ({values}) => {
-      const i = bisect(values, date);
-      return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
-    });
-  };
-
-  const hoverTool = IG.Tool.initialize("HoverTool");
-  hoverTool.attach(mainGroup.node());
-  layer.listen({
-    tool: hoverTool,
-    pointerCommand: (_, event) => {
-      update(event.x);
-    },
-  });
 }
 
 async function loadData() {

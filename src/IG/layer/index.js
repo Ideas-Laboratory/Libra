@@ -1,4 +1,4 @@
 import "./layer";
 import "./d3";
 
-export { default } from "./layer";
+export { default, instanceLayers } from "./layer";

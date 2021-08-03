@@ -1,11 +1,9 @@
-import IG from "~/IG";
 import * as d3 from "d3";
 import IBMURL from "/src/data/stocks/IBM.csv";
 import GOOGURL from "/src/data/stocks/GOOG.csv";
 import MSFTURL from "/src/data/stocks/MSFT.csv";
 import AAPLURL from "/src/data/stocks/AAPL.csv";
 import AMZNURL from "/src/data/stocks/AMZN.csv";
-import { bisect } from "d3";
 
 if (process.env.NODE_ENV === "development") {
   require("../index.html");
@@ -13,9 +11,10 @@ if (process.env.NODE_ENV === "development") {
 
 main();
 
+
 /**
  * the interaction part and rendering part are totally seperated.
- * we define the update function inside the rendering function, and share it.
+ * the rendring function share only the basic parts, not a update function directly.
  */
 async function main() {
   const width = 600;
@@ -24,20 +23,24 @@ async function main() {
   const data = await loadData();
 
   // we need a layer, which will add interaction for it latter.
-  const layer = renderIndexChart(svg, width, height, data);
+  renderIndexChart(svg, width, height, data);
 
-  // add interaction
-  const hoverTool = IG.Tool.initialize("HoverTool");
-  hoverTool.attach(layer.getGraphic().node());
-  layer.listen({
-    tool: hoverTool,
-    pointerCommand: (_, event) => {
-      // we need layer to store some information in advance, otherwise it is hard to write the command to update the view.
-      // for multi-view, if we need update the other view, this way, which pass the udpate function directly, will not work
-      const update = layer.getSharedScale("update");
-      update(event.x);
-    },
-  });
+  // // listen
+  // const bisect = d3.bisector((d) => d.date).left;
+  // layer.listen({
+  //   tool: lineTooltipTool,
+  //   pointerCommand: function(_, event) {
+  //     const xScale = this.getSharedVar("xScale");
+  //     const yScale = this.getSharedVar("yScale");
+  //     const serie = this.getSharedVar("serieMark");
+
+  //     const date = d3.utcDay.round(xScale.invert(event.x));
+  //     serie.attr("transform", ({values}) => {
+  //       const i = bisect(values, date);
+  //       return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
+  //     });
+  //   },
+  // });
 }
 
 function renderIndexChart(root, width, height, data) {
@@ -63,9 +66,8 @@ function renderIndexChart(root, width, height, data) {
 
   /* layers and groups */
   // atomatic generate G with margin?
-  const mainLayer = IG.Layer.initialize("D3Layer", width, height, root);
-  mainLayer
-    .getGraphic()
+  const mainGroup = root
+    .append("g")
     .attr("class", "main")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
   const xGroup = root
@@ -109,20 +111,10 @@ function renderIndexChart(root, width, height, data) {
     .call((g) => g.select(".domain").remove());
 
   /* draw main layer */
-  renderMainLayer(mainLayer, x, y, series);
-  return mainLayer;
+  renderMainLayer(mainGroup, width, height, x, y, series);
 }
 
-function renderMainLayer(layer, xScale, yScale, data) {
-  /* layout information */
-  const width = xScale.range()[1] - xScale.range()[0];
-  const height = yScale.range()[0] - yScale.range()[1];
-
-  /* data manipulation */
-
-  /* layers and groups */
-  const mainGroup = layer.getGraphic();
-
+function renderMainLayer(mainGroup, width, height, xScale, yScale, data) {
   /* scales */
   const z = d3
     .scaleOrdinal(d3.schemeCategory10)
@@ -132,15 +124,7 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .x((d) => xScale(d.date))
     .y((d) => yScale(d.value));
 
-  /* draw marks */
-  const rule = mainGroup
-    .append("g")
-    .append("line")
-    .attr("y1", height)
-    .attr("y2", 0)
-    .attr("x1", 0)
-    .attr("x2", 0)
-    .attr("stroke", "black");
+  // /* draw marks */
   const serie = mainGroup
     .append("g")
     .style("font", "bold 10px sans-serif")
@@ -156,17 +140,30 @@ function renderMainLayer(layer, xScale, yScale, data) {
     .attr("stroke", (d) => z(d.key))
     .attr("d", (d) => line(d.values));
 
-  /* shared information, which is useful for add interaction*/
+  /******* add interaction *****/
+  const background = mainGroup
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("opacity", 0);
+  const rule = mainGroup
+    .append("g")
+    .append("line")
+    .attr("y1", height)
+    .attr("y2", 0)
+    .attr("x1", 0)
+    .attr("x2", 0)
+    .attr("stroke", "black");
   const bisect = d3.bisector((d) => d.date).left;
-  const update = (x) => {
-    const date = d3.utcDay.round(xScale.invert(x));
-    rule.attr("transform",`translate(${xScale(date) + 0.5}, 0)`);
-    serie.attr("transform", ({values}) => {
+  background.on("mousemove", function (event) {
+    const pos = d3.pointer(event);
+    rule.attr("transform", `translate(${pos[0] + 0.5}, 0)`);
+    const date = d3.utcDay.round(xScale.invert(event.x));
+    serie.attr("transform", ({ values }) => {
       const i = bisect(values, date);
       return `translate(0, ${yScale(1) - yScale(values[i].value / values[0].value)})`;
     });
-  };
-  layer.setSharedScale("update", update);
+  });
 }
 
 async function loadData() {

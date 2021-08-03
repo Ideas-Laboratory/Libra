@@ -7,7 +7,7 @@ import * as d3 from "d3";
 registerDragTool();
 
 /**
- * 通过setSharedScale暴露出三个对象：
+ * 通过setSharedVar暴露出三个对象：
  * @param {} layer
  * @param {*} clickTool
  */
@@ -21,9 +21,9 @@ function setCreateMagnetCommands(layer, clickTool) {
       const rawXY = d3.pointer(e.rawEvent);
       if(!isPointerOnLayerBackground(this, ...rawXY)) return;
 
-      const dusts = this.getSharedScale("dusts");
-      const magnetsProperties = this.getSharedScale("properties");
-      const next = this.getSharedScale("next");
+      const dusts = this.getSharedVar("dusts");
+      const magnetsProperties = this.getSharedVar("properties");
+      const next = this.getSharedVar("next");
       const property = magnetsProperties[next % magnetsProperties.length];
       const data = dusts.data();
       const extent = d3.extent(data, d=>d[property]);
@@ -36,15 +36,15 @@ function setCreateMagnetCommands(layer, clickTool) {
       setMoveMagnetCommands(this, dragTool, magnetLayer);
       setAttractDustsCommands(this, dragTool);
 
-      // const dragTools = this.getSharedScale("dragTools") || [];
+      // const dragTools = this.getSharedVar("dragTools") || [];
       // dragTools.push(dragTool);
-      // this.setSharedScale("dragTools", dragTools);
+      // this.setSharedVar("dragTools", dragTools);
 
-      const magnetLayers = this.getSharedScale("magnetLayers") || [];
+      const magnetLayers = this.getSharedVar("magnetLayers") || [];
       magnetLayers.push(magnetLayer);
-      this.setSharedScale("magnetLayers", magnetLayers);
+      this.setSharedVar("magnetLayers", magnetLayers);
 
-      this.setSharedScale("next", next + 1);
+      this.setSharedVar("next", next + 1);
     },
   });
 }
@@ -75,7 +75,7 @@ function renderMagnet(root, x, y, magnetWidth, magnetHeight, shared){
         .style("font-weight", "700");
       
       for(const prop in shared){
-        magnetLayer.setSharedScale(prop, shared[prop]);
+        magnetLayer.setSharedVar(prop, shared[prop]);
       }
 
       return magnetLayer;
@@ -87,7 +87,7 @@ function setMoveMagnetCommands(layer, dragTool, magnetLayer) {
   layer.listen({
     tool: dragTool,
     dragCommand: function(){
-      const offset = this.getSharedScale("offset");
+      const offset = this.getSharedVar("offset");
       const xy = getXYfromTransform(magnetG);
       magnetG.attr("transform", `translate(${xy[0] + offset[0]}, ${xy[1] + offset[1]})`);
     }
@@ -98,8 +98,8 @@ function setAttractDustsCommands(layer, dragTool) {
   layer.listen({
     tool: dragTool,
     dragCommand: function(_, e) {
-      const dusts = this.getSharedScale("dusts");
-      const magnetLayers = this.getSharedScale("magnetLayers");
+      const dusts = this.getSharedVar("dusts");
+      const magnetLayers = this.getSharedVar("magnetLayers");
       const data = dusts.data();
 
       const time = 1;
@@ -113,9 +113,9 @@ function setAttractDustsCommands(layer, dragTool) {
         let vyAcc = 0;
         for(const magnetLayer of magnetLayers){
           const [x, y] = getXYfromTransform(magnetLayer.getGraphic());
-          const property = magnetLayer.getSharedScale("property");
-          const min = magnetLayer.getSharedScale("min");
-          const max = magnetLayer.getSharedScale("max");
+          const property = magnetLayer.getSharedVar("property");
+          const min = magnetLayer.getSharedVar("min");
+          const max = magnetLayer.getSharedVar("max");
           console.log({x, y, property, min, max});
           const range = max - min;
           if(range === 0) continue;

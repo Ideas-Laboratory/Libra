@@ -1,4 +1,5 @@
 const registeredSelectionManagers = {};
+export const instanceSelectionManagers = [];
 
 export default class SelectionManager {
   _result = [];
@@ -71,6 +72,7 @@ SelectionManager.initialize = function initialize(name, ...params) {
       ...(option.extraParams || []),
       ...params
     );
+    instanceSelectionManagers.push(query);
     return query;
   }
   return null;

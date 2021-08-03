@@ -61,9 +61,9 @@ function render(root, width, height, data) {
   }
   console.log(properties);
 
-  mainLayer.setSharedScale("dusts", dusts);
-  mainLayer.setSharedScale("properties", properties);
-  mainLayer.setSharedScale("next", 0);
+  mainLayer.setSharedVar("dusts", dusts);
+  mainLayer.setSharedVar("properties", properties);
+  mainLayer.setSharedVar("next", 0);
   return mainLayer;
 }
 

@@ -1,8 +1,9 @@
-import { makeFlexibleListener } from "../helpers";
+import { makeFlexibleListener, deepClone } from "../helpers";
 import Interactor from "../interactor";
 import SelectionManager from "../query";
 
 const registeredTools = {};
+export const instanceTools = [];
 
 export default class Tool {
   _name;
@@ -16,6 +17,7 @@ export default class Tool {
   _relations = [];
   _userListeners = {};
   _eventQueue = [];
+  _props = {};
   _next = null;
 
   constructor(name = "Tool", options) {
@@ -24,10 +26,12 @@ export default class Tool {
     if (options) {
       this._userListeners = options;
       Object.entries(options).forEach(([command, callback]) => {
-        if (!command.endsWith("Command")) return;
+        if (!command.endsWith("Command") && !command.endsWith("Feedback"))
+          return;
         this._listeners[command].set(callback);
       });
     }
+    instanceTools.push(this);
   }
 
   _toTemplate() {
@@ -36,6 +40,7 @@ export default class Tool {
       relations: this._relations.slice(0),
       views: this._views.slice(0),
       extraParams: [this._userListeners],
+      props: deepClone(this._props),
     };
   }
 
@@ -43,24 +48,39 @@ export default class Tool {
     if (!this._query) return;
     if (!relation.attribute) return;
     if (relation.const) {
-      this._query[relation.attribute] = relation.const;
+      if (relation.const instanceof Function) {
+        this._query[relation.attribute] = relation.const();
+      } else {
+        this._query[relation.attribute] = relation.const;
+      }
       this._query.update();
     } else {
       if (!relation.interactor) return;
       if (!this._interactors.includes(relation.interactor)) {
         this._interactors.push(relation.interactor);
-        for (let type of this._listeners) {
-          relation.interactor._listeners[type].set(
-            this._notify.bind(this, type)
-          );
-        }
+        const primitiveCommands = relation.interactor.getCommands();
+        const primitiveFeedbacks = relation.interactor.getFeedbacks();
+        [primitiveCommands, primitiveFeedbacks]
+          .flatMap((x) => x)
+          .forEach((type) => {
+            relation.interactor._listeners[type].set(
+              this._notify.bind(this, type)
+            );
+          });
       }
       Object.entries(relation).forEach(([command, listener]) => {
-        if (!command.endsWith("Command")) return;
-        relation.interactor._listeners[command].set((event) => {
-          this._query[relation.attribute] = listener(event, this._query);
+        if (!command.endsWith("Command") && !command.endsWith("Feedback"))
+          return;
+        relation.interactor._listeners[command].prepend((event) => {
+          const calculatedResult = listener(event, this._query);
+          if (relation.attribute instanceof Array) {
+            relation.attribute.forEach((attribute, i) => {
+              this._query[attribute] = calculatedResult[i];
+            });
+          } else {
+            this._query[relation.attribute] = calculatedResult;
+          }
           this._query.update();
-          this._notify(command, event);
         });
       });
     }
@@ -144,6 +164,23 @@ export default class Tool {
     }
   }
 
+  listen(option) {
+    Object.entries(option).forEach(([command, callback]) => {
+      if (!command.endsWith("Command") && !command.endsWith("Feedback")) return;
+      this._userListeners[command] = callback;
+      this._listeners[command].set(callback);
+    });
+  }
+
+  prop(key, value) {
+    if (arguments.length <= 0) {
+      console.warn("Tool.prop should have at least one param.");
+      return undefined;
+    }
+    if (arguments.length <= 1) return this._props[key];
+    this._props[key] = value;
+  }
+
   get query() {
     return this._query || null;
   }
@@ -218,6 +255,11 @@ function initWithOption(name, options, ...params) {
   if (options.views || options.view) {
     tool.attach(options.views || options.view);
   }
+  if (options.props) {
+    Object.entries(options.props).forEach(([k, v]) => {
+      tool.prop(k, v);
+    });
+  }
   if (options.postInstall && options.postInstall instanceof Function) {
     options.postInstall(tool);
   }
@@ -231,14 +273,9 @@ Tool.register("ClickTool", {
   selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: trajectoryInteractor,
-      endCommand: (e) => e.x,
-    },
-    {
-      attribute: "y",
-      interactor: trajectoryInteractor,
-      endCommand: (e) => e.y,
+      endCommand: (e) => [e.x, e.y],
     },
   ],
 });
@@ -247,14 +284,9 @@ Tool.register("DragTool", {
   selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: trajectoryInteractor,
-      dragCommand: (e) => e.x,
-    },
-    {
-      attribute: "y",
-      interactor: trajectoryInteractor,
-      dragCommand: (e) => e.y,
+      dragCommand: (e) => [e.x, e.y],
     },
   ],
 });
@@ -263,24 +295,14 @@ Tool.register("BrushTool", {
   selectionManager: SelectionManager.initialize("RectSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: trajectoryInteractor,
-      startCommand: (e) => e.x,
+      startCommand: (e) => [e.x, e.y],
     },
     {
-      attribute: "y",
+      attribute: ["width", "height"],
       interactor: trajectoryInteractor,
-      startCommand: (e) => e.y,
-    },
-    {
-      attribute: "width",
-      interactor: trajectoryInteractor,
-      dragCommand: (e, query) => e.x - query.x,
-    },
-    {
-      attribute: "height",
-      interactor: trajectoryInteractor,
-      dragCommand: (e, query) => e.y - query.y,
+      dragCommand: (e, query) => [e.x - query.x, e.y - query.y],
     },
   ],
 });
@@ -301,14 +323,9 @@ Tool.register("HoverTool", {
   selectionManager: SelectionManager.initialize("PointSelectionManager"),
   relations: [
     {
-      attribute: "x",
+      attribute: ["x", "y"],
       interactor: pointerInteractor,
-      pointerCommand: (e) => e.x,
-    },
-    {
-      attribute: "y",
-      interactor: pointerInteractor,
-      pointerCommand: (e) => e.y,
+      pointerCommand: (e) => [e.x, e.y],
     },
   ],
 });

@@ -1,3 +1,3 @@
 import "./interactor";
 
-export { default } from "./interactor";
+export { default, instanceInteractors } from "./interactor";
