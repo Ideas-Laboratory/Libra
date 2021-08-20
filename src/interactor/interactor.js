@@ -1,5 +1,5 @@
 import { makeFlexibleListener } from "../helpers";
-import History from "../history";
+import Libra from "../index";
 
 const registeredInteractors = {};
 export const instanceInteractors = [];
@@ -50,9 +50,9 @@ export default class Interactor {
       });
       if (action === "Command" && this._listeners[type + action].size()) {
         if (rawType === "frame" || rawType === "$running") {
-          History.replace();
+          Libra.History.replace();
         } else {
-          History.push();
+          Libra.History.push();
         }
       } // Commit Context
     });
