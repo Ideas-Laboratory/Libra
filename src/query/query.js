@@ -5,6 +5,7 @@ export default class SelectionManager {
   _result = [];
   _layers = [];
   _dirty = false;
+  _oldResult = null;
 
   constructor(name = "SelectionManager") {
     this._name = name;
@@ -34,9 +35,20 @@ export default class SelectionManager {
 
   get result() {
     if (this._dirty) {
+      this._oldResult = this._result;
       this.evaluate();
+      this._dirty = false;
     }
     return this._result.slice(0);
+  }
+
+  get oldResult() {
+    if (this._dirty) {
+      this._oldResult = this._result;
+      this.evaluate();
+      this._dirty = false;
+    }
+    return this._oldResult.slice(0);
   }
 
   bindLayer(layer) {
