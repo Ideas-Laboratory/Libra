@@ -7,43 +7,22 @@ export default class RectSelectionManager extends SelectionManager {
   height = 0;
 
   evaluate() {
-    if (
-      !this._layers[0] ||
-      !this._layers[0].objects ||
-      !(this._layers[0].objects instanceof Function)
-    )
-      return;
-    const objects = this._layers[0].objects();
-    let root = this._layers[0]._root;
-    let bbox = { left: 0, top: 0 };
-    if (root) {
-      root = root.node ? root.node() : root;
-      if (root.getBoundingClientRect) {
-        bbox = root.getBoundingClientRect();
-      }
-    }
-    const result = new Set();
-    let x = this.width < 0 ? this.x - this.width : this.x;
-    let y = this.height < 0 ? this.y - this.height : this.y;
-    let width = Math.abs(this.width);
-    let height = Math.abs(this.height);
-    for (let i = x; i < x + width; i++) {
-      for (let j = y; j < y + height; j++) {
-        if (result.size === objects.length) {
-          break;
-        }
-        let elements = document.elementsFromPoint(i + bbox.left, j + bbox.top);
-        [...objects].forEach((obj) => {
-          if (
-            obj.node ? elements.includes(obj.node()) : elements.includes(obj)
-          ) {
-            result.add(obj);
-          }
-        });
-      }
-    }
-    this._result = [...result];
+    let result = [];
+    this._layers.forEach((layer) => {
+      result = result.concat(
+        layer.pick({
+          type: "rect",
+          x: this.width < 0 ? this.x + this.width : this.x,
+          y: this.height < 0 ? this.y + this.height : this.y,
+          width: Math.abs(this.width),
+          height: Math.abs(this.height),
+        })
+      );
+    });
+    this._result = [...new Set(result)];
   }
 }
 
-SelectionManager.register("RectSelectionManager", { constructor: RectSelectionManager });
+SelectionManager.register("RectSelectionManager", {
+  constructor: RectSelectionManager,
+});
