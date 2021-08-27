@@ -22,6 +22,7 @@ export default class Layer {
   }
 
   _injectInstrument(instrument, options) {
+    instrument._layers.push(this);
     Object.entries(options).forEach(([command, callback]) => {
       if (!command.endsWith("Command") && !command.endsWith("Feedback")) return;
       const _this = this;
@@ -31,15 +32,15 @@ export default class Layer {
         _this._notifyTimer = setTimeout(_this._notify.bind(_this), 0);
       });
     });
-    if (!instrument._query?.layers.length) {
-      instrument._query?.bindLayer(this);
+    if (!instrument._selectionManager?.layers.length) {
+      instrument._selectionManager?.bindLayer(this);
     }
   }
 
   _notify() {
     this._listeners.forEach((listener) => {
-      if (listener instanceof Function) {
-        listener();
+      if (listener && listener.handler instanceof Function) {
+        listener.call(listener.layer, this);
       }
     });
   }
@@ -49,14 +50,27 @@ export default class Layer {
     if (options.layers) {
       for (let layer of options.layers) {
         options.updateCommand &&
-          layer._listeners.unshift(options.updateCommand);
-        options.updateFeedback && layer._listeners.push(options.updateFeedback);
+          layer._listeners.unshift({
+            layer: this,
+            handler: options.updateCommand,
+          });
+        options.updateFeedback &&
+          layer._listeners.push({
+            layer: this,
+            handler: options.updateFeedback,
+          });
       }
     } else if (options.layer) {
       options.updateCommand &&
-        options.layer._listeners.unshift(options.updateCommand);
+        options.layer._listeners.unshift({
+          layer: this,
+          handler: options.updateCommand,
+        });
       options.updateFeedback &&
-        options.layer._listeners.push(options.updateFeedback);
+        options.layer._listeners.push({
+          layer: this,
+          handler: options.updateFeedback,
+        });
     } else if (options.instruments) {
       for (let instrument of options.instruments) {
         this._injectInstrument(instrument, options);

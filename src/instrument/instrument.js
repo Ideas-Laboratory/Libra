@@ -18,6 +18,7 @@ export default class Instrument {
   _userListeners = {};
   _eventQueue = [];
   _props = {};
+  _layers = [];
   _next = null;
 
   constructor(name = "Instrument", options) {
@@ -49,7 +50,10 @@ export default class Instrument {
     if (!relation.attribute) return;
     if (relation.const) {
       if (relation.const instanceof Function) {
-        this._selectionManager[relation.attribute] = relation.const.call(this, this);
+        this._selectionManager[relation.attribute] = relation.const.call(
+          this,
+          this
+        );
       } else {
         this._selectionManager[relation.attribute] = relation.const;
       }
@@ -115,7 +119,12 @@ export default class Instrument {
       let { type, event } = pendingEvent;
       this._listeners[type].list().forEach((listener) => {
         if (listener instanceof Function) {
-          listener.call(this, this._selectionManager, event);
+          listener.call(
+            this,
+            this._selectionManager,
+            event,
+            this._layers.slice(0)
+          );
         }
       });
       pendingEvent = this._eventQueue.shift();
@@ -303,7 +312,10 @@ Instrument.register("BrushInstrument", {
     {
       attribute: ["width", "height"],
       interactor: trajectoryInteractor,
-      dragCommand: (e, selectionManager) => [e.x - selectionManager.x, e.y - selectionManager.y],
+      dragCommand: (e, selectionManager) => [
+        e.x - selectionManager.x,
+        e.y - selectionManager.y,
+      ],
     },
   ],
 });
