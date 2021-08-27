@@ -65,14 +65,17 @@ export default class D3Layer extends Layer {
       rect.y = shape.y;
       rect.width = shape.width;
       rect.height = shape.height;
-      result = [...svg.getIntersectionList(rect, this._root.node())];
+      result = [...svg.getIntersectionList(rect, this._root.node())].filter(
+        (ele) => !ele.classList.contains("ig-layer-background")
+      );
     } else if (shape.type === "point") {
       const elements = document.elementsFromPoint(
         shape.x + selfBBox.left,
         shape.y + selfBBox.top
       );
       result = [...this.getObjects()]
-        .filter((obj) => elements.includes(obj));
+        .filter((obj) => elements.includes(obj))
+        .filter((ele) => !ele.classList.contains("ig-layer-background"));
     }
     return result;
   }
