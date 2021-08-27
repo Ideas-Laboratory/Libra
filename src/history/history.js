@@ -14,7 +14,9 @@ function collect() {
   instanceLayers.forEach((layer) =>
     context.layers.set(layer, collectLayer(layer))
   );
-  instanceInstruments.forEach((instrument) => context.instruments.set(instrument, collectInstrument(instrument)));
+  instanceInstruments.forEach((instrument) =>
+    context.instruments.set(instrument, collectInstrument(instrument))
+  );
   instanceSelectionManagers.forEach((selectionManager) =>
     context.selectionManagers.set(
       selectionManager,
@@ -90,6 +92,7 @@ function restoreSelectionManager(context, selectionManager) {
 
 let contexts = [];
 let pointer = 0;
+let inited = false;
 
 export default {
   init() {
@@ -97,29 +100,35 @@ export default {
     contexts = [];
     const context = collect();
     contexts.push(context);
+    inited = true;
   },
 
   push() {
+    if (!inited) return;
     const context = collect();
     contexts.splice(pointer + 1, contexts.length, context);
   },
 
   replace() {
+    if (!inited) return;
     const context = collect();
     contexts.splice(pointer, contexts.length, context);
   },
 
   undo() {
+    if (!inited) return;
     if (pointer > 0) pointer--;
     restore(contexts[pointer]);
   },
 
   redo() {
+    if (!inited) return;
     if (pointer < contexts.length - 1) pointer++;
     restore(contexts[pointer]);
   },
 
   restore() {
+    if (!inited) return;
     restore(contexts[pointer]);
   },
 };
