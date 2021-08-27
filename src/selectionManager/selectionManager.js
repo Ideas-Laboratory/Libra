@@ -79,13 +79,13 @@ SelectionManager.unregister = function unregister(name) {
 SelectionManager.initialize = function initialize(name, ...params) {
   let option;
   if ((option = registeredSelectionManagers[name])) {
-    const query = new option.constructor(
+    const selectionManager = new option.constructor(
       name,
       ...(option.extraParams || []),
       ...params
     );
-    instanceSelectionManagers.push(query);
-    return query;
+    instanceSelectionManagers.push(selectionManager);
+    return selectionManager;
   }
   return null;
 };

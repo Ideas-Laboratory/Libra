@@ -1,6 +1,6 @@
 import { makeFlexibleListener, deepClone } from "../helpers";
 import Interactor from "../interactor";
-import SelectionManager from "../query";
+import SelectionManager from "../selectionManager";
 
 const registeredInstruments = {};
 export const instanceInstruments = [];
@@ -12,7 +12,7 @@ export default class Instrument {
   _activeListeners = [];
   _frameListeners = [];
   _terminateListeners = [];
-  _query;
+  _selectionManager;
   _interactors = [];
   _relations = [];
   _userListeners = {};
@@ -36,7 +36,7 @@ export default class Instrument {
 
   _toTemplate() {
     return {
-      selectionManager: this._query,
+      selectionManager: this._selectionManager,
       relations: this._relations.slice(0),
       views: this._views.slice(0),
       extraParams: [this._userListeners],
@@ -45,15 +45,15 @@ export default class Instrument {
   }
 
   _injectInteractor(relation) {
-    if (!this._query) return;
+    if (!this._selectionManager) return;
     if (!relation.attribute) return;
     if (relation.const) {
       if (relation.const instanceof Function) {
-        this._query[relation.attribute] = relation.const();
+        this._selectionManager[relation.attribute] = relation.const.call(this, this);
       } else {
-        this._query[relation.attribute] = relation.const;
+        this._selectionManager[relation.attribute] = relation.const;
       }
-      this._query.update();
+      this._selectionManager.update();
     } else {
       if (!relation.interactor) return;
       if (!this._interactors.includes(relation.interactor)) {
@@ -72,15 +72,15 @@ export default class Instrument {
         if (!command.endsWith("Command") && !command.endsWith("Feedback"))
           return;
         relation.interactor._listeners[command].prepend((event) => {
-          const calculatedResult = listener(event, this._query);
+          const calculatedResult = listener(event, this._selectionManager);
           if (relation.attribute instanceof Array) {
             relation.attribute.forEach((attribute, i) => {
-              this._query[attribute] = calculatedResult[i];
+              this._selectionManager[attribute] = calculatedResult[i];
             });
           } else {
-            this._query[relation.attribute] = calculatedResult;
+            this._selectionManager[relation.attribute] = calculatedResult;
           }
-          this._query.update();
+          this._selectionManager.update();
         });
       });
     }
@@ -115,7 +115,7 @@ export default class Instrument {
       let { type, event } = pendingEvent;
       this._listeners[type].list().forEach((listener) => {
         if (listener instanceof Function) {
-          listener.call(this, this._query, event);
+          listener.call(this, this._selectionManager, event);
         }
       });
       pendingEvent = this._eventQueue.shift();
@@ -138,7 +138,7 @@ export default class Instrument {
 
   associate(option) {
     if (option.selectionManager) {
-      this._query = option.selectionManager;
+      this._selectionManager = option.selectionManager;
       for (let relation of this._relations) {
         this._injectInteractor(relation);
       }
@@ -181,12 +181,12 @@ export default class Instrument {
     this._props[key] = value;
   }
 
-  get query() {
-    return this._query || null;
+  get selectionManager() {
+    return this._selectionManager || null;
   }
 
   get layer() {
-    return (this._query && this._query._layer) || null;
+    return (this._selectionManager && this._selectionManager._layer) || null;
   }
 }
 
@@ -260,6 +260,7 @@ function initWithOption(name, options, ...params) {
       instrument.prop(k, v);
     });
   }
+  instrument.listen(options);
   if (options.postInstall && options.postInstall instanceof Function) {
     options.postInstall(instrument);
   }
@@ -302,7 +303,7 @@ Instrument.register("BrushInstrument", {
     {
       attribute: ["width", "height"],
       interactor: trajectoryInteractor,
-      dragCommand: (e, query) => [e.x - query.x, e.y - query.y],
+      dragCommand: (e, selectionManager) => [e.x - selectionManager.x, e.y - selectionManager.y],
     },
   ],
 });

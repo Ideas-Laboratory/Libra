@@ -1,4 +1,4 @@
-import { instanceSelectionManagers } from "../query";
+import { instanceSelectionManagers } from "../selectionManager";
 import { instanceInteractors } from "../interactor";
 import { instanceInstruments } from "../instrument";
 import { instanceLayers } from "../layer";

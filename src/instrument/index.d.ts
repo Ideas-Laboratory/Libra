@@ -1,11 +1,11 @@
 import * as helpers from "../helpers";
-import SelectionManager from "../query";
+import SelectionManager from "../selectionManager";
 import Interactor from "../interactor";
 import Layer from "../layer";
 
 type ConvertEventToFreedom = (
   event: helpers.Event,
-  query: SelectionManager
+  selectionManager: SelectionManager
 ) => helpers.AvailableFreedomType;
 
 type InstrumentRelationOption =
