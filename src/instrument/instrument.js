@@ -190,6 +190,13 @@ export default class Instrument {
     this._props[key] = value;
   }
 
+  props(props) {
+    if(arguments.length <= 1) return this._props;
+    Object.entries(props).forEach(([key, value]) => {
+      this._props[key] = value;
+    })
+  }
+
   get selectionManager() {
     return this._selectionManager || null;
   }
