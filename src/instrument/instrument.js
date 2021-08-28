@@ -190,6 +190,23 @@ export default class Instrument {
     this._props[key] = value;
   }
 
+  getProp(key) {
+    return this.prop(key);
+  }
+
+  setProp(key, value) {
+    return this.prop(key, value);
+  }
+
+  props(props) {
+    if (arguments.length <= 0) {
+      console.warn("Instrument.props should have at least one param.");
+      return undefined;
+    }
+    if (arguments.length <= 1) return props.map((key) => this._props[key]);
+    Object.assign(this._props, props);
+  }
+
   get selectionManager() {
     return this._selectionManager || null;
   }
