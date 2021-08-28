@@ -38,6 +38,14 @@ export default class D3Layer extends Layer {
     this._checked = true;
   }
 
+  getGraphic() {
+    return this._root.node();
+  }
+
+  getRootGraphic() {
+    return this._container.node();
+  }
+
   getObjects() {
     return this._root.selectChildren(":not(.ig-layer-background)");
   }
