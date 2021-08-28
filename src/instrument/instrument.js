@@ -27,9 +27,17 @@ export default class Instrument {
     if (options) {
       this._userListeners = options;
       Object.entries(options).forEach(([command, callback]) => {
-        if (!command.endsWith("Command") && !command.endsWith("Feedback"))
-          return;
-        this._listeners[command].set(callback);
+        if (command.endsWith("Command") || command.endsWith("Feedback")) {
+          this._listeners[command].set(callback);
+        } else if (
+          (command.endsWith("Commands") || command.endsWith("Feedbacks")) &&
+          callback instanceof Array
+        ) {
+          const realCommand = command.slice(0, command.length - 1);
+          callback.forEach((cbk) => {
+            this._listeners[realCommand].set(cbk);
+          });
+        }
       });
     }
     instanceInstruments.push(this);
@@ -175,9 +183,26 @@ export default class Instrument {
 
   listen(option) {
     Object.entries(option).forEach(([command, callback]) => {
-      if (!command.endsWith("Command") && !command.endsWith("Feedback")) return;
-      this._userListeners[command] = callback;
-      this._listeners[command].set(callback);
+      if (command.endsWith("Command") || command.endsWith("Feedback")) {
+        if (!this._userListeners[command + "s"]) {
+          this._userListeners[command + "s"] = [];
+        }
+        this._userListeners[command + "s"].push(callback);
+        this._listeners[command].set(callback);
+      } else if (
+        (command.endsWith("Commands") || command.endsWith("Feedbacks")) &&
+        callback instanceof Array
+      ) {
+        if (!this._userListeners[command]) {
+          this._userListeners[command] = [];
+        }
+        this._userListeners[command] =
+          this._userListeners[command].concat(callback);
+        const realCommand = command.slice(0, command.length - 1);
+        callback.forEach((cbk) => {
+          this._listeners[realCommand].set(cbk);
+        });
+      }
     });
   }
 
