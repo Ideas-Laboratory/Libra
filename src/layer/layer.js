@@ -40,7 +40,7 @@ export default class Layer {
   _notify() {
     this._listeners.forEach((listener) => {
       if (listener && listener.handler instanceof Function) {
-        listener.call(listener.layer, this);
+        listener.handler.call(listener.layer, this);
       }
     });
   }
