@@ -1,3 +1,5 @@
+import { deepClone } from "../helpers";
+
 const registeredLayers = {};
 export const instanceLayers = [];
 
@@ -9,6 +11,7 @@ export default class Layer {
   _initOptions = [];
   _sharedVar = {};
   _notifyTimer = null;
+  _props = {};
 
   constructor(name = "Layer") {
     this._name = name;
@@ -18,6 +21,7 @@ export default class Layer {
   _toTemplate() {
     return {
       listen: this._initOptions.slice(0),
+      props: deepClone(this._props)
     };
   }
 
@@ -115,6 +119,32 @@ export default class Layer {
   setSharedVar(name, scale) {
     this._sharedVar[name] = scale;
   }
+
+    prop(key, value) {
+    if (arguments.length <= 0) {
+      console.warn("Instrument.prop should have at least one param.");
+      return undefined;
+    }
+    if (arguments.length <= 1) return this._props[key];
+    this._props[key] = value;
+  }
+
+  getProp(key) {
+    return this.prop(key);
+  }
+
+  setProp(key, value) {
+    return this.prop(key, value);
+  }
+
+  props(props) {
+    if (arguments.length <= 0) {
+      console.warn("Instrument.props should have at least one param.");
+      return undefined;
+    }
+    if (arguments.length <= 1) return props.map((key) => this._props[key]);
+    Object.assign(this._props, props);
+  }
 }
 
 Layer.register = function register(name, optionOrLayer) {
@@ -139,12 +169,18 @@ Layer.unregister = function unregister(name) {
 
 Layer.initialize = function initialize(name, ...params) {
   let options;
+  
   if ((options = registeredLayers[name])) {
     const layer = new options.constructor(
       name,
       ...(options.extraParams || []),
       ...params
     );
+    if (options.props) {
+      Object.entries(options.props).forEach(([k, v]) => {
+        layer.prop(k, v);
+      });
+    }
     if (options.preInstall && options.preInstall instanceof Function) {
       options.preInstall.call(layer, layer);
     }
