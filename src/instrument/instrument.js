@@ -275,6 +275,11 @@ function initWithOption(name, options, ...params) {
     ...(options.extraParams || []),
     ...params
   );
+  if (options.props) {
+    Object.entries(options.props).forEach(([k, v]) => {
+      instrument.prop(k, v);
+    });
+  }
   if (options.preInstall && options.preInstall instanceof Function) {
     options.preInstall(instrument);
   }
@@ -305,11 +310,6 @@ function initWithOption(name, options, ...params) {
   }
   if (options.views || options.view) {
     instrument.attach(options.views || options.view);
-  }
-  if (options.props) {
-    Object.entries(options.props).forEach(([k, v]) => {
-      instrument.prop(k, v);
-    });
   }
   instrument.listen(options);
   if (options.postInstall && options.postInstall instanceof Function) {
