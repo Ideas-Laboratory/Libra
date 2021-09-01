@@ -167,7 +167,10 @@ Layer.unregister = function unregister(name) {
   return true;
 };
 
-Layer.initialize = function initialize(name, ...params) {
+Layer.initialize = function initialize(name, userDefinedProps, ...params) {
+  if(typeof userDefinedProps !== "object") {
+    params.unshift(userDefinedProps);
+  }
   let options;
   
   if ((options = registeredLayers[name])) {
@@ -176,8 +179,10 @@ Layer.initialize = function initialize(name, ...params) {
       ...(options.extraParams || []),
       ...params
     );
-    if (options.props) {
-      Object.entries(options.props).forEach(([k, v]) => {
+    if (options.props || userDefinedProps) {
+      const mergedProps = Object.assign({}, options.props);
+      Object.assign(mergedProps, userDefinedProps);
+      Object.entries(mergedProps).forEach(([k, v]) => {
         layer.prop(k, v);
       });
     }

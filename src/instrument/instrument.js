@@ -261,22 +261,28 @@ Instrument.unregister = function unregister(name) {
   return true;
 };
 
-Instrument.initialize = function initialize(name, ...params) {
+Instrument.initialize = function initialize(name, props, ...params) {
   let option;
   if ((option = registeredInstruments[name])) {
-    return initWithOption(name, option, ...params);
+    if (typeof props !== "object") {
+      params.unshift(props);
+      return initWithOption(name, option, {}, ...params);
+    }
+    return initWithOption(name, option, props, ...params);
   }
   return null;
 };
 
-function initWithOption(name, options, ...params) {
+function initWithOption(name, options, userDefinedProps, ...params) {
   const instrument = new options.constructor(
     name,
     ...(options.extraParams || []),
     ...params
   );
-  if (options.props) {
-    Object.entries(options.props).forEach(([k, v]) => {
+  if (options.props || userDefinedProps) {
+    const mergedProps = Object.assign({}, options.props);
+    Object.assign(mergedProps, userDefinedProps);
+    Object.entries(mergedProps).forEach(([k, v]) => {
       instrument.prop(k, v);
     });
   }
