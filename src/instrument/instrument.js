@@ -1,4 +1,5 @@
 import { makeFlexibleListener, deepClone } from "../helpers";
+import interactor from "../interactor";
 import Interactor from "../interactor";
 import SelectionManager from "../selectionManager";
 

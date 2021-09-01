@@ -22,17 +22,16 @@ export default class Interactor {
     this._name = name;
     this._listeners = makeFlexibleListener();
     this._rename = rename || {};
-    instanceInteractors.push(this);
   }
 
   _toTemplate() {
     return {
-      startActions: this._startActions.slice(0),
-      runningActions: this._runningActions.slice(0),
-      outsideActions: this._outsideActions.slice(0),
-      stopActions: this._stopActions.slice(0),
-      abortActions: this._abortActions.slice(0),
-      backInsideActions: this._backInsideActions.slice(0),
+      startActions: this._startActions.map(act => act.selector).slice(0),
+      runningActions: this._runningActions.map(act => act.selector).slice(0),
+      outsideActions: this._outsideActions.map(act => act.selector).slice(0),
+      stopActions: this._stopActions.map(act => act.selector).slice(0),
+      abortActions: this._abortActions.map(act => act.selector).slice(0),
+      backInsideActions: this._backInsideActions.map(act => act.selector).slice(0),
       extraParams: [JSON.parse(JSON.stringify(this._rename))],
       middlewares: this._middleware.slice(0),
     };
@@ -154,7 +153,9 @@ export default class Interactor {
     };
     const trans = transitionMap[this._state];
     Object.keys(trans).find((key) => {
-      if (this[`_${key}Actions`].includes(eventType)) {
+      if (
+        this[`_${key}Actions`].map((action) => action.type).includes(eventType)
+      ) {
         this._state = trans[key][0];
         this._emit(`$${key}`, event);
         trans[key][1].forEach((type) => this._emit(type, event));
@@ -165,12 +166,16 @@ export default class Interactor {
   }
 
   getActions() {
-    return this._startActions
-      .concat(this._runningActions)
-      .concat(this._outsideActions)
-      .concat(this._stopActions)
-      .concat(this._abortActions)
-      .concat(this._backInsideActions);
+    console.log(this);
+    const actions = [
+      this._startActions,
+      this._runningActions,
+      this._outsideActions,
+      this._stopActions,
+      this._abortActions,
+      this._backInsideActions,
+    ].flatMap(action => action).map(a => a.type);
+    return actions;
   }
 
   getBaseResponse() {
@@ -211,65 +216,23 @@ export default class Interactor {
     this._middleware = [];
   }
 
-  set startActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._startActions.includes(eventName)
-    ) {
-      this._startActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._startActions = eventName.filter((e) => typeof e === "string");
-    }
+  set startActions(selector) {
+    this._startActions = parseSelector(selector)
   }
-  set runningActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._runningActions.includes(eventName)
-    ) {
-      this._runningActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._runningActions = eventName.filter((e) => typeof e === "string");
-    }
+  set runningActions(selector) {
+    this._runningActions = parseSelector(selector)
   }
-  set outsideActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._outsideActions.includes(eventName)
-    ) {
-      this._outsideActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._outsideActions = eventName.filter((e) => typeof e === "string");
-    }
+  set outsideActions(selector) {
+    this._outsideActions = parseSelector(selector);
   }
-  set stopActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._stopActions.includes(eventName)
-    ) {
-      this._stopActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._stopActions = eventName.filter((e) => typeof e === "string");
-    }
+  set stopActions(selector) {
+    this._stopActions = parseSelector(selector)
   }
-  set abortActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._abortActions.includes(eventName)
-    ) {
-      this._abortActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._abortActions = eventName.filter((e) => typeof e === "string");
-    }
+  set abortActions(selector) {
+    this._abortActions = parseSelector(selector)
   }
-  set backInsideActions(eventName) {
-    if (
-      typeof eventName === "string" &&
-      !this._backInsideActions.includes(eventName)
-    ) {
-      this._backInsideActions.push(eventName);
-    } else if (eventName instanceof Array) {
-      this._backInsideActions = eventName.filter((e) => typeof e === "string");
-    }
+  set backInsideActions(selector) {
+    this._backInsideActions = parseSelector(selector)
   }
 }
 
@@ -308,7 +271,7 @@ Interactor.initialize = function initialize(name, ...params) {
     );
     for (let actionKey of Object.keys(option)) {
       if (actionKey.endsWith("Actions")) {
-        interactor[actionKey] = filterEventType(option[actionKey]);
+        interactor[actionKey] = option[actionKey];
       }
     }
     if (option.middlewares) interactor.appendMiddlewares(...option.middlewares);
@@ -317,14 +280,23 @@ Interactor.initialize = function initialize(name, ...params) {
   return null;
 };
 
-function filterEventType(selector){
-    let eventName = [];
-    if ( typeof selector === "string" ) {
-      eventName = vegaEventSelector(selector)[0].type;
-    } else if (selector instanceof Array) {
-      eventName = selector.map(vegaEventSelector).map(eventStreams => eventStreams[0].type);
-    }
-    return eventName;
+function parseSelector(selector) {
+  let actions = [];
+  if (typeof selector === "string") {
+    actions = [vegaEventSelector(selector)[0]]; //.type;
+    actions[0]["selector"] = selector;
+  } else if (selector instanceof Array) {
+    actions = selector
+      .map(s => {
+        const action = vegaEventSelector(s)
+        action["selector"] = selector;
+        return action;
+      })
+      .map((eventStreams) => eventStreams[0]); //.type);
+    actions.forEach((act, i) => act["selector"] = selector[i]);
+  }
+
+  return actions;
 }
 
 Interactor.register("Interactor", {});
