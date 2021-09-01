@@ -1,5 +1,6 @@
 import { makeFlexibleListener } from "../helpers";
 import Libra from "../index";
+import vegaEventSelector from "./vega-event-selector";
 
 const registeredInteractors = {};
 export const instanceInteractors = [];
@@ -307,7 +308,7 @@ Interactor.initialize = function initialize(name, ...params) {
     );
     for (let actionKey of Object.keys(option)) {
       if (actionKey.endsWith("Actions")) {
-        interactor[actionKey] = option[actionKey];
+        interactor[actionKey] = filterEventType(option[actionKey]);
       }
     }
     if (option.middlewares) interactor.appendMiddlewares(...option.middlewares);
@@ -315,6 +316,16 @@ Interactor.initialize = function initialize(name, ...params) {
   }
   return null;
 };
+
+function filterEventType(selector){
+    let eventName = [];
+    if ( typeof selector === "string" ) {
+      eventName = vegaEventSelector(selector)[0].type;
+    } else if (selector instanceof Array) {
+      eventName = selector.map(vegaEventSelector).map(eventStreams => eventStreams[0].type);
+    }
+    return eventName;
+}
 
 Interactor.register("Interactor", {});
 
