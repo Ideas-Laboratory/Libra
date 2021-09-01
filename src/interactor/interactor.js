@@ -153,9 +153,14 @@ export default class Interactor {
     };
     const trans = transitionMap[this._state];
     Object.keys(trans).find((key) => {
-      if (
-        this[`_${key}Actions`].map((action) => action.type).includes(eventType)
-      ) {
+      const actions =  this[`_${key}Actions`];
+      for(const action of actions){
+        if(action.type !== eventType) continue;
+        if(action.filter instanceof Array){
+          const filters = action.filter.map(str => new Function("event", `return ${str}`));
+          if(!filters.every(filter => filter(event.rawEvent))) continue;
+        }
+
         this._state = trans[key][0];
         this._emit(`$${key}`, event);
         trans[key][1].forEach((type) => this._emit(type, event));
@@ -163,10 +168,10 @@ export default class Interactor {
       }
       return false;
     });
+
   }
 
   getActions() {
-    console.log(this);
     const actions = [
       this._startActions,
       this._runningActions,
