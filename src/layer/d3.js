@@ -81,9 +81,12 @@ export default class D3Layer extends Layer {
         shape.x + selfBBox.left,
         shape.y + selfBBox.top
       );
-      result = [...this.getObjects()]
-        .filter((obj) => elements.includes(obj))
-        .filter((ele) => !ele.classList.contains("ig-layer-background"));
+      const isLayerContainsElem = (elem) => {
+        if(!elem.parentElement) return false;
+        if(this._root.node() === elem.parentElement) return true;
+        return isLayerContainsElem(elem.parentElement);
+      }
+      result = elements.filter(elem => isLayerContainsElem(elem)).filter((ele) => !ele.classList.contains("ig-layer-background"));
     }
     return result;
   }
