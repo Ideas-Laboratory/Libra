@@ -1,6 +1,7 @@
 import { deepClone } from "../helpers";
 
 const registeredLayers = {};
+const globalVars = {};
 export const instanceLayers = [];
 
 export default class Layer {
@@ -224,5 +225,13 @@ Layer.initialize = function initialize(name, userDefinedProps, ...params) {
 Layer.query = function query(name) {
   return instanceLayers.filter((layer) => layer._name === name);
 };
+
+Layer.getGlobalVar = function(name){
+  if(name) return globalVars[name];
+}
+
+Layer.setGlobalVar = function(name, value){
+  globalVars[name] = value;
+}
 
 Layer.register("Layer", { constructor: Layer });
