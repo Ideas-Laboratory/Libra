@@ -1,8 +1,23 @@
-export type Point = { x: number; y: number };
-export type Event =
-  | { type: "pointer"; x: number; y: number; rawX: number; rawY: number }
-  | { type: "wheel"; delta: number }
-  | { type: "keyboard" | "mouse"; keyCode: number }
-  | { type: "state"; state: "start" | "running" | "outside" };
-export type AvailableFreedomType = number;
-export type ShapeDescriptor = { type: string; [attr: string]: any };
+export type Transformation = (domain: any) => number;
+export type ShapeBasedQuery = {
+  baseOn: "shape";
+  type: string;
+  [parameter: string]: any;
+};
+
+export type DataBasedQuery = {
+  baseOn: "data";
+  type: string;
+  [parameter: string]: any;
+};
+
+export type AttributeBasedQuery = {
+  baseOn: "attr" | "attribute";
+  type: string;
+  [parameter: string]: any;
+};
+
+export type ArbitraryQuery =
+  | ShapeBasedQuery
+  | DataBasedQuery
+  | AttributeBasedQuery;

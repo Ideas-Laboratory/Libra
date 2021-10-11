@@ -4,6 +4,7 @@
   "description": "A layered instrument-based interaction architecture",
   "type": "module",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "scripts": {
     "build": "esbuild src/index.js --outfile=dist/libra.js --bundle --format=esm && esbuild src/index.js --outfile=dist/libra.min.js --minify --bundle --format=esm"
   },

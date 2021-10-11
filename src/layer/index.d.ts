@@ -1,57 +1,28 @@
-import * as helpers from "../helpers";
-import Instrument from "../instrument";
+import helpers from "../helpers";
 
-type LayerListenOption =
-  | {
-      layers: Layer[];
-      updateCommand: () => void;
-    }
-  | {
-      layer: Layer;
-      updateCommand: () => void;
-    }
-  | {
-      instruments: Instrument[];
-      [command: string]: () => void;
-    }
-  | {
-      instrument: Instrument;
-      [command: string]: () => void;
-    };
+type LayerInitTemplate = LayerInitOption & { constructor: LayerConstructor };
 
-interface LayerConstructor {
-  new (name: string): Layer;
+type LayerInitOption = {};
+
+export default interface LayerConstructor {
+  new (baseName: string, options: LayerInitOption): Layer;
+
+  register(baseName: string, options: LayerInitTemplate): void;
+  initialize(baseName: "D3Layer", options: LayerInitOption): Layer<SVGElement>;
+  initialize<T>(baseName: string, options: LayerInitOption): Layer<T>;
+  findLayer(name: string): Layer<any>[];
 }
 
-export = class Layer {
-  constructor(name: string): Layer;
-  listen(option: LayerListenOption): void;
-  getGraphic(): HTMLOrSVGElement;
-  getRootGraphic(): HTMLOrSVGElement;
-  getSharedVar(name: string): any;
-  setSharedVar(name: string, scale: any): void;
-
-  getObjects(): any[];
-  onObject(pointer: helpers.Point): boolean;
-  query(selector: string): any[];
-  pick(shape: helpers.ShapeDescriptor): any[];
-  find(dataFilter: (data: any) => boolean): any[];
-};
-
-export function register(
-  name: string,
-  optionOrLayer:
-    | Layer
-    | {
-        constructor?: LayerConstructor;
-        listen?: LayerListenOption | LayerListenOption[];
-        preInstall?: (layer: Layer) => void;
-        postInstall?: (layer: Layer) => void;
-      }
-): boolean;
-
-export function initialize(name: string): Layer;
-
-export function unregister(name: string): boolean;
-
-export function query(name: string): Layer[];
+class Layer<T> {
+  constructor(baseName: string, options: LayerInitOption): Layer;
+  getGraphic(): T;
+  getContainerGraphic(): HTMLElement;
+  getVisualElements(): T[];
+  getTransformation(scaleName: string): helpers.Transformation;
+  setTransformation(
+    scaleName: string,
+    transformation: helpers.Transformation
+  ): void;
+  redraw(data: any, scale: helpers.Transformation, selection: T[]): void;
+  query(options: helpers.ArbitraryQuery);
+}
