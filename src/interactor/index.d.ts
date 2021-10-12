@@ -1,3 +1,4 @@
+import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
@@ -13,6 +14,10 @@ type InteractorInnerAction = {
 type InteractorInitOption = {
   state: string;
   actions: InteractorInnerAction[];
+  preInitialize?: (interactor: Interactor) => void;
+  postInitialize?: (interactor: Interactor) => void;
+  preUse?: (interactor: Interactor, instrument: Instrument) => void;
+  postUse?: (interactor: Interactor, instrument: Instrument) => void;
   [param: string]: any;
 };
 

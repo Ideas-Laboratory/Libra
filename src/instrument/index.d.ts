@@ -11,6 +11,10 @@ type InstrumentInitOption = {
   };
   interactors?: (Interactor | { interactor: Interactor; options: any })[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
+  preInitialize?: (instrument: Instrument) => void;
+  postInitialize?: (instrument: Instrument) => void;
+  preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  postUse?: (instrument: Instrument, layer: Layer<any>) => void;
   [param: string]: any;
 };
 

@@ -1,4 +1,5 @@
 import { Command } from "../command";
+import { Layer } from "../layer";
 
 type ServiceInitOption = {
   on: { [action: string]: Command };
@@ -7,8 +8,8 @@ type ServiceInitOption = {
   postInitialize?: (service: ExternalService) => void;
   preUpdate?: (service: ExternalService) => void;
   postUpdate?: (service: ExternalService) => void;
-  preUse?: (service: ExternalService) => void;
-  postUse?: (service: ExternalService) => void;
+  preUse?: (service: ExternalService, layer: Layer<any>) => void;
+  postUse?: (service: ExternalService, layer: Layer<any>) => void;
   [param: string]: any;
 };
 
