@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "A layered instrument-based interaction architecture",
   "type": "module",
-  "main": "src/index.js",
+  "main": "dist/esm/index.js",
   "types": "src/index.d.ts",
   "scripts": {
-    "build": "esbuild src/index.js --outfile=dist/libra.js --bundle --format=esm && esbuild src/index.js --outfile=dist/libra.min.js --minify --bundle --format=esm"
+    "build": "tsc --outDir dist/esm && esbuild dist/esm/index.js --outfile=dist/libra.js --bundle --format=esm && esbuild dist/esm/index.js --outfile=dist/libra.min.js --minify --bundle --format=esm"
   },
   "repository": {
     "type": "git",
@@ -25,7 +25,8 @@
     "url": "https://github.com/z-jack/IG-2022/issues"
   },
   "devDependencies": {
-    "esbuild": "^0.12.21"
+    "esbuild": "^0.12.21",
+    "typescript": "^4.4.3"
   },
   "dependencies": {
     "d3": "^6.7.0"
