@@ -4,9 +4,9 @@
   "description": "A layered instrument-based interaction architecture",
   "type": "module",
   "main": "dist/esm/index.js",
-  "types": "src/index.d.ts",
+  "types": "dist/esm/index.d.ts",
   "scripts": {
-    "build": "tsc --outDir dist/esm && esbuild dist/esm/index.js --outfile=dist/libra.js --bundle --format=esm && esbuild dist/esm/index.js --outfile=dist/libra.min.js --minify --bundle --format=esm"
+    "build": "tsc --outDir dist/esm --declaration && esbuild dist/esm/index.js --outfile=dist/libra.js --bundle --format=esm && esbuild dist/esm/index.js --outfile=dist/libra.min.js --minify --bundle --format=esm"
   },
   "repository": {
     "type": "git",

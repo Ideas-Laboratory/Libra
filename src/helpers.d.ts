@@ -2,7 +2,12 @@ import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 
-export type Transformation = (domain: any) => number;
+// We assume the transformation in Libra are all affined
+export type Transformation = {
+  (domain: any): number;
+  inverse(range: number): any;
+};
+
 export type ShapeBasedQuery = {
   baseOn: "shape";
   type: string;
@@ -31,4 +36,5 @@ export type CommonHandlerInput<T> = {
   layer: Layer<any>;
   instrument: Instrument;
   interactor: Interactor;
+  [parameter: string]: any;
 };

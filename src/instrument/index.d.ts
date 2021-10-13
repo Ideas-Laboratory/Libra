@@ -11,6 +11,7 @@ type InstrumentInitOption = {
   };
   interactors?: (Interactor | { interactor: Interactor; options: any })[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
+  sharedVar?: { [varName: string]: any };
   preInitialize?: (instrument: Instrument) => void;
   postInitialize?: (instrument: Instrument) => void;
   preUse?: (instrument: Instrument, layer: Layer<any>) => void;
@@ -33,6 +34,9 @@ export declare class Instrument {
   ): void;
   use(interactor: Interactor, options: any): void;
   attach(layer: Layer<any>, options: any): void;
+  getSharedVar(sharedName: string, defaultValue?: any): any;
+  setSharedVar(sharedName: string, value: any): void;
+  watchSharedVar(sharedName: string, handler: Function | Command): void;
 }
 
 export default interface InstrumentConstructor {
