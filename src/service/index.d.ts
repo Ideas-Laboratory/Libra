@@ -23,12 +23,26 @@ export declare class ExternalService {
   on(action: string, command: Command): void;
   get(key: string, options: any): any;
   set(key: string, value: any, options: any): void;
+  preUpdate(): void;
+  postUpdate(): void;
+  preUse(layer: Layer<any>): void;
+  postUse(layer: Layer<any>): void;
+  isInstanceOf(name: string): boolean;
 }
 
 export default interface ServiceConstructor {
   new (baseName: string, options: ServiceInitOption): ExternalService;
 
   register(baseName: string, options: ServiceInitTemplate): void;
+  unregister(baseName: string): boolean;
   initialize(baseName: string, options: ServiceInitOption): ExternalService;
   findService(baseNameOrRealName: string): ExternalService[];
 }
+
+export function register(baseName: string, options: ServiceInitTemplate): void;
+export function unregister(baseName: string): boolean;
+export function initialize(
+  baseName: string,
+  options: ServiceInitOption
+): ExternalService;
+export function findService(baseNameOrRealName: string): ExternalService[];

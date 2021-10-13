@@ -38,3 +38,14 @@ export type CommonHandlerInput<T> = {
   interactor: Interactor;
   [parameter: string]: any;
 };
+
+export function makeFindableList(list: any) {
+  return new Proxy(list, {
+    get(target, p) {
+      if (p === "find") {
+        return (name: string) =>
+          makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+      }
+    },
+  });
+}

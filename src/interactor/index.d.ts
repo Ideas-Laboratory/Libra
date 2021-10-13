@@ -32,12 +32,25 @@ export declare class Interactor {
   setActions(actions: InteractorInnerAction[]);
   getEvents(): string[];
   dispatch(event: string): void;
+  isInstanceOf(name: string): boolean;
 }
 
 export default interface InteractorConstructor {
   new (baseName: string, options: InteractorInitOption): Interactor;
 
   register(baseName: string, options: InteractorInitTemplate): void;
+  unregister(baseName: string): boolean;
   initialize(baseName: string, options: InteractorInitOption): Interactor;
   findInteractor(baseNameOrRealName: string): Interactor[];
 }
+
+export function register(
+  baseName: string,
+  options: InteractorInitTemplate
+): void;
+export function unregister(baseName: string): boolean;
+export function initialize(
+  baseName: string,
+  options: InteractorInitOption
+): Interactor;
+export function findInteractor(baseNameOrRealName: string): Interactor[];

@@ -6,8 +6,17 @@ type LayerInitOption = {
   name?: string;
   container: HTMLElement;
   transformation?: { [scaleName: string]: helpers.Transformation };
-  services?: (ExternalService | { service: ExternalService; options: any })[];
+  services?: (
+    | string
+    | ExternalService
+    | { service: string | ExternalService; options: any }
+  )[];
   sharedVar?: { [varName: string]: any };
+  redraw?: <T>(
+    data: any,
+    scale: helpers.Transformation,
+    selection: T[]
+  ) => void;
   preInitialize?: <T>(layer: Layer<T>) => void;
   postInitialize?: <T>(layer: Layer<T>) => void;
   preUpdate?: <T>(layer: Layer<T>) => void;
@@ -35,8 +44,10 @@ export declare class Layer<T> {
   ): void;
   watchTransformation(scaleName: string, handler: Function | Command): void;
   redraw(data: any, scale: helpers.Transformation, selection: T[]): void;
-  query(options: helpers.ArbitraryQuery);
-  use(service: ExternalService, options?: any);
+  preUpdate(): void;
+  postUpdate(): void;
+  query(options: helpers.ArbitraryQuery): T[];
+  use(service: string | ExternalService, options?: any);
   isInstanceOf(name: string): boolean;
 }
 
@@ -44,7 +55,20 @@ export default interface LayerConstructor {
   new <T>(baseName: string, options: LayerInitOption): Layer<T>;
 
   register(baseName: string, options: LayerInitTemplate): void;
+  unregister(baseName: string): boolean;
   initialize(baseName: "D3Layer", options: LayerInitOption): Layer<SVGElement>;
   initialize<T>(baseName: string, options: LayerInitOption): Layer<T>;
   findLayer(baseNameOrRealName: string): Layer<any>[];
 }
+
+export function register(baseName: string, options: LayerInitTemplate): void;
+export function unregister(baseName: string): boolean;
+export function initialize(
+  baseName: "D3Layer",
+  options: LayerInitOption
+): Layer<SVGElement>;
+export function initialize<T>(
+  baseName: string,
+  options: LayerInitOption
+): Layer<T>;
+export function findLayer(baseNameOrRealName: string): Layer<any>[];

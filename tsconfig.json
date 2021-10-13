@@ -1,1 +1,4 @@
-{ "include": ["src/**/*.ts"] }
+{
+  "include": ["src/**/*.ts"],
+  "compilerOptions": { "target": "es2018", "moduleResolution": "Node" }
+}

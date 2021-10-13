@@ -1,4 +1,4 @@
-import { ExternalService } from "../service";
+import { ExternalService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
@@ -6,7 +6,11 @@ type LayerInitOption = {
   name?: string;
   container: HTMLElement;
   transformation?: { [scaleName: string]: helpers.Transformation };
-  services?: (ExternalService | { service: ExternalService; options: any })[];
+  services?: (
+    | string
+    | ExternalService
+    | { service: string | ExternalService; options: any }
+  )[];
   sharedVar?: { [varName: string]: any };
   redraw?: <T>(
     data: any,
@@ -35,7 +39,12 @@ export default class Layer<T> {
   _userOptions: LayerInitOption;
   _transformation: { [scaleName: string]: helpers.Transformation };
   _transformationWatcher: { [scaleName: string]: (Function | Command)[] };
-  _services: (ExternalService | { service: ExternalService; options: any })[];
+  _services: (
+    | string
+    | ExternalService
+    | { service: string | ExternalService; options: any }
+  )[];
+  _serviceInstances: ExternalService[];
   _graphic: T;
   _container: HTMLElement;
   _sharedVar: { [varName: string]: any };
@@ -45,12 +54,13 @@ export default class Layer<T> {
     scale: helpers.Transformation,
     selection: T[]
   ) => void;
-  _preInitialize: <T>(layer: Layer<T>) => void;
-  _postInitialize: <T>(layer: Layer<T>) => void;
-  _preUpdate: <T>(layer: Layer<T>) => void;
-  _postUpdate: <T>(layer: Layer<T>) => void;
+  _preInitialize?: <T>(layer: Layer<T>) => void;
+  _postInitialize?: <T>(layer: Layer<T>) => void;
+  _preUpdate?: <T>(layer: Layer<T>) => void;
+  _postUpdate?: <T>(layer: Layer<T>) => void;
 
   constructor(baseName: string, options: LayerInitOption) {
+    options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
@@ -60,12 +70,21 @@ export default class Layer<T> {
     this._sharedVar = options.sharedVar ?? {};
     this._sharedVarWatcher = {};
     this._transformationWatcher = {};
+    this._serviceInstances = [];
     this._redraw = options.redraw;
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
     this._preUpdate = options.preUpdate ?? null;
     this._postUpdate = options.postUpdate ?? null;
+    this._services.forEach((service) => {
+      if (typeof service === "string" || !("options" in service)) {
+        this.use(service);
+      } else {
+        this.use(service.service, service.options);
+      }
+    });
     instanceLayers.push(this);
+    this._postInitialize && this._postInitialize.call(this, this);
   }
   getGraphic(): T {
     return this._graphic;
@@ -85,6 +104,7 @@ export default class Layer<T> {
     }
   }
   setSharedVar(sharedName: string, value: any): void {
+    this._preUpdate && this._preUpdate.call(this, this);
     const oldValue = this._sharedVar[sharedName];
     this._sharedVar[sharedName] = value;
     if (sharedName in this._sharedVarWatcher) {
@@ -103,6 +123,7 @@ export default class Layer<T> {
         }
       });
     }
+    this._postUpdate && this._postUpdate.call(this, this);
   }
   watchSharedVar(sharedName: string, handler: Function | Command): void {
     if (!(sharedName in this._sharedVarWatcher)) {
@@ -126,6 +147,7 @@ export default class Layer<T> {
     transformation: helpers.Transformation
   ): void {
     // TODO: implement responsive viewport
+    this._preUpdate && this._preUpdate.call(this, this);
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
     if (scaleName in this._transformationWatcher) {
@@ -144,6 +166,7 @@ export default class Layer<T> {
         }
       });
     }
+    this._postUpdate && this._postUpdate.call(this, this);
   }
   watchTransformation(scaleName: string, handler: Function | Command): void {
     if (!(scaleName in this._transformationWatcher)) {
@@ -152,24 +175,84 @@ export default class Layer<T> {
     this._transformationWatcher[scaleName].push(handler);
   }
   redraw(data: any, scale: helpers.Transformation, selection: T[]): void {
+    this._preUpdate && this._preUpdate.call(this, this);
     if (this._redraw && this._redraw instanceof Function) {
       this._redraw(data, scale, selection);
     }
+    this._postUpdate && this._postUpdate.call(this, this);
+  }
+  preUpdate() {
+    this._preUpdate && this._preUpdate.call(this, this);
+  }
+  postUpdate() {
+    this._postUpdate && this._postUpdate.call(this, this);
   }
   query(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
-  use(service: ExternalService, options?: any) {}
+  _use(service: ExternalService, options?: any) {
+    service.preUse(this);
+    // TODO: inject into service
+    this._serviceInstances.push(service);
+    service.postUse(this);
+  }
+  use(service: string | ExternalService, options?: any) {
+    if (this._services.includes(service)) {
+      return;
+    }
+    if (arguments.length >= 2) {
+      this._services.push({ service, options });
+    } else {
+      this._services.push(service);
+    }
+    if (typeof service === "string") {
+      const services = findService(service);
+      services.forEach((service) => this._use(service, options));
+    } else {
+      this._use(service, options);
+    }
+  }
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
   }
+
+  get services() {
+    return helpers.makeFindableList(this._serviceInstances.slice(0));
+  }
 }
 
-export function register(baseName: string, options: LayerInitTemplate): void {}
+export function register(baseName: string, options: LayerInitTemplate): void {
+  registeredLayers[baseName] = options;
+}
+export function unregister(baseName: string): boolean {
+  delete registeredLayers[baseName];
+  return true;
+}
 export function initialize<T>(
   baseName: string,
   options: LayerInitOption
-): Layer<T> {}
+): Layer<T> {
+  const mergedOptions = Object.assign(
+    {},
+    registeredLayers[baseName] ?? { constructor: Layer },
+    options,
+    {
+      // needs to deep merge object
+      transformation: Object.assign(
+        {},
+        (registeredLayers[baseName] ?? {}).transformation ?? {},
+        options.transformation ?? {}
+      ),
+      sharedVar: Object.assign(
+        {},
+        (registeredLayers[baseName] ?? {}).sharedVar ?? {},
+        options.sharedVar ?? {}
+      ),
+    }
+  );
+  const layer = new mergedOptions.constructor<T>(baseName, mergedOptions);
+  return layer;
+}
 export function findLayer(baseNameOrRealName: string): Layer<any>[] {
   return instanceLayers.filter((layer) =>
     layer.isInstanceOf(baseNameOrRealName)

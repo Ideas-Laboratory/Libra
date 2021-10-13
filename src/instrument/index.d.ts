@@ -37,12 +37,25 @@ export declare class Instrument {
   getSharedVar(sharedName: string, defaultValue?: any): any;
   setSharedVar(sharedName: string, value: any): void;
   watchSharedVar(sharedName: string, handler: Function | Command): void;
+  isInstanceOf(name: string): boolean;
 }
 
 export default interface InstrumentConstructor {
   new (baseName: string, options: InstrumentInitOption): Instrument;
 
   register(baseName: string, options: InstrumentInitTemplate): void;
+  unregister(baseName: string): boolean;
   initialize(baseName: string, options: InstrumentInitOption): Instrument;
   findInstrument(baseNameOrRealName: string): Instrument[];
 }
+
+export function register(
+  baseName: string,
+  options: InstrumentInitTemplate
+): void;
+export function unregister(baseName: string): boolean;
+export function initialize(
+  baseName: string,
+  options: InstrumentInitOption
+): Instrument;
+export function findInstrument(baseNameOrRealName: string): Instrument[];
