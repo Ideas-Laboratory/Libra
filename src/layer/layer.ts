@@ -2,7 +2,7 @@ import { ExternalService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
-type LayerInitOption = {
+export type LayerInitOption = {
   name?: string;
   container: HTMLElement;
   transformation?: { [scaleName: string]: helpers.Transformation };
@@ -24,7 +24,7 @@ type LayerInitOption = {
   [param: string]: any;
 };
 
-interface LayerConstructor {
+export interface LayerConstructor {
   new <T>(baseName: string, options: LayerInitOption): Layer<T>;
 }
 
@@ -34,6 +34,11 @@ const registeredLayers: { [name: string]: LayerInitTemplate } = {};
 const instanceLayers: Layer<any>[] = [];
 
 export default class Layer<T> {
+  static register: (baseName: string, options: LayerInitTemplate) => void;
+  static initialize: <T>(baseName: string, options: LayerInitOption) => Layer<T>
+  static findLayer: (baseNameOrRealName: string) => Layer<any>[];
+  //static [prop: string]: LayerConstructor | Function;
+
   _baseName: string;
   _name: string;
   _userOptions: LayerInitOption;
@@ -259,6 +264,6 @@ export function findLayer(baseNameOrRealName: string): Layer<any>[] {
   );
 }
 
-(Layer as any).register = register;
-(Layer as any).initialize = initialize;
-(Layer as any).findLayer = findLayer;
+Layer.register = register;
+Layer.initialize = initialize;
+Layer.findLayer = findLayer;
