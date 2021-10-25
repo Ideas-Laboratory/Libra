@@ -42,6 +42,7 @@ export default class ExternalService {
   _postUpdate?: (service: ExternalService) => void;
   _preUse?: (service: ExternalService, layer: Layer<any>) => void;
   _postUse?: (service: ExternalService, layer: Layer<any>) => void;
+  _layerInstances: Layer<any>[];
 
   constructor(baseName: string, options: ServiceInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -50,6 +51,7 @@ export default class ExternalService {
     this._name = options.name ?? baseName;
     this._on = options.on ?? {};
     this._sharedVar = options.sharedVar ?? {};
+    this._layerInstances = [];
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
     this._preUpdate = options.preUpdate ?? null;
@@ -106,6 +108,7 @@ export default class ExternalService {
 
   preUse(layer: Layer<any>) {
     this._preUse && this._preUse.call(this, this, layer);
+    this._layerInstances.push(layer);
   }
 
   postUse(layer: Layer<any>) {

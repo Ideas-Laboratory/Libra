@@ -2,8 +2,9 @@ import { Command } from "../command";
 import { Layer } from "../layer";
 
 type ServiceInitOption = {
-  on: { [action: string]: Command };
-  props: { [key: string]: any };
+  name?: string;
+  on?: { [action: string]: Command };
+  sharedVar?: { [key: string]: any };
   preInitialize?: (service: ExternalService) => void;
   postInitialize?: (service: ExternalService) => void;
   preUpdate?: (service: ExternalService) => void;
@@ -21,8 +22,9 @@ export declare class ExternalService {
   constructor(baseName: string, options: ServiceInitOption);
 
   on(action: string, command: Command): void;
-  get(key: string, options: any): any;
-  set(key: string, value: any, options: any): void;
+  getSharedVar(sharedName: string, options: any): any;
+  setSharedVar(sharedName: string, value: any, options: any): void;
+  watchSharedVar(sharedName: string, handler: Command): void;
   preUpdate(): void;
   postUpdate(): void;
   preUse(layer: Layer<any>): void;

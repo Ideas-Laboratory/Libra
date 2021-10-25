@@ -192,7 +192,6 @@ export default class Layer<T> {
   }
   _use(service: ExternalService, options?: any) {
     service.preUse(this);
-    // TODO: inject into service
     this._serviceInstances.push(service);
     service.postUse(this);
   }
