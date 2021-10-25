@@ -104,7 +104,7 @@ export default class Layer<T> {
     }
   }
   setSharedVar(sharedName: string, value: any): void {
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     const oldValue = this._sharedVar[sharedName];
     this._sharedVar[sharedName] = value;
     if (sharedName in this._sharedVarWatcher) {
@@ -123,7 +123,7 @@ export default class Layer<T> {
         }
       });
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   watchSharedVar(sharedName: string, handler: Function | Command): void {
     if (!(sharedName in this._sharedVarWatcher)) {
@@ -147,7 +147,7 @@ export default class Layer<T> {
     transformation: helpers.Transformation
   ): void {
     // TODO: implement responsive viewport
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
     if (scaleName in this._transformationWatcher) {
@@ -166,7 +166,7 @@ export default class Layer<T> {
         }
       });
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   watchTransformation(scaleName: string, handler: Function | Command): void {
     if (!(scaleName in this._transformationWatcher)) {
@@ -175,11 +175,11 @@ export default class Layer<T> {
     this._transformationWatcher[scaleName].push(handler);
   }
   redraw(data: any, scale: helpers.Transformation, selection: T[]): void {
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     if (this._redraw && this._redraw instanceof Function) {
       this._redraw(data, scale, selection);
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   preUpdate() {
     this._preUpdate && this._preUpdate.call(this, this);

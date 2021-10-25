@@ -30,7 +30,7 @@ export declare class Interactor {
 
   getActions(): InteractorInnerAction[];
   setActions(actions: InteractorInnerAction[]);
-  getEvents(): string[];
+  getAcceptEvents(): string[];
   dispatch(event: string): void;
   isInstanceOf(name: string): boolean;
 }
