@@ -32,6 +32,8 @@ export declare class Interactor {
   setActions(actions: InteractorInnerAction[]);
   getAcceptEvents(): string[];
   dispatch(event: string): void;
+  preUse(instrument: Instrument): void;
+  postUse(instrument: Instrument): void;
   isInstanceOf(name: string): boolean;
 }
 

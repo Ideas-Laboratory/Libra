@@ -1,83 +1,143 @@
+import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
+import { Command } from "../command";
+import { Layer } from "../layer";
 
-type CommandInitOption = {
+type InstrumentInitOption = {
   name?: string;
-  feedbacks?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
-  undo?: () => void;
-  redo?: () => void;
-  execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
-  preInitialize?: (command: Instrument) => void;
-  postInitialize?: (command: Instrument) => void;
-  preExecute?: (command: Instrument) => void;
-  postExecute?: (command: Instrument) => void;
+  on?: {
+    [action: string]:
+      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | Command;
+  };
+  interactors?: (Interactor | { interactor: Interactor; options: any })[];
+  layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
+  sharedVar?: { [varName: string]: any };
+  preInitialize?: (instrument: Instrument) => void;
+  postInitialize?: (instrument: Instrument) => void;
+  preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  postUse?: (instrument: Instrument, layer: Layer<any>) => void;
   [param: string]: any;
 };
 
-interface CommandConstructor {
-  new (baseName: string, options: CommandInitOption): Instrument;
+interface InstrumentConstructor {
+  new (baseName: string, options: InstrumentInitOption): Instrument;
 
-  register(baseName: string, options: CommandInitTemplate): void;
+  register(baseName: string, options: InstrumentInitTemplate): void;
   unregister(baseName: string): boolean;
-  initialize(baseName: string, options: CommandInitOption): Instrument;
+  initialize(baseName: string, options: InstrumentInitOption): Instrument;
   findService(baseNameOrRealName: string): Instrument[];
 }
 
-type CommandInitTemplate = CommandInitOption & {
-  constructor?: CommandConstructor;
+type InstrumentInitTemplate = InstrumentInitOption & {
+  constructor?: InstrumentConstructor;
 };
 
-const registeredCommands: { [name: string]: CommandInitTemplate } = {};
+const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
 const instanceInstruments: Instrument[] = [];
 
 export default class Instrument {
   _baseName: string;
   _name: string;
-  _userOptions: CommandInitOption;
-  _feedbacks: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
-  _undo?: () => void;
-  _redo?: () => void;
-  _execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
-  _preInitialize?: (command: Instrument) => void;
-  _postInitialize?: (command: Instrument) => void;
-  _preExecute?: (command: Instrument) => void;
-  _postExecute?: (command: Instrument) => void;
+  _userOptions: InstrumentInitOption;
+  _on: {
+    [action: string]:
+      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | Command;
+  };
+  _interactors: (Interactor | { interactor: Interactor; options: any })[];
+  _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
+  _sharedVar: { [varName: string]: any };
+  _preInitialize?: (instrument: Instrument) => void;
+  _postInitialize?: (instrument: Instrument) => void;
+  _preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
 
-  constructor(baseName: string, options: CommandInitOption) {
+  constructor(baseName: string, options: InstrumentInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._feedbacks = options.feedback ?? [];
-    this._undo = options.undo ?? null;
-    this._redo = options.redo ?? null;
-    this._execute = options.execute ?? null;
+    this._on = options.on ?? {};
+    this._interactors = options.interactors ?? [];
+    this._layers = options.layers ?? [];
+    this._sharedVar = options.sharedVar ?? {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
-    this._preExecute = options.preExecute ?? null;
-    this._postExecute = options.postExecute ?? null;
+    this._preUse = options.preUse ?? null;
+    this._postUse = options.postUse ?? null;
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
-  undo() {
-    this._undo && this._undo.call(this);
+  on(
+    action: string,
+    feedforwardOrCommand:
+      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | Command
+  ) {
+    this._on[action] = feedforwardOrCommand;
   }
 
-  redo() {
-    this._redo && this._redo.call(this);
+  use(interactor: Interactor, options: any) {
+    interactor.preUse(this);
+    // TODO: inject options
+    if (arguments.length >= 2) {
+      this._interactors.push({ interactor, options });
+    } else {
+      this._interactors.push(interactor);
+    }
+    interactor.postUse(this);
   }
 
-  execute<T>(options: helpers.CommonHandlerInput<T>) {
-    this.preExecute();
-    this._execute && this._execute.call(this, options);
-    this.postExecute();
+  attach(layer: Layer<any>, options: any) {
+    this.preUse(layer);
+    if (arguments.length >= 2) {
+      this._layers.push({ layer, options });
+    } else {
+      this._layers.push(layer);
+    }
+    this.postUse(layer);
   }
 
-  preExecute() {
-    this._preExecute && this._preExecute.call(this, this);
+  getSharedVar(sharedName: string, options: any): any {
+    if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+      this.setSharedVar(sharedName, options.defaultValue, options);
+    }
+    return this._sharedVar[sharedName];
   }
 
-  postExecute() {
-    this._postExecute && this._postExecute.call(this, this);
+  setSharedVar(sharedName: string, value: any, options: any) {
+    this._sharedVar[sharedName] = value;
+    if (this._on[`update:${sharedName}`]) {
+      const feedforwardOrCommand = this._on[`update:${sharedName}`];
+      if (feedforwardOrCommand instanceof Command) {
+        feedforwardOrCommand.execute({
+          self: this,
+          layer: null,
+          instrument: this,
+          interactor: null,
+        });
+      } else {
+        feedforwardOrCommand({
+          self: this,
+          layer: null,
+          instrument: this,
+          interactor: null,
+        });
+      }
+    }
+  }
+
+  watchSharedVar(sharedName: string, handler: Command) {
+    this.on(`update:${sharedName}`, handler);
+  }
+
+  preUse(layer: Layer<any>) {
+    this._preUse && this._preUse.call(this, this, layer);
+  }
+
+  postUse(layer: Layer<any>) {
+    this._postUse && this._postUse.call(this, this, layer);
   }
 
   isInstanceOf(name: string): boolean {
@@ -85,20 +145,23 @@ export default class Instrument {
   }
 }
 
-export function register(baseName: string, options: CommandInitTemplate): void {
-  registeredCommands[baseName] = options;
+export function register(
+  baseName: string,
+  options: InstrumentInitTemplate
+): void {
+  registeredInstruments[baseName] = options;
 }
 export function unregister(baseName: string): boolean {
-  delete registeredCommands[baseName];
+  delete registeredInstruments[baseName];
   return true;
 }
 export function initialize(
   baseName: string,
-  options: CommandInitOption
+  options: InstrumentInitOption
 ): Instrument {
   const mergedOptions = Object.assign(
     {},
-    registeredCommands[baseName] ?? { constructor: Instrument },
+    registeredInstruments[baseName] ?? { constructor: Instrument },
     options
   );
   const service = new mergedOptions.constructor(baseName, mergedOptions);
