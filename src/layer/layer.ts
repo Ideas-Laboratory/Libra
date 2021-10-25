@@ -1,4 +1,4 @@
-import { ExternalService, findService } from "../service";
+import { InteractionService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
@@ -8,8 +8,8 @@ type LayerInitOption = {
   transformation?: { [scaleName: string]: helpers.Transformation };
   services?: (
     | string
-    | ExternalService
-    | { service: string | ExternalService; options: any }
+    | InteractionService
+    | { service: string | InteractionService; options: any }
   )[];
   sharedVar?: { [varName: string]: any };
   redraw?: <T>(
@@ -41,10 +41,10 @@ export default class Layer<T> {
   _transformationWatcher: { [scaleName: string]: (Function | Command)[] };
   _services: (
     | string
-    | ExternalService
-    | { service: string | ExternalService; options: any }
+    | InteractionService
+    | { service: string | InteractionService; options: any }
   )[];
-  _serviceInstances: ExternalService[];
+  _serviceInstances: InteractionService[];
   _graphic: T;
   _container: HTMLElement;
   _sharedVar: { [varName: string]: any };
@@ -190,12 +190,12 @@ export default class Layer<T> {
   query(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
-  _use(service: ExternalService, options?: any) {
+  _use(service: InteractionService, options?: any) {
     service.preUse(this);
     this._serviceInstances.push(service);
     service.postUse(this);
   }
-  use(service: string | ExternalService, options?: any) {
+  use(service: string | InteractionService, options?: any) {
     if (this._services.includes(service)) {
       return;
     }

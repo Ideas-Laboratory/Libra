@@ -5,22 +5,22 @@ type ServiceInitOption = {
   name?: string;
   on?: { [action: string]: Command };
   sharedVar?: { [key: string]: any };
-  preInitialize?: (service: ExternalService) => void;
-  postInitialize?: (service: ExternalService) => void;
-  preUpdate?: (service: ExternalService) => void;
-  postUpdate?: (service: ExternalService) => void;
-  preUse?: (service: ExternalService, layer: Layer<any>) => void;
-  postUse?: (service: ExternalService, layer: Layer<any>) => void;
+  preInitialize?: (service: InteractionService) => void;
+  postInitialize?: (service: InteractionService) => void;
+  preUpdate?: (service: InteractionService) => void;
+  postUpdate?: (service: InteractionService) => void;
+  preUse?: (service: InteractionService, layer: Layer<any>) => void;
+  postUse?: (service: InteractionService, layer: Layer<any>) => void;
   [param: string]: any;
 };
 
 interface ServiceConstructor {
-  new (baseName: string, options: ServiceInitOption): ExternalService;
+  new (baseName: string, options: ServiceInitOption): InteractionService;
 
   register(baseName: string, options: ServiceInitTemplate): void;
   unregister(baseName: string): boolean;
-  initialize(baseName: string, options: ServiceInitOption): ExternalService;
-  findService(baseNameOrRealName: string): ExternalService[];
+  initialize(baseName: string, options: ServiceInitOption): InteractionService;
+  findService(baseNameOrRealName: string): InteractionService[];
 }
 
 type ServiceInitTemplate = ServiceInitOption & {
@@ -28,20 +28,20 @@ type ServiceInitTemplate = ServiceInitOption & {
 };
 
 const registeredServices: { [name: string]: ServiceInitTemplate } = {};
-const instanceServices: ExternalService[] = [];
+const instanceServices: InteractionService[] = [];
 
-export default class ExternalService {
+export default class InteractionService {
   _baseName: string;
   _name: string;
   _userOptions: ServiceInitOption;
   _on: { [action: string]: Command };
   _sharedVar: { [key: string]: any };
-  _preInitialize?: (service: ExternalService) => void;
-  _postInitialize?: (service: ExternalService) => void;
-  _preUpdate?: (service: ExternalService) => void;
-  _postUpdate?: (service: ExternalService) => void;
-  _preUse?: (service: ExternalService, layer: Layer<any>) => void;
-  _postUse?: (service: ExternalService, layer: Layer<any>) => void;
+  _preInitialize?: (service: InteractionService) => void;
+  _postInitialize?: (service: InteractionService) => void;
+  _preUpdate?: (service: InteractionService) => void;
+  _postUpdate?: (service: InteractionService) => void;
+  _preUse?: (service: InteractionService, layer: Layer<any>) => void;
+  _postUse?: (service: InteractionService, layer: Layer<any>) => void;
   _layerInstances: Layer<any>[];
 
   constructor(baseName: string, options: ServiceInitOption) {
@@ -130,10 +130,10 @@ export function unregister(baseName: string): boolean {
 export function initialize(
   baseName: string,
   options: ServiceInitOption
-): ExternalService {
+): InteractionService {
   const mergedOptions = Object.assign(
     {},
-    registeredServices[baseName] ?? { constructor: ExternalService },
+    registeredServices[baseName] ?? { constructor: InteractionService },
     options,
     {
       // needs to deep merge object
@@ -152,12 +152,12 @@ export function initialize(
   const service = new mergedOptions.constructor(baseName, mergedOptions);
   return service;
 }
-export function findService(baseNameOrRealName: string): ExternalService[] {
+export function findService(baseNameOrRealName: string): InteractionService[] {
   return instanceServices.filter((service) =>
     service.isInstanceOf(baseNameOrRealName)
   );
 }
 
-(ExternalService as any).register = register;
-(ExternalService as any).initialize = initialize;
-(ExternalService as any).findService = findService;
+(InteractionService as any).register = register;
+(InteractionService as any).initialize = initialize;
+(InteractionService as any).findService = findService;
