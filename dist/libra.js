@@ -63,19 +63,28 @@ var registeredInstruments = {};
 var instanceInstruments = [];
 var Instrument = class {
   constructor(baseName, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     options.preInitialize && options.preInitialize.call(this, this);
+    this._preInitialize = (_a = options.preInitialize) !== null && _a !== void 0 ? _a : null;
+    this._postInitialize = (_b = options.postInitialize) !== null && _b !== void 0 ? _b : null;
+    this._preUse = (_c = options.preUse) !== null && _c !== void 0 ? _c : null;
+    this._postUse = (_d = options.postUse) !== null && _d !== void 0 ? _d : null;
     this._baseName = baseName;
     this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
-    this._on = (_b = options.on) !== null && _b !== void 0 ? _b : {};
-    this._interactors = (_c = options.interactors) !== null && _c !== void 0 ? _c : [];
-    this._layers = (_d = options.layers) !== null && _d !== void 0 ? _d : [];
-    this._sharedVar = (_e = options.sharedVar) !== null && _e !== void 0 ? _e : {};
-    this._preInitialize = (_f = options.preInitialize) !== null && _f !== void 0 ? _f : null;
-    this._postInitialize = (_g = options.postInitialize) !== null && _g !== void 0 ? _g : null;
-    this._preUse = (_h = options.preUse) !== null && _h !== void 0 ? _h : null;
-    this._postUse = (_j = options.postUse) !== null && _j !== void 0 ? _j : null;
+    this._name = (_e = options.name) !== null && _e !== void 0 ? _e : baseName;
+    this._on = (_f = options.on) !== null && _f !== void 0 ? _f : {};
+    this._interactors = (_g = options.interactors) !== null && _g !== void 0 ? _g : [];
+    this._layers = [];
+    if (options.layers) {
+      options.layers.forEach((layer) => {
+        if ("options" in layer) {
+          this.attach(layer.layer, layer.options);
+        } else {
+          this.attach(layer);
+        }
+      });
+    }
+    this._sharedVar = (_h = options.sharedVar) !== null && _h !== void 0 ? _h : {};
     options.postInitialize && options.postInitialize.call(this, this);
   }
   on(action, feedforwardOrCommand) {

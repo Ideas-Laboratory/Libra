@@ -55,17 +55,26 @@ export default class Instrument {
 
   constructor(baseName: string, options: InstrumentInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUse = options.preUse ?? null;
+    this._postUse = options.postUse ?? null;
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
     this._on = options.on ?? {};
     this._interactors = options.interactors ?? [];
-    this._layers = options.layers ?? [];
+    this._layers = [];
+    if (options.layers) {
+      options.layers.forEach((layer) => {
+        if ("options" in layer) {
+          this.attach(layer.layer, layer.options);
+        } else {
+          this.attach(layer);
+        }
+      });
+    }
     this._sharedVar = options.sharedVar ?? {};
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preUse = options.preUse ?? null;
-    this._postUse = options.postUse ?? null;
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
@@ -89,7 +98,7 @@ export default class Instrument {
     interactor.postUse(this);
   }
 
-  attach(layer: Layer<any>, options: any) {
+  attach(layer: Layer<any>, options?: any) {
     this.preUse(layer);
     if (arguments.length >= 2) {
       this._layers.push({ layer, options });

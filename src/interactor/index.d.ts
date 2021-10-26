@@ -6,9 +6,8 @@ type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 type InteractorInnerAction = {
   action: string;
   events: string[];
-  fromState?: string;
-  toState?: string;
-  sideEffect: SideEffect;
+  transition?: [string, string][];
+  sideEffect?: SideEffect;
 };
 
 type InteractorInitOption = {
