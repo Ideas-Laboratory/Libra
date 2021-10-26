@@ -91,8 +91,10 @@ export function unregister(baseName) {
     return true;
 }
 export function initialize(baseName, options) {
-    var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options);
+    var _a, _b, _c, _d;
+    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
+        on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
+    });
     const service = new mergedOptions.constructor(baseName, mergedOptions);
     return service;
 }

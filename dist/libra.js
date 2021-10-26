@@ -143,8 +143,10 @@ function register2(baseName, options) {
   registeredInstruments[baseName] = options;
 }
 function initialize2(baseName, options) {
-  var _a;
-  const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options);
+  var _a, _b, _c, _d;
+  const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
+    on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {})
+  });
   const service = new mergedOptions.constructor(baseName, mergedOptions);
   return service;
 }
@@ -694,10 +696,20 @@ Layer.findLayer = findLayer;
 
 // dist/esm/layer/index.js
 var Layer2 = Layer;
+
+// dist/esm/index.js
+var esm_default = {
+  Command: Command2,
+  Instrument: Instrument2,
+  Interactor: Interactor2,
+  Layer: Layer2,
+  InteractionService: InteractionService2
+};
 export {
   Command2 as Command,
   Instrument2 as Instrument,
   InteractionService2 as InteractionService,
   Interactor2 as Interactor,
-  Layer2 as Layer
+  Layer2 as Layer,
+  esm_default as default
 };

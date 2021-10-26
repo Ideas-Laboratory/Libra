@@ -162,7 +162,14 @@ export function initialize(
   const mergedOptions = Object.assign(
     {},
     registeredInstruments[baseName] ?? { constructor: Instrument },
-    options
+    options,
+    {
+      on: Object.assign(
+        {},
+        (registeredInstruments[baseName] ?? {}).on ?? {},
+        options.on ?? {}
+      ),
+    }
   );
   const service = new mergedOptions.constructor(baseName, mergedOptions);
   return service;
