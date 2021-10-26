@@ -96,10 +96,12 @@ export default class Interactor {
     );
   }
 
-  dispatch(event: string): void {
+  dispatch(event: string | Event): void {
     const moveAction = this._actions.find(
       (action) =>
-        action.events.includes(event) &&
+        (event instanceof Event
+          ? action.events.includes(event.type)
+          : action.events.includes(event)) &&
         (!action.transition ||
           action.transition.find((transition) => transition[0] === this._state))
     );
@@ -118,6 +120,7 @@ export default class Interactor {
           layer: null,
           instrument: null,
           interactor: this,
+          event,
         });
       }
     }

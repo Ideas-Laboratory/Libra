@@ -42,7 +42,7 @@ export default class Interactor {
     setActions(actions: InteractorInnerAction[]): void;
     _parseEvent(event: string): any[];
     getAcceptEvents(): string[];
-    dispatch(event: string): void;
+    dispatch(event: string | Event): void;
     preUse(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;

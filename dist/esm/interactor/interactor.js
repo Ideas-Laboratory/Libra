@@ -36,7 +36,9 @@ export default class Interactor {
         return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
     }
     dispatch(event) {
-        const moveAction = this._actions.find((action) => action.events.includes(event) &&
+        const moveAction = this._actions.find((action) => (event instanceof Event
+            ? action.events.includes(event.type)
+            : action.events.includes(event)) &&
             (!action.transition ||
                 action.transition.find((transition) => transition[0] === this._state)));
         if (moveAction) {
@@ -51,6 +53,7 @@ export default class Interactor {
                     layer: null,
                     instrument: null,
                     interactor: this,
+                    event,
                 });
             }
         }
