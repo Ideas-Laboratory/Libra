@@ -78,7 +78,10 @@ export default class Interactor {
             between: (helpers.EventStream | helpers.BetweenEventStream)[];
             stream: helpers.BetweenEventStream[];
           }
-    ) => ("stream" in stream ? stream.stream.flatMap(flatStream) : stream.type);
+    ) =>
+      "stream" in stream
+        ? stream.between.concat(stream.stream).flatMap(flatStream)
+        : stream.type;
 
     return helpers.parseEventSelector(event).flatMap(flatStream);
   }

@@ -23,7 +23,9 @@ export default class Interactor {
         this._actions = this._actions.concat(actions);
     }
     _parseEvent(event) {
-        const flatStream = (stream) => ("stream" in stream ? stream.stream.flatMap(flatStream) : stream.type);
+        const flatStream = (stream) => "stream" in stream
+            ? stream.between.concat(stream.stream).flatMap(flatStream)
+            : stream.type;
         return helpers.parseEventSelector(event).flatMap(flatStream);
     }
     getAcceptEvents() {
