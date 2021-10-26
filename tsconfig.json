@@ -1,4 +1,4 @@
 {
   "include": ["src/**/*.ts"],
-  "compilerOptions": { "target": "es2018", "moduleResolution": "Node" }
+  "compilerOptions": { "target": "es2019", "moduleResolution": "Node" }
 }

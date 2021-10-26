@@ -12,6 +12,7 @@ type InteractorInnerAction = {
 };
 
 type InteractorInitOption = {
+  name: string;
   state: string;
   actions: InteractorInnerAction[];
   preInitialize?: (interactor: Interactor) => void;
