@@ -71,7 +71,16 @@ export default class Interactor {
   }
 
   _parseEvent(event: string) {
-    return helpers.parseEventSelector(event).flatMap((stream) => stream.type);
+    const flatStream = (
+      stream:
+        | helpers.EventStream
+        | {
+            between: (helpers.EventStream | helpers.BetweenEventStream)[];
+            stream: helpers.BetweenEventStream[];
+          }
+    ) => ("stream" in stream ? stream.stream.flatMap(flatStream) : stream.type);
+
+    return helpers.parseEventSelector(event).flatMap(flatStream);
   }
 
   getAcceptEvents(): string[] {

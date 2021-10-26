@@ -110,7 +110,7 @@ function find(
   return i;
 }
 
-type EventStream = {
+export type EventStream = {
   source: string;
   type: string;
   markname?: string;
@@ -121,7 +121,14 @@ type EventStream = {
   debounce?: number;
 };
 
-type BetweenEventStream = EventStream & { between: BetweenEventStream[] };
+export type BetweenEventStream =
+  | (EventStream & {
+      between: (EventStream | BetweenEventStream)[];
+    })
+  | {
+      between: (EventStream | BetweenEventStream)[];
+      stream: BetweenEventStream[];
+    };
 
 function parseMerge(s: string) {
   const output: string[] = [],
