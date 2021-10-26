@@ -1,4 +1,4 @@
-import { ExternalService, findService } from "../service";
+import { InteractionService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
@@ -8,8 +8,8 @@ export type LayerInitOption = {
   transformation?: { [scaleName: string]: helpers.Transformation };
   services?: (
     | string
-    | ExternalService
-    | { service: string | ExternalService; options: any }
+    | InteractionService
+    | { service: string | InteractionService; options: any }
   )[];
   sharedVar?: { [varName: string]: any };
   redraw?: <T>(
@@ -46,10 +46,10 @@ export default class Layer<T> {
   _transformationWatcher: { [scaleName: string]: (Function | Command)[] };
   _services: (
     | string
-    | ExternalService
-    | { service: string | ExternalService; options: any }
+    | InteractionService
+    | { service: string | InteractionService; options: any }
   )[];
-  _serviceInstances: ExternalService[];
+  _serviceInstances: InteractionService[];
   _graphic: T;
   _container: HTMLElement;
   _sharedVar: { [varName: string]: any };
@@ -109,7 +109,7 @@ export default class Layer<T> {
     }
   }
   setSharedVar(sharedName: string, value: any): void {
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     const oldValue = this._sharedVar[sharedName];
     this._sharedVar[sharedName] = value;
     if (sharedName in this._sharedVarWatcher) {
@@ -128,7 +128,7 @@ export default class Layer<T> {
         }
       });
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   watchSharedVar(sharedName: string, handler: Function | Command): void {
     if (!(sharedName in this._sharedVarWatcher)) {
@@ -152,7 +152,7 @@ export default class Layer<T> {
     transformation: helpers.Transformation
   ): void {
     // TODO: implement responsive viewport
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
     if (scaleName in this._transformationWatcher) {
@@ -171,7 +171,7 @@ export default class Layer<T> {
         }
       });
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   watchTransformation(scaleName: string, handler: Function | Command): void {
     if (!(scaleName in this._transformationWatcher)) {
@@ -180,11 +180,11 @@ export default class Layer<T> {
     this._transformationWatcher[scaleName].push(handler);
   }
   redraw(data: any, scale: helpers.Transformation, selection: T[]): void {
-    this._preUpdate && this._preUpdate.call(this, this);
+    this.preUpdate();
     if (this._redraw && this._redraw instanceof Function) {
       this._redraw(data, scale, selection);
     }
-    this._postUpdate && this._postUpdate.call(this, this);
+    this.postUpdate();
   }
   preUpdate() {
     this._preUpdate && this._preUpdate.call(this, this);
@@ -195,13 +195,12 @@ export default class Layer<T> {
   query(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
-  _use(service: ExternalService, options?: any) {
+  _use(service: InteractionService, options?: any) {
     service.preUse(this);
-    // TODO: inject into service
     this._serviceInstances.push(service);
     service.postUse(this);
   }
-  use(service: string | ExternalService, options?: any) {
+  use(service: string | InteractionService, options?: any) {
     if (this._services.includes(service)) {
       return;
     }

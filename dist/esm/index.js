@@ -3,15 +3,13 @@ import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 import { InteractionService } from "./service";
-
 export default {
-  Command,
-  Instrument,
-  Interactor,
-  Layer,
-  InteractionService,
+    Command,
+    Instrument,
+    Interactor,
+    Layer,
+    InteractionService,
 };
-
 export { Command } from "./command";
 export { Instrument } from "./instrument";
 export { Interactor } from "./interactor";

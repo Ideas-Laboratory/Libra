@@ -6,12 +6,12 @@ type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 type InteractorInnerAction = {
   action: string;
   events: string[];
-  fromState?: string;
-  toState?: string;
-  sideEffect: SideEffect;
+  transition?: [string, string][];
+  sideEffect?: SideEffect;
 };
 
 type InteractorInitOption = {
+  name: string;
   state: string;
   actions: InteractorInnerAction[];
   preInitialize?: (interactor: Interactor) => void;
@@ -30,8 +30,10 @@ export declare class Interactor {
 
   getActions(): InteractorInnerAction[];
   setActions(actions: InteractorInnerAction[]);
-  getEvents(): string[];
+  getAcceptEvents(): string[];
   dispatch(event: string): void;
+  preUse(instrument: Instrument): void;
+  postUse(instrument: Instrument): void;
   isInstanceOf(name: string): boolean;
 }
 

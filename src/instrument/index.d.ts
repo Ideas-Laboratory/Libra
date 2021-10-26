@@ -4,6 +4,7 @@ import { Command } from "../command";
 import { Layer } from "../layer";
 
 type InstrumentInitOption = {
+  name?: string;
   on?: {
     [action: string]:
       | (<T>(options: helpers.CommonHandlerInput<T>) => void)
