@@ -381,7 +381,7 @@ var Interactor = class {
     this._actions = this._actions.concat(actions);
   }
   _parseEvent(event) {
-    const flatStream = (stream) => "stream" in stream ? stream.between.concat(stream.stream).flatMap(flatStream) : stream.type;
+    const flatStream = (stream) => "stream" in stream ? stream.between.concat(stream.stream).flatMap(flatStream) : "between" in stream ? stream.between.concat([{ type: stream.type }]).flatMap(flatStream) : stream.type;
     return parseEventSelector(event).flatMap(flatStream);
   }
   getAcceptEvents() {

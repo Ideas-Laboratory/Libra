@@ -25,7 +25,11 @@ export default class Interactor {
     _parseEvent(event) {
         const flatStream = (stream) => "stream" in stream
             ? stream.between.concat(stream.stream).flatMap(flatStream)
-            : stream.type;
+            : "between" in stream
+                ? stream.between
+                    .concat([{ type: stream.type }])
+                    .flatMap(flatStream)
+                : stream.type;
         return helpers.parseEventSelector(event).flatMap(flatStream);
     }
     getAcceptEvents() {
