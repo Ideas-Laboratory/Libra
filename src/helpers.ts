@@ -2,28 +2,88 @@ import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 
+export enum QueryType {
+  Shape, Data, Attr
+}
+
+export enum ShapeQueryType {
+  Point, Circle, Rect, Polygon
+}
+
+export enum DataQueryType {
+  Quantitative, Nominal, Temporal
+}
+
+// export enum AttrQueryType {
+  
+// }
+
 // We assume the transformation in Libra are all affined
 export type Transformation = {
   (domain: any): number;
   inverse(range: number): any;
 };
 
-export type ShapeBasedQuery = {
-  baseOn: "shape";
-  type: string;
-  [parameter: string]: any;
-};
+export type ShapeBasedQuery = PointQuery | CircleQuery | RectQuery | PolygonQuery;
 
-export type DataBasedQuery = {
-  baseOn: "data";
-  type: string;
-  [parameter: string]: any;
-};
+export type PointQuery = {
+  baseOn: QueryType.Shape;
+  type: ShapeQueryType.Point;
+  x: number,
+  y: number
+}
+
+export type CircleQuery = {
+  baseOn: QueryType.Shape;
+  type: ShapeQueryType.Circle;
+  x: number,
+  y: number,
+  r: number
+}
+
+export type RectQuery = {
+  baseOn: QueryType.Shape;
+  type: ShapeQueryType.Rect;
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+}
+
+export type PolygonQuery = {
+  baseOn: QueryType.Shape;
+  type: ShapeQueryType.Polygon;
+  points: {x: number, y: number}[]
+}
+
+export type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
+
+export type QuantitativeQuery = {
+  baseOn: QueryType.Data,
+  type: DataQueryType.Quantitative,
+  attrName: string,
+  extent: [number, number]
+}
+export type NominalQuery = {
+  baseOn: QueryType.Data,
+  type: DataQueryType.Nominal,
+  attrName: string,
+  extent: unknown[]
+}
+export type TemporalQuery = {
+  baseOn: QueryType.Data,
+  type: DataQueryType.Temporal,
+  attrName: string,
+  extent: [Date, Date],
+  dateParser?: (value: unknown) => Date
+}
 
 export type AttributeBasedQuery = {
-  baseOn: "attr" | "attribute";
+  baseOn: QueryType.Attr;
   type: string;
-  [parameter: string]: any;
+  attrName: string;
+  value: unknown;
+  //[parameter: string]: any;
 };
 
 export type ArbitraryQuery =
