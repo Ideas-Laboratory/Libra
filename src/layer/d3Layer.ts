@@ -1,16 +1,18 @@
-import Layer, { LayerConstructor, LayerInitOption } from "./layer";
+import Layer, {LayerInitOption} from "./layer";
 import * as d3 from "d3";
 import * as helpers from "../helpers";
 
 const baseName = "D3Layer";
 const backgroundClassName = "ig-layer-background";
 
-type D3ExtraOption = {
+type D3RequiredOption = Required<{
   width: number,
   height: number
-}
+}>
 
-export default class D3Layer extends Layer<SVGElement> implements LayerConstructor{
+type D3LayerInitOption = LayerInitOption & D3RequiredOption;
+
+export default class D3Layer extends Layer<SVGElement> {
 
   _root: d3.Selection<SVGElement, unknown, d3.BaseType, unknown> = d3.create("svg:g");
   _width: number;
@@ -18,7 +20,7 @@ export default class D3Layer extends Layer<SVGElement> implements LayerConstruct
   _checked: boolean;
 
 
-  constructor(baseName: string, options: LayerInitOption & D3ExtraOption) {
+  constructor(baseName: string, options: D3LayerInitOption) {
     super(baseName, options);
     this._width = options.width;
     this._height = options.height;
@@ -35,18 +37,13 @@ export default class D3Layer extends Layer<SVGElement> implements LayerConstruct
       .attr("opacity", 0);
   }
 
-  _toTemplate() {
+  _toTemplate() {  // it is better to store initOption in base class.
     return {
       //...super._toTemplate(), !!!
       extraParams: [this._width, this._height],
     };
   }
 
-  checkContainer() {
-    if (this._checked) return;
-    // this._container = d3(this._root.node().ownerSVGElement); !!!
-    this._checked = true;
-  }
 
   // getRootGraphic() {  !!! missing in Layer class
   //   return this._container.node();
@@ -65,13 +62,12 @@ export default class D3Layer extends Layer<SVGElement> implements LayerConstruct
   }
 
   query(options: helpers.ArbitraryQuery) {
-    // !!! need to be implemented
+    // !!! need to be implemented with externel services
     return [];
     //return this._root.node().querySelectorAll(selector);
   }
 }
 
 (Layer as any).D3Layer = D3Layer;
-Layer.register(baseName, {constructor: D3Layer});
-
-// !!! unregister?
+Layer.register(baseName, {constructor: (D3Layer as unknown as typeof Layer)});
+Layer.register(baseName, {constructor: (D3Layer as unknown as typeof Layer)});

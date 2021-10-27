@@ -2,42 +2,50 @@ import { InteractionService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
-export type LayerInitOption = {
-  name?: string;
+// export interface LayerConstructor {
+//   new <T>(baseName: string, options: LayerInitOption): Layer<T>;
+// }
+
+type LayerInitRequiredOption = Required<{
   container: HTMLElement;
-  transformation?: { [scaleName: string]: helpers.Transformation };
-  services?: (
+}>
+
+type LayerRegisterRequiredOption = Required<{
+  constructor: typeof Layer;
+}>
+
+type LayerPartialOption = Partial<{
+  name: string;
+  transformation: { [scaleName: string]: helpers.Transformation };
+  services: (
     | string
     | InteractionService
     | { service: string | InteractionService; options: any }
   )[];
-  sharedVar?: { [varName: string]: any };
-  redraw?: <T>(
+  sharedVar: { [varName: string]: any };
+  redraw: <T>(
     data: any,
     scale: helpers.Transformation,
     selection: T[]
   ) => void;
-  preInitialize?: <T>(layer: Layer<T>) => void;
-  postInitialize?: <T>(layer: Layer<T>) => void;
-  preUpdate?: <T>(layer: Layer<T>) => void;
-  postUpdate?: <T>(layer: Layer<T>) => void;
+  preInitialize: <T>(layer: Layer<T>) => void;
+  postInitialize: <T>(layer: Layer<T>) => void;
+  preUpdate: <T>(layer: Layer<T>) => void;
+  postUpdate: <T>(layer: Layer<T>) => void;
   [param: string]: any;
-};
+}>;
 
-export interface LayerConstructor {
-  new <T>(baseName: string, options: LayerInitOption): Layer<T>;
-}
+export type LayerInitOption = LayerInitRequiredOption & LayerPartialOption;
+export type LayerRegisterOption = LayerRegisterRequiredOption & LayerPartialOption;
 
-type LayerInitTemplate = LayerInitOption & { constructor?: LayerConstructor };
 
-const registeredLayers: { [name: string]: LayerInitTemplate } = {};
+const registeredLayers: { [name: string]: LayerRegisterOption } = {};
 const instanceLayers: Layer<any>[] = [];
 
 export default class Layer<T> {
-  static register: (baseName: string, options: LayerInitTemplate) => void;
+  static register: (baseName: string, options: LayerRegisterOption) => void;
   static initialize: <T>(baseName: string, options: LayerInitOption) => Layer<T>
   static findLayer: (baseNameOrRealName: string) => Layer<any>[];
-  //static [prop: string]: LayerConstructor | Function;
 
   _baseName: string;
   _name: string;
@@ -225,7 +233,7 @@ export default class Layer<T> {
   }
 }
 
-export function register(baseName: string, options: LayerInitTemplate): void {
+export function register(baseName: string, options: LayerRegisterOption): void {
   registeredLayers[baseName] = options;
 }
 export function unregister(baseName: string): boolean {
