@@ -18,7 +18,8 @@ export default class D3Layer extends Layer<SVGElement> {
   //_root: d3.Selection<SVGElement, unknown, d3.BaseType, unknown> = d3.create("svg:g");
   _width: number;
   _height: number;
-  _checked: boolean;
+  //_checked: boolean;
+  _svg: SVGSVGElement;
 
 
   constructor(baseName: string, options: D3LayerInitOption) {
@@ -32,6 +33,10 @@ export default class D3Layer extends Layer<SVGElement> {
       .attr("width", this._width)
       .attr("height", this._height)
       .attr("opacity", 0);
+    let tempElem = this._container;
+    while(tempElem && tempElem.tagName !== "svg") tempElem = tempElem.parentElement;
+    if(tempElem.tagName !== "svg") throw Error("Container must be wrapped in SVGSVGElement")
+    this._svg = tempElem as Element as SVGSVGElement;
   }
 
   // _toTemplate() {  // it is better to store initOption in base class.
@@ -69,41 +74,64 @@ export default class D3Layer extends Layer<SVGElement> {
     return [];
   }
 
-  _inLayer(elem: Element){
+  _isElementInLayer(elem: Element): SVGElement[]{
     return this._graphic.contains(elem) // in layer
-          && !elem.classList.contains(backgroundClassName);  // not background
+          && !elem.classList.contains(backgroundClassName) as unknown as SVGElement[];  // not background
   }
 
+  // the x y position is relative to the viewport (clientX, clientY)
   _shapeQuery(options: helpers.ShapeBasedQuery): SVGElement[] {
     let result: SVGElement[] = [];
-    const bbox = this._graphic.getBoundingClientRect();  // facilitate to get position relative to viewport
+    const svgBCR = this._svg.getBoundingClientRect();
+    const layerBCR = this._graphic.getBoundingClientRect();
     
     if (options.type === helpers.ShapeQueryType.Point) {
-      const x = options.x + bbox.left,
-        y = options.x + bbox.top;
-      result = document.elementsFromPoint(x, y).filter(this._inLayer) as SVGElement[];
+      const { x, y } = options;
+      result = document.elementsFromPoint(x, y).filter(this._isElementInLayer) as SVGElement[];
     } else if (options.type === helpers.ShapeQueryType.Circle) {
-      const x = options.x + bbox.left,
-        y = options.y + bbox.top,
+      const x = options.x - svgBCR.left,
+        y = options.y - svgBCR.top,
         r = options.r;
+      // Derive a special rect from a circle: the biggest square which the circle fully contains
+      const innerRectWidth = Math.floor(r * Math.sin(Math.PI / 4)) << 1;
+      const innerRectX = x - (innerRectWidth >>> 1);
+      const innerRectY = y - (innerRectWidth >>> 1);
+
+      const elemSet = new Set<Element>();
+
+      // get the elements intersect with the innerRect
+      const innerRect = this._svg.createSVGRect();
+      innerRect.x = innerRectX;
+      innerRect.y = innerRectY;
+      innerRect.width = innerRectWidth;
+      innerRect.height = innerRectWidth;
+      this._svg.getIntersectionList(innerRect, this._graphic).forEach(elem => elemSet.add(elem));
+
+      // get the elements between circle and innerRect;
+      for(let i = x - r; i <= x + r; i++) {
+        for(let j = y - r; j <= y + r; j++) {
+          if((innerRect.x < i && i < (innerRect.x + innerRect.width))
+            &&(innerRect.y < j && j < (innerRect.y + innerRect.y + innerRect.height))) continue;
+          document.elementsFromPoint(i + svgBCR.left, j + svgBCR.top).forEach(elem => elemSet.add(elem));
+        }
+      }
+
+      result = [...elemSet].filter(this._isElementInLayer) as SVGElement[];
     } else if (options.type === helpers.ShapeQueryType.Rect) {
       const { x, y, width, height} = options;
-      const x0 = Math.min(x, x + width) + bbox.left,
-        y0 = Math.min(y, y + height) + bbox.top,
-        x1 = Math.max(x, x + width) + bbox.left,
-        y1 = Math.max(y, y + height) + bbox.top;
-      // const rect = this._container.createSVGRect();
-      // rect.x = shape.x;
-      // rect.y = shape.y;
-      // rect.width = shape.width;
-      // rect.height = shape.height;
-      // result = [...svg.getIntersectionList(rect, this._root.node())].filter(
-      //   (ele) => !ele.classList.contains("ig-layer-background")
-      // );
-      //
+      const x0 = Math.min(x, x + width) - svgBCR.left,
+        y0 = Math.min(y, y + height) - svgBCR.top,
+        absWidth = Math.abs(width),
+        absHeight = Math.abs(height);
+        const rect = this._svg.createSVGRect();
+        rect.x = x0;
+        rect.y = y0;
+        rect.width = absWidth;
+        rect.height = absHeight;
+        result = [...this._svg.getIntersectionList(rect, this._graphic)]
+          .filter((elem) => !elem.classList.contains(backgroundClassName));
     } else if (options.type === helpers.ShapeQueryType.Polygon) {
-      //
-    
+      // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
     }
 
     // getElementsFromPoint cannot get the SVGGElement since it will never be touched directly.
