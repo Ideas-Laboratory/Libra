@@ -39,7 +39,7 @@ export default class Command {
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._feedbacks = options.feedback ?? [];
+    this._feedbacks = options.feedbacks ?? [];
     this._undo = options.undo ?? null;
     this._redo = options.redo ?? null;
     this._execute = options.execute ?? null;
@@ -62,6 +62,7 @@ export default class Command {
     this.preExecute();
     this._execute && this._execute.call(this, options);
     this.postExecute();
+    this._feedbacks.forEach((feedback) => feedback.call(this, options));
   }
 
   preExecute() {

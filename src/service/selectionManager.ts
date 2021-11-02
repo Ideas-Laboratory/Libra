@@ -8,6 +8,26 @@ export default class SelectionManager extends InteractionService {
   setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
+    if (
+      (options?.layer || this._layerInstances.length == 1) &&
+      this._userOptions.query
+    ) {
+      const layer = options?.layer || this._layerInstances[0];
+      this._oldResult = this._result;
+      this._result = layer.query({
+        ...this._userOptions.query,
+        ...this._sharedVar,
+      });
+      const selectionLayer = layer
+        .getSiblingLayer("selectionLayer")
+        .getGraphic();
+      while (selectionLayer.firstChild) {
+        selectionLayer.removeChild(selectionLayer.lastChild);
+      }
+      this._result.forEach((node) =>
+        selectionLayer.appendChild(node.cloneNode(false))
+      );
+    }
     if (this._on.update) {
       this._on.update.execute({
         self: this,
@@ -28,16 +48,7 @@ export default class SelectionManager extends InteractionService {
         interactor: options?.interactor ?? null,
       });
     }
-    if (
-      (options?.layer || this._layerInstances.length == 1) &&
-      this._userOptions.query
-    ) {
-      this._oldResult = this._result;
-      this._result = (options?.layer || this._layerInstances[0]).query({
-        ...this._userOptions.query,
-        ...this._sharedVar,
-      });
-    }
+
     this.postUpdate();
   }
 

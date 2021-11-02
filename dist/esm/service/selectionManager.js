@@ -10,6 +10,22 @@ export default class SelectionManager extends InteractionService {
         var _a, _b, _c, _d, _e, _f;
         this.preUpdate();
         this._sharedVar[sharedName] = value;
+        if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) &&
+            this._userOptions.query) {
+            const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
+            this._oldResult = this._result;
+            this._result = layer.query({
+                ...this._userOptions.query,
+                ...this._sharedVar,
+            });
+            const selectionLayer = layer
+                .getSiblingLayer("selectionLayer")
+                .getGraphic();
+            while (selectionLayer.firstChild) {
+                selectionLayer.removeChild(selectionLayer.lastChild);
+            }
+            this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
+        }
         if (this._on.update) {
             this._on.update.execute({
                 self: this,
@@ -24,14 +40,6 @@ export default class SelectionManager extends InteractionService {
                 layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
                 instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
                 interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null,
-            });
-        }
-        if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) &&
-            this._userOptions.query) {
-            this._oldResult = this._result;
-            this._result = ((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0]).query({
-                ...this._userOptions.query,
-                ...this._sharedVar,
             });
         }
         this.postUpdate();

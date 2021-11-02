@@ -8,7 +8,7 @@ var Command = class {
     this._baseName = baseName2;
     this._userOptions = options;
     this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
-    this._feedbacks = (_b = options.feedback) !== null && _b !== void 0 ? _b : [];
+    this._feedbacks = (_b = options.feedbacks) !== null && _b !== void 0 ? _b : [];
     this._undo = (_c = options.undo) !== null && _c !== void 0 ? _c : null;
     this._redo = (_d = options.redo) !== null && _d !== void 0 ? _d : null;
     this._execute = (_e = options.execute) !== null && _e !== void 0 ? _e : null;
@@ -28,6 +28,7 @@ var Command = class {
     this.preExecute();
     this._execute && this._execute.call(this, options);
     this.postExecute();
+    this._feedbacks.forEach((feedback) => feedback.call(this, options));
   }
   preExecute() {
     this._preExecute && this._preExecute.call(this, this);
@@ -487,6 +488,19 @@ var SelectionManager = class extends InteractionService {
     var _a, _b, _c, _d, _e, _f;
     this.preUpdate();
     this._sharedVar[sharedName] = value;
+    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
+      const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
+      this._oldResult = this._result;
+      this._result = layer.query({
+        ...this._userOptions.query,
+        ...this._sharedVar
+      });
+      const selectionLayer = layer.getSiblingLayer("selectionLayer").getGraphic();
+      while (selectionLayer.firstChild) {
+        selectionLayer.removeChild(selectionLayer.lastChild);
+      }
+      this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
+    }
     if (this._on.update) {
       this._on.update.execute({
         self: this,
@@ -501,13 +515,6 @@ var SelectionManager = class extends InteractionService {
         layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
         instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
         interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null
-      });
-    }
-    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
-      this._oldResult = this._result;
-      this._result = ((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0]).query({
-        ...this._userOptions.query,
-        ...this._sharedVar
       });
     }
     this.postUpdate();
@@ -3497,7 +3504,7 @@ Instrument.register("HoverInstrument", {
   interactors: [mousePositionInteractor],
   on: {
     hover: ({ event, layer }) => {
-      layer.services.find("SelectionManager", "SurfacePointSelectionManager").forEach((service) => {
+      layer.services.find("SelectionManager").forEach((service) => {
         service.setSharedVar("x", event.clientX);
         service.setSharedVar("y", event.clientY);
       });
