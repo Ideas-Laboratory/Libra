@@ -1,4 +1,4 @@
-import { findService } from "../service";
+import { InteractionService, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 const registeredLayers = {};
@@ -181,7 +181,7 @@ export default class Layer {
         return this._baseName === name || this._name === name;
     }
     get services() {
-        return helpers.makeFindableList(this._serviceInstances.slice(0));
+        return helpers.makeFindableList(this._serviceInstances.slice(0), InteractionService, this.use.bind(this));
     }
 }
 export function register(baseName, options) {

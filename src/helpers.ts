@@ -119,14 +119,27 @@ export type CommonHandlerInput<T> = {
   [parameter: string]: any;
 };
 
-export function makeFindableList(list: any) {
+export function makeFindableList<T>(
+  list: any,
+  typing: T,
+  addFunc: (newElement: T) => void
+) {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {
-        return (name: string) =>
-          makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+        return (name: string, defaultValue: string) => {
+          const filteredResult = target.filter((item) =>
+            item.isInstanceOf(name)
+          );
+          if (filteredResult.length <= 0 && defaultValue) {
+            const newElement = (typing as any).initialize(defaultValue) as T;
+            addFunc(newElement);
+            filteredResult.push(newElement);
+          }
+          return makeFindableList(filteredResult, typing, addFunc);
+        };
       } else {
-        return list[p];
+        return target[p];
       }
     },
   });

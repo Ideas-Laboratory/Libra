@@ -18,14 +18,22 @@ export var DataQueryType;
     DataQueryType[DataQueryType["Nominal"] = 1] = "Nominal";
     DataQueryType[DataQueryType["Temporal"] = 2] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
-export function makeFindableList(list) {
+export function makeFindableList(list, typing, addFunc) {
     return new Proxy(list, {
         get(target, p) {
             if (p === "find") {
-                return (name) => makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+                return (name, defaultValue) => {
+                    const filteredResult = target.filter((item) => item.isInstanceOf(name));
+                    if (filteredResult.length <= 0 && defaultValue) {
+                        const newElement = typing.initialize(defaultValue);
+                        addFunc(newElement);
+                        filteredResult.push(newElement);
+                    }
+                    return makeFindableList(filteredResult, typing, addFunc);
+                };
             }
             else {
-                return list[p];
+                return target[p];
             }
         },
     });

@@ -84,13 +84,21 @@ var DataQueryType;
   DataQueryType2[DataQueryType2["Nominal"] = 1] = "Nominal";
   DataQueryType2[DataQueryType2["Temporal"] = 2] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
-function makeFindableList(list) {
+function makeFindableList(list, typing, addFunc) {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {
-        return (name) => makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+        return (name, defaultValue) => {
+          const filteredResult = target.filter((item) => item.isInstanceOf(name));
+          if (filteredResult.length <= 0 && defaultValue) {
+            const newElement = typing.initialize(defaultValue);
+            addFunc(newElement);
+            filteredResult.push(newElement);
+          }
+          return makeFindableList(filteredResult, typing, addFunc);
+        };
       } else {
-        return list[p];
+        return target[p];
       }
     }
   });
@@ -521,35 +529,47 @@ InteractionService.register("SurfacePointSelectionManager", {
   constructor: SelectionManager,
   query: {
     baseOn: QueryType.Shape,
-    type: ShapeQueryType.SurfacePoint
+    type: ShapeQueryType.SurfacePoint,
+    x: 0,
+    y: 0
   }
 });
 InteractionService.register("PointSelectionManager", {
   constructor: SelectionManager,
   query: {
     baseOn: QueryType.Shape,
-    type: ShapeQueryType.Point
+    type: ShapeQueryType.Point,
+    x: 0,
+    y: 0
   }
 });
 InteractionService.register("RectSelectionManager", {
   constructor: SelectionManager,
   query: {
     baseOn: QueryType.Shape,
-    type: ShapeQueryType.Rect
+    type: ShapeQueryType.Rect,
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1
   }
 });
 InteractionService.register("CircleSelectionManager", {
   constructor: SelectionManager,
   query: {
     baseOn: QueryType.Shape,
-    type: ShapeQueryType.Circle
+    type: ShapeQueryType.Circle,
+    x: 0,
+    y: 0,
+    r: 1
   }
 });
 InteractionService.register("PolygonSelectionManager", {
   constructor: SelectionManager,
   query: {
     baseOn: QueryType.Shape,
-    type: ShapeQueryType.Polygon
+    type: ShapeQueryType.Polygon,
+    points: []
   }
 });
 
@@ -727,7 +747,7 @@ var Layer = class {
     return this._baseName === name || this._name === name;
   }
   get services() {
-    return makeFindableList(this._serviceInstances.slice(0));
+    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.use.bind(this));
   }
 };
 function register5(baseName2, options) {
@@ -3474,7 +3494,18 @@ var findInstrument = Instrument.findInstrument;
 var mousePositionInteractor = interactor_default.initialize("MousePositionInteractor");
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
-  interactors: [mousePositionInteractor]
+  interactors: [mousePositionInteractor],
+  on: {
+    hover: ({ event, layer }) => {
+      layer.services.find("SelectionManager", "SurfacePointSelectionManager").forEach((service) => {
+        service.setSharedVar("x", event.clientX);
+        service.setSharedVar("y", event.clientY);
+      });
+    }
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+  }
 });
 
 // dist/esm/instrument/index.js

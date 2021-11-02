@@ -56,6 +56,8 @@ InteractionService.register("SurfacePointSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.SurfacePoint,
+        x: 0,
+        y: 0,
     },
 });
 InteractionService.register("PointSelectionManager", {
@@ -63,6 +65,8 @@ InteractionService.register("PointSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Point,
+        x: 0,
+        y: 0,
     },
 });
 InteractionService.register("RectSelectionManager", {
@@ -70,6 +74,10 @@ InteractionService.register("RectSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Rect,
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
     },
 });
 InteractionService.register("CircleSelectionManager", {
@@ -77,6 +85,9 @@ InteractionService.register("CircleSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Circle,
+        x: 0,
+        y: 0,
+        r: 1,
     },
 });
 InteractionService.register("PolygonSelectionManager", {
@@ -84,5 +95,6 @@ InteractionService.register("PolygonSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Polygon,
+        points: [],
     },
 });

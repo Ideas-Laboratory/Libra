@@ -250,7 +250,11 @@ export default class Layer<T> {
   }
 
   get services() {
-    return helpers.makeFindableList(this._serviceInstances.slice(0));
+    return helpers.makeFindableList(
+      this._serviceInstances.slice(0),
+      InteractionService,
+      this.use.bind(this)
+    );
   }
 }
 

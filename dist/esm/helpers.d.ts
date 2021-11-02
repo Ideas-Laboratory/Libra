@@ -92,7 +92,7 @@ export declare type CommonHandlerInput<T> = {
     interactor: Interactor;
     [parameter: string]: any;
 };
-export declare function makeFindableList(list: any): any;
+export declare function makeFindableList<T>(list: any, typing: T, addFunc: (newElement: T) => void): any;
 /**
  * Parse an event selector string.
  * Returns an array of event stream definitions.
