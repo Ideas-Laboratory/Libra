@@ -24,15 +24,9 @@ declare type InstrumentInitOption = {
     postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     [param: string]: any;
 };
-interface InstrumentConstructor {
-    new (baseName: string, options: InstrumentInitOption): Instrument;
-    register(baseName: string, options: InstrumentInitTemplate): void;
-    unregister(baseName: string): boolean;
-    initialize(baseName: string, options: InstrumentInitOption): Instrument;
-    findService(baseNameOrRealName: string): Instrument[];
-}
 declare type InstrumentInitTemplate = InstrumentInitOption & {
-    constructor?: InstrumentConstructor;
+    [param: string]: any;
+    constructor?: typeof Instrument;
 };
 export default class Instrument {
     _baseName: string;
@@ -58,7 +52,7 @@ export default class Instrument {
     _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     constructor(baseName: string, options: InstrumentInitOption);
     on(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
-    use(interactor: Interactor, options: any): void;
+    use(interactor: Interactor, options?: any): void;
     attach(layer: Layer<any>, options?: any): void;
     getSharedVar(sharedName: string, options: any): any;
     setSharedVar(sharedName: string, value: any, options: any): void;
@@ -66,9 +60,13 @@ export default class Instrument {
     preUse(layer: Layer<any>): void;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
+    static register(baseName: string, options: InstrumentInitTemplate): void;
+    static unregister(baseName: string): boolean;
+    static initialize(baseName: string, options: InstrumentInitOption): Instrument;
+    static findInstrument(baseNameOrRealName: string): Instrument[];
 }
-export declare function register(baseName: string, options: InstrumentInitTemplate): void;
-export declare function unregister(baseName: string): boolean;
-export declare function initialize(baseName: string, options: InstrumentInitOption): Instrument;
-export declare function findInstrument(baseNameOrRealName: string): Instrument[];
+export declare const register: typeof Instrument.register;
+export declare const unregister: typeof Instrument.unregister;
+export declare const initialize: typeof Instrument.initialize;
+export declare const findInstrument: typeof Instrument.findInstrument;
 export {};

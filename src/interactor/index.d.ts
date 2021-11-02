@@ -11,7 +11,7 @@ type InteractorInnerAction = {
 };
 
 type InteractorInitOption = {
-  name: string;
+  name?: string;
   state: string;
   actions: InteractorInnerAction[];
   preInitialize?: (interactor: Interactor) => void;
@@ -22,7 +22,8 @@ type InteractorInitOption = {
 };
 
 type InteractorInitTemplate = InteractorInitOption & {
-  constructor?: InteractorConstructor;
+  [param: string]: any;
+constructor?: InteractorConstructor;
 };
 
 export declare class Interactor {

@@ -37,23 +37,24 @@ export default class Command {
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
     }
+    static register(baseName, options) {
+        registeredCommands[baseName] = options;
+    }
+    static unregister(baseName) {
+        delete registeredCommands[baseName];
+        return true;
+    }
+    static initialize(baseName, options) {
+        var _a;
+        const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName]) !== null && _a !== void 0 ? _a : { constructor: Command }, options);
+        const service = new mergedOptions.constructor(baseName, mergedOptions);
+        return service;
+    }
+    static findCommand(baseNameOrRealName) {
+        return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));
+    }
 }
-export function register(baseName, options) {
-    registeredCommands[baseName] = options;
-}
-export function unregister(baseName) {
-    delete registeredCommands[baseName];
-    return true;
-}
-export function initialize(baseName, options) {
-    var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName]) !== null && _a !== void 0 ? _a : { constructor: Command }, options);
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
-    return service;
-}
-export function findCommand(baseNameOrRealName) {
-    return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));
-}
-Command.register = register;
-Command.initialize = initialize;
-Command.findCommand = findCommand;
+export const register = Command.register;
+export const unregister = Command.unregister;
+export const initialize = Command.initialize;
+export const findCommand = Command.findCommand;

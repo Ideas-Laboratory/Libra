@@ -1,9 +1,9 @@
-import * as InteractorConstructor from "./interactor";
 import InteractorClass from "./interactor";
+import "./builtin";
 
 export default InteractorClass;
-export const register = InteractorConstructor.register;
-export const initialize = InteractorConstructor.initialize;
-export const findInteractor = InteractorConstructor.findInteractor;
+export const register = InteractorClass.register;
+export const initialize = InteractorClass.initialize;
+export const findInteractor = InteractorClass.findInteractor;
 export const Interactor = InteractorClass;
 export type Interactor = InteractorClass;

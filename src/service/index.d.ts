@@ -15,7 +15,8 @@ type ServiceInitOption = {
 };
 
 type ServiceInitTemplate = ServiceInitOption & {
-  constructor?: ServiceConstructor;
+  [param: string]: any;
+constructor?: ServiceConstructor;
 };
 
 export declare class InteractionService {

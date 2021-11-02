@@ -21,7 +21,8 @@ type InstrumentInitOption = {
 };
 
 type InstrumentInitTemplate = InstrumentInitOption & {
-  constructor?: InstrumentConstructor;
+  [param: string]: any;
+constructor?: InstrumentConstructor;
 };
 
 export declare class Instrument {

@@ -1,3 +1,22 @@
+export var QueryType;
+(function (QueryType) {
+    QueryType[QueryType["Shape"] = 0] = "Shape";
+    QueryType[QueryType["Data"] = 1] = "Data";
+    QueryType[QueryType["Attr"] = 2] = "Attr";
+})(QueryType || (QueryType = {}));
+export var ShapeQueryType;
+(function (ShapeQueryType) {
+    ShapeQueryType[ShapeQueryType["Point"] = 0] = "Point";
+    ShapeQueryType[ShapeQueryType["Circle"] = 1] = "Circle";
+    ShapeQueryType[ShapeQueryType["Rect"] = 2] = "Rect";
+    ShapeQueryType[ShapeQueryType["Polygon"] = 3] = "Polygon";
+})(ShapeQueryType || (ShapeQueryType = {}));
+export var DataQueryType;
+(function (DataQueryType) {
+    DataQueryType[DataQueryType["Quantitative"] = 0] = "Quantitative";
+    DataQueryType[DataQueryType["Nominal"] = 1] = "Nominal";
+    DataQueryType[DataQueryType["Temporal"] = 2] = "Temporal";
+})(DataQueryType || (DataQueryType = {}));
 export function makeFindableList(list) {
     return new Proxy(list, {
         get(target, p) {

@@ -14,6 +14,7 @@ type CommandInitOption = {
 };
 
 type CommandInitTemplate = CommandInitOption & {
+  [param: string]: any;
   constructor?: CommandConstructor;
 };
 

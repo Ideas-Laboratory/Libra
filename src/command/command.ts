@@ -13,17 +13,9 @@ type CommandInitOption = {
   [param: string]: any;
 };
 
-interface CommandConstructor {
-  new (baseName: string, options: CommandInitOption): Command;
-
-  register(baseName: string, options: CommandInitTemplate): void;
-  unregister(baseName: string): boolean;
-  initialize(baseName: string, options: CommandInitOption): Command;
-  findService(baseNameOrRealName: string): Command[];
-}
-
 type CommandInitTemplate = CommandInitOption & {
-  constructor?: CommandConstructor;
+  [param: string]: any;
+  constructor?: typeof Command;
 };
 
 const registeredCommands: { [name: string]: CommandInitTemplate } = {};
@@ -83,33 +75,31 @@ export default class Command {
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
   }
+
+  static register(baseName: string, options: CommandInitTemplate): void {
+    registeredCommands[baseName] = options;
+  }
+  static unregister(baseName: string): boolean {
+    delete registeredCommands[baseName];
+    return true;
+  }
+  static initialize(baseName: string, options: CommandInitOption): Command {
+    const mergedOptions = Object.assign(
+      {},
+      registeredCommands[baseName] ?? { constructor: Command },
+      options
+    );
+    const service = new mergedOptions.constructor(baseName, mergedOptions);
+    return service;
+  }
+  static findCommand(baseNameOrRealName: string): Command[] {
+    return instanceCommands.filter((command) =>
+      command.isInstanceOf(baseNameOrRealName)
+    );
+  }
 }
 
-export function register(baseName: string, options: CommandInitTemplate): void {
-  registeredCommands[baseName] = options;
-}
-export function unregister(baseName: string): boolean {
-  delete registeredCommands[baseName];
-  return true;
-}
-export function initialize(
-  baseName: string,
-  options: CommandInitOption
-): Command {
-  const mergedOptions = Object.assign(
-    {},
-    registeredCommands[baseName] ?? { constructor: Command },
-    options
-  );
-  const service = new mergedOptions.constructor(baseName, mergedOptions);
-  return service;
-}
-export function findCommand(baseNameOrRealName: string): Command[] {
-  return instanceCommands.filter((command) =>
-    command.isInstanceOf(baseNameOrRealName)
-  );
-}
-
-(Command as any).register = register;
-(Command as any).initialize = initialize;
-(Command as any).findCommand = findCommand;
+export const register = Command.register;
+export const unregister = Command.unregister;
+export const initialize = Command.initialize;
+export const findCommand = Command.findCommand;

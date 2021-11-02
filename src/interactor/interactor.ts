@@ -21,17 +21,9 @@ type InteractorInitOption = {
   [param: string]: any;
 };
 
-interface InteractorConstructor {
-  new (baseName: string, options: InteractorInitOption): Interactor;
-
-  register(baseName: string, options: InteractorInitTemplate): void;
-  unregister(baseName: string): boolean;
-  initialize(baseName: string, options: InteractorInitOption): Interactor;
-  findService(baseNameOrRealName: string): Interactor[];
-}
-
 type InteractorInitTemplate = InteractorInitOption & {
-  constructor?: InteractorConstructor;
+  [param: string]: any;
+  constructor?: typeof Interactor;
 };
 
 const registeredInteractors: { [name: string]: InteractorInitTemplate } = {};
@@ -67,7 +59,11 @@ export default class Interactor {
   }
 
   setActions(actions: InteractorInnerAction[]) {
-    this._actions = this._actions.concat(actions);
+    const mergeActions = actions.concat(this._actions);
+    this._actions = mergeActions.filter(
+      (action, i) =>
+        i === mergeActions.findIndex((a) => a.action === action.action)
+    );
   }
 
   _parseEvent(event: string) {
@@ -137,36 +133,35 @@ export default class Interactor {
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
   }
+
+  static register(baseName: string, options: InteractorInitTemplate): void {
+    registeredInteractors[baseName] = options;
+  }
+
+  static unregister(baseName: string): boolean {
+    delete registeredInteractors[baseName];
+    return true;
+  }
+  static initialize(
+    baseName: string,
+    options?: InteractorInitOption
+  ): Interactor {
+    const mergedOptions = Object.assign(
+      {},
+      registeredInteractors[baseName] ?? { constructor: Interactor },
+      options
+    );
+    const service = new mergedOptions.constructor(baseName, mergedOptions);
+    return service;
+  }
+  static findInteractor(baseNameOrRealName: string): Interactor[] {
+    return instanceInteractors.filter((instrument) =>
+      instrument.isInstanceOf(baseNameOrRealName)
+    );
+  }
 }
 
-export function register(
-  baseName: string,
-  options: InteractorInitTemplate
-): void {
-  registeredInteractors[baseName] = options;
-}
-export function unregister(baseName: string): boolean {
-  delete registeredInteractors[baseName];
-  return true;
-}
-export function initialize(
-  baseName: string,
-  options: InteractorInitOption
-): Interactor {
-  const mergedOptions = Object.assign(
-    {},
-    registeredInteractors[baseName] ?? { constructor: Interactor },
-    options
-  );
-  const service = new mergedOptions.constructor(baseName, mergedOptions);
-  return service;
-}
-export function findInteractor(baseNameOrRealName: string): Interactor[] {
-  return instanceInteractors.filter((instrument) =>
-    instrument.isInstanceOf(baseNameOrRealName)
-  );
-}
-
-(Interactor as any).register = register;
-(Interactor as any).initialize = initialize;
-(Interactor as any).findInteractor = findInteractor;
+export const register = Interactor.register;
+export const unregister = Interactor.unregister;
+export const initialize = Interactor.initialize;
+export const findInteractor = Interactor.findInteractor;

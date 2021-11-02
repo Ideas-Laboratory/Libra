@@ -1,9 +1,11 @@
+import { Interactor } from "../interactor";
 import { Command } from "../command";
+import { Layer } from "../layer";
 const registeredInstruments = {};
 const instanceInstruments = [];
 export default class Instrument {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g;
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = (_a = options.preInitialize) !== null && _a !== void 0 ? _a : null;
         this._postInitialize = (_b = options.postInitialize) !== null && _b !== void 0 ? _b : null;
@@ -13,8 +15,18 @@ export default class Instrument {
         this._userOptions = options;
         this._name = (_e = options.name) !== null && _e !== void 0 ? _e : baseName;
         this._on = (_f = options.on) !== null && _f !== void 0 ? _f : {};
-        this._interactors = (_g = options.interactors) !== null && _g !== void 0 ? _g : [];
+        this._interactors = [];
         this._layers = [];
+        if (options.interactors) {
+            options.interactors.forEach((interactor) => {
+                if ("options" in interactor) {
+                    this.use(interactor.interactor, interactor.options);
+                }
+                else {
+                    this.use(interactor);
+                }
+            });
+        }
         if (options.layers) {
             options.layers.forEach((layer) => {
                 if ("options" in layer) {
@@ -25,7 +37,7 @@ export default class Instrument {
                 }
             });
         }
-        this._sharedVar = (_h = options.sharedVar) !== null && _h !== void 0 ? _h : {};
+        this._sharedVar = (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {};
         options.postInitialize && options.postInitialize.call(this, this);
     }
     on(action, feedforwardOrCommand) {
@@ -40,6 +52,32 @@ export default class Instrument {
         else {
             this._interactors.push(interactor);
         }
+        interactor.setActions(interactor.getActions().map((action) => ({
+            ...action,
+            sideEffect: (options) => {
+                action.sideEffect && action.sideEffect(options);
+                this._on[action.action] &&
+                    this._on[action.action]({
+                        ...options,
+                        self: this,
+                        instrument: this,
+                    });
+            },
+        })));
+        this._layers.forEach((layer) => {
+            let layr;
+            if (layer instanceof Layer) {
+                layr = layer;
+            }
+            else {
+                layr = layer.layer;
+            }
+            interactor
+                .getAcceptEvents()
+                .forEach((event) => layr
+                .getContainerGraphic()
+                .addEventListener(event, (e) => interactor.dispatch(e)));
+        });
         interactor.postUse(this);
     }
     attach(layer, options) {
@@ -85,6 +123,20 @@ export default class Instrument {
     }
     preUse(layer) {
         this._preUse && this._preUse.call(this, this, layer);
+        this._interactors.forEach((interactor) => {
+            let inter;
+            if (interactor instanceof Interactor) {
+                inter = interactor;
+            }
+            else {
+                inter = interactor.interactor;
+            }
+            inter
+                .getAcceptEvents()
+                .forEach((event) => layer
+                .getContainerGraphic()
+                .addEventListener(event, (e) => inter.dispatch(e)));
+        });
     }
     postUse(layer) {
         this._postUse && this._postUse.call(this, this, layer);
@@ -92,25 +144,26 @@ export default class Instrument {
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
     }
+    static register(baseName, options) {
+        registeredInstruments[baseName] = options;
+    }
+    static unregister(baseName) {
+        delete registeredInstruments[baseName];
+        return true;
+    }
+    static initialize(baseName, options) {
+        var _a, _b, _c, _d;
+        const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
+            on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
+        });
+        const service = new mergedOptions.constructor(baseName, mergedOptions);
+        return service;
+    }
+    static findInstrument(baseNameOrRealName) {
+        return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+    }
 }
-export function register(baseName, options) {
-    registeredInstruments[baseName] = options;
-}
-export function unregister(baseName) {
-    delete registeredInstruments[baseName];
-    return true;
-}
-export function initialize(baseName, options) {
-    var _a, _b, _c, _d;
-    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
-        on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
-    });
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
-    return service;
-}
-export function findInstrument(baseNameOrRealName) {
-    return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
-}
-Instrument.register = register;
-Instrument.initialize = initialize;
-Instrument.findInstrument = findInstrument;
+export const register = Instrument.register;
+export const unregister = Instrument.unregister;
+export const initialize = Instrument.initialize;
+export const findInstrument = Instrument.findInstrument;

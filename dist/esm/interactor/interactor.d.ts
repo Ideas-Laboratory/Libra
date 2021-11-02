@@ -17,15 +17,9 @@ declare type InteractorInitOption = {
     postUse?: (interactor: Interactor, instrument: Instrument) => void;
     [param: string]: any;
 };
-interface InteractorConstructor {
-    new (baseName: string, options: InteractorInitOption): Interactor;
-    register(baseName: string, options: InteractorInitTemplate): void;
-    unregister(baseName: string): boolean;
-    initialize(baseName: string, options: InteractorInitOption): Interactor;
-    findService(baseNameOrRealName: string): Interactor[];
-}
 declare type InteractorInitTemplate = InteractorInitOption & {
-    constructor?: InteractorConstructor;
+    [param: string]: any;
+    constructor?: typeof Interactor;
 };
 export default class Interactor {
     _baseName: string;
@@ -46,9 +40,13 @@ export default class Interactor {
     preUse(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;
+    static register(baseName: string, options: InteractorInitTemplate): void;
+    static unregister(baseName: string): boolean;
+    static initialize(baseName: string, options?: InteractorInitOption): Interactor;
+    static findInteractor(baseNameOrRealName: string): Interactor[];
 }
-export declare function register(baseName: string, options: InteractorInitTemplate): void;
-export declare function unregister(baseName: string): boolean;
-export declare function initialize(baseName: string, options: InteractorInitOption): Interactor;
-export declare function findInteractor(baseNameOrRealName: string): Interactor[];
+export declare const register: typeof Interactor.register;
+export declare const unregister: typeof Interactor.unregister;
+export declare const initialize: typeof Interactor.initialize;
+export declare const findInteractor: typeof Interactor.findInteractor;
 export {};

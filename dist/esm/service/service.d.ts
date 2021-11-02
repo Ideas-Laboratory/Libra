@@ -24,6 +24,7 @@ interface ServiceConstructor {
     findService(baseNameOrRealName: string): InteractionService[];
 }
 declare type ServiceInitTemplate = ServiceInitOption & {
+    [param: string]: any;
     constructor?: ServiceConstructor;
 };
 export default class InteractionService {
@@ -53,9 +54,13 @@ export default class InteractionService {
     preUse(layer: Layer<any>): void;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
+    static register(baseName: string, options: ServiceInitTemplate): void;
+    static unregister(baseName: string): boolean;
+    static initialize(baseName: string, options: ServiceInitOption): InteractionService;
+    static findService(baseNameOrRealName: string): InteractionService[];
 }
-export declare function register(baseName: string, options: ServiceInitTemplate): void;
-export declare function unregister(baseName: string): boolean;
-export declare function initialize(baseName: string, options: ServiceInitOption): InteractionService;
-export declare function findService(baseNameOrRealName: string): InteractionService[];
+export declare const register: typeof InteractionService.register;
+export declare const unregister: typeof InteractionService.unregister;
+export declare const initialize: typeof InteractionService.initialize;
+export declare const findService: typeof InteractionService.findService;
 export {};

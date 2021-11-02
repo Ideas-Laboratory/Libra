@@ -24,7 +24,8 @@ type LayerInitOption = {
   [param: string]: any;
 };
 
-type LayerInitTemplate = LayerInitOption & { constructor?: LayerConstructor };
+type LayerInitTemplate = LayerInitOption & { [param: string]: any;
+constructor?: LayerConstructor };
 
 export declare class Layer<T> {
   constructor(baseName: string, options: LayerInitOption);

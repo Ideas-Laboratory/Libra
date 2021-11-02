@@ -11,15 +11,9 @@ declare type CommandInitOption = {
     postExecute?: (command: Command) => void;
     [param: string]: any;
 };
-interface CommandConstructor {
-    new (baseName: string, options: CommandInitOption): Command;
-    register(baseName: string, options: CommandInitTemplate): void;
-    unregister(baseName: string): boolean;
-    initialize(baseName: string, options: CommandInitOption): Command;
-    findService(baseNameOrRealName: string): Command[];
-}
 declare type CommandInitTemplate = CommandInitOption & {
-    constructor?: CommandConstructor;
+    [param: string]: any;
+    constructor?: typeof Command;
 };
 export default class Command {
     _baseName: string;
@@ -40,9 +34,13 @@ export default class Command {
     preExecute(): void;
     postExecute(): void;
     isInstanceOf(name: string): boolean;
+    static register(baseName: string, options: CommandInitTemplate): void;
+    static unregister(baseName: string): boolean;
+    static initialize(baseName: string, options: CommandInitOption): Command;
+    static findCommand(baseNameOrRealName: string): Command[];
 }
-export declare function register(baseName: string, options: CommandInitTemplate): void;
-export declare function unregister(baseName: string): boolean;
-export declare function initialize(baseName: string, options: CommandInitOption): Command;
-export declare function findCommand(baseNameOrRealName: string): Command[];
+export declare const register: typeof Command.register;
+export declare const unregister: typeof Command.unregister;
+export declare const initialize: typeof Command.initialize;
+export declare const findCommand: typeof Command.findCommand;
 export {};

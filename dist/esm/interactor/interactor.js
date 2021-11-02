@@ -20,7 +20,8 @@ export default class Interactor {
         return this._actions.slice(0);
     }
     setActions(actions) {
-        this._actions = this._actions.concat(actions);
+        const mergeActions = actions.concat(this._actions);
+        this._actions = mergeActions.filter((action, i) => i === mergeActions.findIndex((a) => a.action === action.action));
     }
     _parseEvent(event) {
         const flatStream = (stream) => "stream" in stream
@@ -67,23 +68,24 @@ export default class Interactor {
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
     }
+    static register(baseName, options) {
+        registeredInteractors[baseName] = options;
+    }
+    static unregister(baseName) {
+        delete registeredInteractors[baseName];
+        return true;
+    }
+    static initialize(baseName, options) {
+        var _a;
+        const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options);
+        const service = new mergedOptions.constructor(baseName, mergedOptions);
+        return service;
+    }
+    static findInteractor(baseNameOrRealName) {
+        return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+    }
 }
-export function register(baseName, options) {
-    registeredInteractors[baseName] = options;
-}
-export function unregister(baseName) {
-    delete registeredInteractors[baseName];
-    return true;
-}
-export function initialize(baseName, options) {
-    var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options);
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
-    return service;
-}
-export function findInteractor(baseNameOrRealName) {
-    return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
-}
-Interactor.register = register;
-Interactor.initialize = initialize;
-Interactor.findInteractor = findInteractor;
+export const register = Interactor.register;
+export const unregister = Interactor.unregister;
+export const initialize = Interactor.initialize;
+export const findInteractor = Interactor.findInteractor;

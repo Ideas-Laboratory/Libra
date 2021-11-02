@@ -24,6 +24,7 @@ interface ServiceConstructor {
 }
 
 type ServiceInitTemplate = ServiceInitOption & {
+  [param: string]: any;
   constructor?: ServiceConstructor;
 };
 
@@ -118,46 +119,47 @@ export default class InteractionService {
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
   }
+
+  static register(baseName: string, options: ServiceInitTemplate): void {
+    registeredServices[baseName] = options;
+  }
+  static unregister(baseName: string): boolean {
+    delete registeredServices[baseName];
+    return true;
+  }
+  static initialize(
+    baseName: string,
+    options: ServiceInitOption
+  ): InteractionService {
+    const mergedOptions = Object.assign(
+      {},
+      registeredServices[baseName] ?? { constructor: InteractionService },
+      options,
+      {
+        // needs to deep merge object
+        on: Object.assign(
+          {},
+          (registeredServices[baseName] ?? {}).on ?? {},
+          options.on ?? {}
+        ),
+        sharedVar: Object.assign(
+          {},
+          (registeredServices[baseName] ?? {}).sharedVar ?? {},
+          options.sharedVar ?? {}
+        ),
+      }
+    );
+    const service = new mergedOptions.constructor(baseName, mergedOptions);
+    return service;
+  }
+  static findService(baseNameOrRealName: string): InteractionService[] {
+    return instanceServices.filter((service) =>
+      service.isInstanceOf(baseNameOrRealName)
+    );
+  }
 }
 
-export function register(baseName: string, options: ServiceInitTemplate): void {
-  registeredServices[baseName] = options;
-}
-export function unregister(baseName: string): boolean {
-  delete registeredServices[baseName];
-  return true;
-}
-export function initialize(
-  baseName: string,
-  options: ServiceInitOption
-): InteractionService {
-  const mergedOptions = Object.assign(
-    {},
-    registeredServices[baseName] ?? { constructor: InteractionService },
-    options,
-    {
-      // needs to deep merge object
-      on: Object.assign(
-        {},
-        (registeredServices[baseName] ?? {}).on ?? {},
-        options.on ?? {}
-      ),
-      sharedVar: Object.assign(
-        {},
-        (registeredServices[baseName] ?? {}).sharedVar ?? {},
-        options.sharedVar ?? {}
-      ),
-    }
-  );
-  const service = new mergedOptions.constructor(baseName, mergedOptions);
-  return service;
-}
-export function findService(baseNameOrRealName: string): InteractionService[] {
-  return instanceServices.filter((service) =>
-    service.isInstanceOf(baseNameOrRealName)
-  );
-}
-
-(InteractionService as any).register = register;
-(InteractionService as any).initialize = initialize;
-(InteractionService as any).findService = findService;
+export const register = InteractionService.register;
+export const unregister = InteractionService.unregister;
+export const initialize = InteractionService.initialize;
+export const findService = InteractionService.findService;
