@@ -29,7 +29,9 @@ export default class D3Layer extends Layer {
     //   };
     // }
     getVisualElements() {
-        const elems = [...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)];
+        const elems = [
+            ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`),
+        ];
         return elems;
     }
     // onObject(pointer: { x: number, y: number }): boolean {
@@ -55,17 +57,32 @@ export default class D3Layer extends Layer {
         return [];
     }
     _isElementInLayer(elem) {
-        return this._graphic.contains(elem) // in layer
-            && !elem.classList.contains(backgroundClassName); // not background
+        return (this._graphic.contains(elem) && // in layer
+            !elem.classList.contains(backgroundClassName)); // not background
     }
     // the x y position is relative to the viewport (clientX, clientY)
     _shapeQuery(options) {
         let result = [];
         const svgBCR = this._svg.getBoundingClientRect();
         const layerBCR = this._graphic.getBoundingClientRect();
-        if (options.type === helpers.ShapeQueryType.Point) {
+        if (options.type === helpers.ShapeQueryType.SurfacePoint) {
             const { x, y } = options;
-            result = document.elementsFromPoint(x, y).filter(this._isElementInLayer);
+            if (!isFinite(x) || !isFinite(y)) {
+                return [];
+            }
+            result = [document.elementFromPoint(x, y)];
+            if (!this._isElementInLayer(result[0])) {
+                result = [];
+            }
+        }
+        else if (options.type === helpers.ShapeQueryType.Point) {
+            const { x, y } = options;
+            if (!isFinite(x) || !isFinite(y)) {
+                return [];
+            }
+            result = document
+                .elementsFromPoint(x, y)
+                .filter(this._isElementInLayer.bind(this));
         }
         else if (options.type === helpers.ShapeQueryType.Circle) {
             const x = options.x - svgBCR.left, y = options.y - svgBCR.top, r = options.r;
@@ -80,14 +97,20 @@ export default class D3Layer extends Layer {
             innerRect.y = innerRectY;
             innerRect.width = innerRectWidth;
             innerRect.height = innerRectWidth;
-            this._svg.getIntersectionList(innerRect, this._graphic).forEach(elem => elemSet.add(elem));
+            this._svg
+                .getIntersectionList(innerRect, this._graphic)
+                .forEach((elem) => elemSet.add(elem));
             // get the elements between circle and innerRect;
             for (let i = x - r; i <= x + r; i++) {
                 for (let j = y - r; j <= y + r; j++) {
-                    if ((innerRect.x < i && i < (innerRect.x + innerRect.width))
-                        && (innerRect.y < j && j < (innerRect.y + innerRect.y + innerRect.height)))
+                    if (innerRect.x < i &&
+                        i < innerRect.x + innerRect.width &&
+                        innerRect.y < j &&
+                        j < innerRect.y + innerRect.y + innerRect.height)
                         continue;
-                    document.elementsFromPoint(i + svgBCR.left, j + svgBCR.top).forEach(elem => elemSet.add(elem));
+                    document
+                        .elementsFromPoint(i + svgBCR.left, j + svgBCR.top)
+                        .forEach((elem) => elemSet.add(elem));
                 }
             }
             result = [...elemSet].filter(this._isElementInLayer);
@@ -100,8 +123,7 @@ export default class D3Layer extends Layer {
             rect.y = y0;
             rect.width = absWidth;
             rect.height = absHeight;
-            result = [...this._svg.getIntersectionList(rect, this._graphic)]
-                .filter((elem) => !elem.classList.contains(backgroundClassName));
+            result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
         }
         else if (options.type === helpers.ShapeQueryType.Polygon) {
             // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
@@ -122,25 +144,29 @@ export default class D3Layer extends Layer {
         if (options.type === helpers.DataQueryType.Quantitative) {
             const { attrName, extent } = options;
             result = visualElements
-                .filter(d => extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
+                .filter((d) => extent[0] < d[attrName] && d[attrName] < extent[1])
+                .nodes();
         }
         else if (options.type === helpers.DataQueryType.Nominal) {
             const { attrName, extent } = options;
-            result = visualElements
-                .filter(d => extent.find(d[attrName])).nodes();
+            result = visualElements.filter((d) => extent.find(d[attrName])).nodes();
         }
         else if (options.type === helpers.DataQueryType.Temporal) {
             const { attrName, extent } = options;
             const dateParser = options.dateParser || ((d) => d);
             result = visualElements
-                .filter(d => extent[0].getTime() < dateParser(d[attrName]).getTime()
-                && dateParser(d[attrName]).getTime() < extent[1].getTime()).nodes();
+                .filter((d) => extent[0].getTime() < dateParser(d[attrName]).getTime() &&
+                dateParser(d[attrName]).getTime() < extent[1].getTime())
+                .nodes();
         }
         return result;
     }
     _attrQuery(options) {
         const { attrName, value } = options;
-        const result = d3.select(this._graphic).filter(d => d[attrName] === value).nodes();
+        const result = d3
+            .select(this._graphic)
+            .filter((d) => d[attrName] === value)
+            .nodes();
         return result;
     }
 }

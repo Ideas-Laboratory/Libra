@@ -47,7 +47,7 @@ var Command = class {
   }
   static initialize(baseName2, options) {
     var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Command }, options);
+    const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Command }, options !== null && options !== void 0 ? options : {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -72,10 +72,11 @@ var QueryType;
 })(QueryType || (QueryType = {}));
 var ShapeQueryType;
 (function(ShapeQueryType2) {
-  ShapeQueryType2[ShapeQueryType2["Point"] = 0] = "Point";
-  ShapeQueryType2[ShapeQueryType2["Circle"] = 1] = "Circle";
-  ShapeQueryType2[ShapeQueryType2["Rect"] = 2] = "Rect";
-  ShapeQueryType2[ShapeQueryType2["Polygon"] = 3] = "Polygon";
+  ShapeQueryType2[ShapeQueryType2["SurfacePoint"] = 0] = "SurfacePoint";
+  ShapeQueryType2[ShapeQueryType2["Point"] = 1] = "Point";
+  ShapeQueryType2[ShapeQueryType2["Circle"] = 2] = "Circle";
+  ShapeQueryType2[ShapeQueryType2["Rect"] = 3] = "Rect";
+  ShapeQueryType2[ShapeQueryType2["Polygon"] = 4] = "Polygon";
 })(ShapeQueryType || (ShapeQueryType = {}));
 var DataQueryType;
 (function(DataQueryType2) {
@@ -88,6 +89,8 @@ function makeFindableList(list) {
     get(target, p) {
       if (p === "find") {
         return (name) => makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+      } else {
+        return list[p];
       }
     }
   });
@@ -301,7 +304,7 @@ var Interactor = class {
   getAcceptEvents() {
     return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
   }
-  dispatch(event) {
+  dispatch(event, layer) {
     const moveAction = this._actions.find((action) => (event instanceof Event ? action.events.includes(event.type) : action.events.includes(event)) && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state)));
     if (moveAction) {
       const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state);
@@ -311,7 +314,7 @@ var Interactor = class {
       if (moveAction.sideEffect) {
         moveAction.sideEffect({
           self: this,
-          layer: null,
+          layer,
           instrument: null,
           interactor: this,
           event
@@ -337,7 +340,7 @@ var Interactor = class {
   }
   static initialize(baseName2, options) {
     var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options);
+    const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options !== null && options !== void 0 ? options : {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -394,28 +397,29 @@ var InteractionService = class {
     this._on[action] = command;
   }
   getSharedVar(sharedName, options) {
-    if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
       this.setSharedVar(sharedName, options.defaultValue, options);
     }
     return this._sharedVar[sharedName];
   }
   setSharedVar(sharedName, value, options) {
+    var _a, _b, _c, _d, _e, _f;
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
       this._on.update.execute({
         self: this,
-        layer: null,
-        instrument: null,
-        interactor: null
+        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
+        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
       });
     }
     if (this._on[`update:${sharedName}`]) {
       this._on[`update:${sharedName}`].execute({
         self: this,
-        layer: null,
-        instrument: null,
-        interactor: null
+        layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : null,
+        instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
+        interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null
       });
     }
     this.postUpdate();
@@ -448,9 +452,9 @@ var InteractionService = class {
   }
   static initialize(baseName2, options) {
     var _a, _b, _c, _d, _e, _f, _g;
-    const mergedOptions = Object.assign({}, (_a = registeredServices[baseName2]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options, {
-      on: Object.assign({}, (_c = ((_b = registeredServices[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
-      sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {})
+    const mergedOptions = Object.assign({}, (_a = registeredServices[baseName2]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options !== null && options !== void 0 ? options : {}, {
+      on: Object.assign({}, (_c = ((_b = registeredServices[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
+      sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
@@ -464,6 +468,60 @@ var unregister3 = InteractionService.unregister;
 var initialize4 = InteractionService.initialize;
 var findService = InteractionService.findService;
 
+// dist/esm/service/selectionManager.js
+var SelectionManager = class extends InteractionService {
+  constructor() {
+    super(...arguments);
+    this._oldResult = [];
+    this._result = [];
+  }
+  setSharedVar(sharedName, value, options) {
+    var _a, _b, _c, _d, _e, _f;
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    if (this._on.update) {
+      this._on.update.execute({
+        self: this,
+        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+      });
+    }
+    if (this._on[`update:${sharedName}`]) {
+      this._on[`update:${sharedName}`].execute({
+        self: this,
+        layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+        instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
+        interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null
+      });
+    }
+    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
+      this._oldResult = this._result;
+      this._result = ((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0]).query({
+        ...this._userOptions.query,
+        ...this._sharedVar
+      });
+    }
+    this.postUpdate();
+  }
+  get results() {
+    return this._result;
+  }
+  get oldResults() {
+    return this._oldResult;
+  }
+};
+InteractionService.register("SelectionManager", {
+  constructor: SelectionManager
+});
+InteractionService.register("SurfacePointSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.SurfacePoint
+  }
+});
+
 // dist/esm/service/index.js
 var findService2 = findService;
 var InteractionService2 = InteractionService;
@@ -471,6 +529,7 @@ var InteractionService2 = InteractionService;
 // dist/esm/layer/layer.js
 var registeredLayers = {};
 var instanceLayers = [];
+var siblingLayers = new Map();
 var Layer = class {
   constructor(baseName2, options) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -618,6 +677,21 @@ var Layer = class {
       this._use(service, options);
     }
   }
+  getSiblingLayer(siblingLayerName) {
+    if (!siblingLayers.has(this)) {
+      siblingLayers.set(this, { [this._name]: this });
+    }
+    const siblings = siblingLayers.get(this);
+    if (!(siblingLayerName in siblings)) {
+      const layer = Layer.initialize(this._baseName, {
+        ...this._userOptions,
+        name: siblingLayerName
+      });
+      siblings[siblingLayerName] = layer;
+      layer.getGraphic() && layer.getGraphic().style && (layer.getGraphic().style.pointerEvents = "none");
+    }
+    return siblings[siblingLayerName];
+  }
   isInstanceOf(name) {
     return this._baseName === name || this._name === name;
   }
@@ -630,9 +704,9 @@ function register5(baseName2, options) {
 }
 function initialize5(baseName2, options) {
   var _a, _b, _c, _d, _e, _f, _g;
-  const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options, {
-    transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName2]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options.transformation) !== null && _d !== void 0 ? _d : {}),
-    sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {})
+  const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
+    transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName2]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
+    sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
   });
   const layer = new mergedOptions.constructor(baseName2, mergedOptions);
   return layer;
@@ -3105,7 +3179,9 @@ var D3Layer = class extends Layer {
     this._svg = tempElem;
   }
   getVisualElements() {
-    const elems = [...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)];
+    const elems = [
+      ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)
+    ];
     return elems;
   }
   select(selector) {
@@ -3128,9 +3204,21 @@ var D3Layer = class extends Layer {
     let result = [];
     const svgBCR = this._svg.getBoundingClientRect();
     const layerBCR = this._graphic.getBoundingClientRect();
-    if (options.type === ShapeQueryType.Point) {
+    if (options.type === ShapeQueryType.SurfacePoint) {
       const { x, y } = options;
-      result = document.elementsFromPoint(x, y).filter(this._isElementInLayer);
+      if (!isFinite(x) || !isFinite(y)) {
+        return [];
+      }
+      result = [document.elementFromPoint(x, y)];
+      if (!this._isElementInLayer(result[0])) {
+        result = [];
+      }
+    } else if (options.type === ShapeQueryType.Point) {
+      const { x, y } = options;
+      if (!isFinite(x) || !isFinite(y)) {
+        return [];
+      }
+      result = document.elementsFromPoint(x, y).filter(this._isElementInLayer.bind(this));
     } else if (options.type === ShapeQueryType.Circle) {
       const x = options.x - svgBCR.left, y = options.y - svgBCR.top, r = options.r;
       const innerRectWidth = Math.floor(r * Math.sin(Math.PI / 4)) << 1;
@@ -3145,7 +3233,7 @@ var D3Layer = class extends Layer {
       this._svg.getIntersectionList(innerRect, this._graphic).forEach((elem) => elemSet.add(elem));
       for (let i = x - r; i <= x + r; i++) {
         for (let j = y - r; j <= y + r; j++) {
-          if (innerRect.x < i && i < innerRect.x + innerRect.width && (innerRect.y < j && j < innerRect.y + innerRect.y + innerRect.height))
+          if (innerRect.x < i && i < innerRect.x + innerRect.width && innerRect.y < j && j < innerRect.y + innerRect.y + innerRect.height)
             continue;
           document.elementsFromPoint(i + svgBCR.left, j + svgBCR.top).forEach((elem) => elemSet.add(elem));
         }
@@ -3266,7 +3354,7 @@ var Instrument = class {
       } else {
         layr = layer.layer;
       }
-      interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => interactor.dispatch(e)));
+      interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => interactor.dispatch(e, layr)));
     });
     interactor.postUse(this);
   }
@@ -3318,7 +3406,7 @@ var Instrument = class {
       } else {
         inter = interactor.interactor;
       }
-      inter.getAcceptEvents().forEach((event) => layer.getContainerGraphic().addEventListener(event, (e) => inter.dispatch(e)));
+      inter.getAcceptEvents().forEach((event) => layer.getContainerGraphic().addEventListener(event, (e) => inter.dispatch(e, layer)));
     });
   }
   postUse(layer) {
@@ -3336,8 +3424,8 @@ var Instrument = class {
   }
   static initialize(baseName2, options) {
     var _a, _b, _c, _d;
-    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
-      on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {})
+    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options !== null && options !== void 0 ? options : {}, {
+      on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;

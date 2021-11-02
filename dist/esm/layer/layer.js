@@ -3,6 +3,7 @@ import * as helpers from "../helpers";
 import { Command } from "../command";
 const registeredLayers = {};
 const instanceLayers = [];
+const siblingLayers = new Map();
 export default class Layer {
     constructor(baseName, options) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -158,6 +159,24 @@ export default class Layer {
             this._use(service, options);
         }
     }
+    getSiblingLayer(siblingLayerName) {
+        if (!siblingLayers.has(this)) {
+            siblingLayers.set(this, { [this._name]: this });
+        }
+        const siblings = siblingLayers.get(this);
+        if (!(siblingLayerName in siblings)) {
+            const layer = Layer.initialize(this._baseName, {
+                ...this._userOptions,
+                name: siblingLayerName,
+            });
+            siblings[siblingLayerName] = layer;
+            layer.getGraphic() &&
+                layer.getGraphic().style &&
+                (layer.getGraphic().style.pointerEvents = "none");
+            // only receive events by main layer
+        }
+        return siblings[siblingLayerName];
+    }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
     }
@@ -174,10 +193,10 @@ export function unregister(baseName) {
 }
 export function initialize(baseName, options) {
     var _a, _b, _c, _d, _e, _f, _g;
-    const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options, {
+    const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
         // needs to deep merge object
-        transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options.transformation) !== null && _d !== void 0 ? _d : {}),
-        sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {}),
+        transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
+        sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {}),
     });
     const layer = new mergedOptions.constructor(baseName, mergedOptions);
     return layer;

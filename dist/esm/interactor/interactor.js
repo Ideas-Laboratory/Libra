@@ -36,7 +36,7 @@ export default class Interactor {
     getAcceptEvents() {
         return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
     }
-    dispatch(event) {
+    dispatch(event, layer) {
         const moveAction = this._actions.find((action) => (event instanceof Event
             ? action.events.includes(event.type)
             : action.events.includes(event)) &&
@@ -51,7 +51,7 @@ export default class Interactor {
             if (moveAction.sideEffect) {
                 moveAction.sideEffect({
                     self: this,
-                    layer: null,
+                    layer,
                     instrument: null,
                     interactor: this,
                     event,
@@ -77,7 +77,7 @@ export default class Interactor {
     }
     static initialize(baseName, options) {
         var _a;
-        const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options);
+        const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options !== null && options !== void 0 ? options : {});
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
     }

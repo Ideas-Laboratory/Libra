@@ -122,7 +122,7 @@ export default class Instrument {
         .forEach((event) =>
           layr
             .getContainerGraphic()
-            .addEventListener(event, (e) => interactor.dispatch(e))
+            .addEventListener(event, (e) => interactor.dispatch(e, layr))
         );
     });
     interactor.postUse(this);
@@ -185,7 +185,7 @@ export default class Instrument {
         .forEach((event) =>
           layer
             .getContainerGraphic()
-            .addEventListener(event, (e) => inter.dispatch(e))
+            .addEventListener(event, (e) => inter.dispatch(e, layer))
         );
     });
   }
@@ -207,17 +207,17 @@ export default class Instrument {
   }
   static initialize(
     baseName: string,
-    options: InstrumentInitOption
+    options?: InstrumentInitOption
   ): Instrument {
     const mergedOptions = Object.assign(
       {},
       registeredInstruments[baseName] ?? { constructor: Instrument },
-      options,
+      options ?? {},
       {
         on: Object.assign(
           {},
           (registeredInstruments[baseName] ?? {}).on ?? {},
-          options.on ?? {}
+          options?.on ?? {}
         ),
       }
     );

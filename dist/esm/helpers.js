@@ -6,10 +6,11 @@ export var QueryType;
 })(QueryType || (QueryType = {}));
 export var ShapeQueryType;
 (function (ShapeQueryType) {
-    ShapeQueryType[ShapeQueryType["Point"] = 0] = "Point";
-    ShapeQueryType[ShapeQueryType["Circle"] = 1] = "Circle";
-    ShapeQueryType[ShapeQueryType["Rect"] = 2] = "Rect";
-    ShapeQueryType[ShapeQueryType["Polygon"] = 3] = "Polygon";
+    ShapeQueryType[ShapeQueryType["SurfacePoint"] = 0] = "SurfacePoint";
+    ShapeQueryType[ShapeQueryType["Point"] = 1] = "Point";
+    ShapeQueryType[ShapeQueryType["Circle"] = 2] = "Circle";
+    ShapeQueryType[ShapeQueryType["Rect"] = 3] = "Rect";
+    ShapeQueryType[ShapeQueryType["Polygon"] = 4] = "Polygon";
 })(ShapeQueryType || (ShapeQueryType = {}));
 export var DataQueryType;
 (function (DataQueryType) {
@@ -22,6 +23,9 @@ export function makeFindableList(list) {
         get(target, p) {
             if (p === "find") {
                 return (name) => makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+            }
+            else {
+                return list[p];
             }
         },
     });

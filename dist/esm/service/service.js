@@ -22,28 +22,31 @@ export default class InteractionService {
         this._on[action] = command;
     }
     getSharedVar(sharedName, options) {
-        if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+        if (!(sharedName in this._sharedVar) &&
+            options &&
+            "defaultValue" in options) {
             this.setSharedVar(sharedName, options.defaultValue, options);
         }
         return this._sharedVar[sharedName];
     }
     setSharedVar(sharedName, value, options) {
+        var _a, _b, _c, _d, _e, _f;
         this.preUpdate();
         this._sharedVar[sharedName] = value;
         if (this._on.update) {
             this._on.update.execute({
                 self: this,
-                layer: null,
-                instrument: null,
-                interactor: null,
+                layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
+                instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+                interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
             });
         }
         if (this._on[`update:${sharedName}`]) {
             this._on[`update:${sharedName}`].execute({
                 self: this,
-                layer: null,
-                instrument: null,
-                interactor: null,
+                layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : null,
+                instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
+                interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null,
             });
         }
         this.postUpdate();
@@ -76,10 +79,10 @@ export default class InteractionService {
     }
     static initialize(baseName, options) {
         var _a, _b, _c, _d, _e, _f, _g;
-        const mergedOptions = Object.assign({}, (_a = registeredServices[baseName]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options, {
+        const mergedOptions = Object.assign({}, (_a = registeredServices[baseName]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options !== null && options !== void 0 ? options : {}, {
             // needs to deep merge object
-            on: Object.assign({}, (_c = ((_b = registeredServices[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
-            sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {}),
+            on: Object.assign({}, (_c = ((_b = registeredServices[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
+            sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;

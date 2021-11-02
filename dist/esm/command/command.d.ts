@@ -36,7 +36,7 @@ export default class Command {
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: CommandInitTemplate): void;
     static unregister(baseName: string): boolean;
-    static initialize(baseName: string, options: CommandInitOption): Command;
+    static initialize(baseName: string, options?: CommandInitOption): Command;
     static findCommand(baseNameOrRealName: string): Command[];
 }
 export declare const register: typeof Command.register;

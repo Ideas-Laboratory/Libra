@@ -3,19 +3,27 @@ import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 
 export enum QueryType {
-  Shape, Data, Attr
+  Shape,
+  Data,
+  Attr,
 }
 
 export enum ShapeQueryType {
-  Point, Circle, Rect, Polygon
+  SurfacePoint,
+  Point,
+  Circle,
+  Rect,
+  Polygon,
 }
 
 export enum DataQueryType {
-  Quantitative, Nominal, Temporal
+  Quantitative,
+  Nominal,
+  Temporal,
 }
 
 // export enum AttrQueryType {
-  
+
 // }
 
 // We assume the transformation in Libra are all affined
@@ -24,59 +32,71 @@ export type Transformation = {
   inverse(range: number): any;
 };
 
-export type ShapeBasedQuery = PointQuery | CircleQuery | RectQuery | PolygonQuery;
+export type ShapeBasedQuery =
+  | SurfacePointQuery
+  | PointQuery
+  | CircleQuery
+  | RectQuery
+  | PolygonQuery;
+
+export type SurfacePointQuery = {
+  baseOn: QueryType.Shape;
+  type: ShapeQueryType.SurfacePoint;
+  x: number;
+  y: number;
+};
 
 export type PointQuery = {
   baseOn: QueryType.Shape;
   type: ShapeQueryType.Point;
-  x: number,
-  y: number
-}
+  x: number;
+  y: number;
+};
 
 export type CircleQuery = {
   baseOn: QueryType.Shape;
   type: ShapeQueryType.Circle;
-  x: number,
-  y: number,
-  r: number
-}
+  x: number;
+  y: number;
+  r: number;
+};
 
 export type RectQuery = {
   baseOn: QueryType.Shape;
   type: ShapeQueryType.Rect;
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-}
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 export type PolygonQuery = {
   baseOn: QueryType.Shape;
   type: ShapeQueryType.Polygon;
-  points: {x: number, y: number}[]
-}
+  points: { x: number; y: number }[];
+};
 
 export type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
 
 export type QuantitativeQuery = {
-  baseOn: QueryType.Data,
-  type: DataQueryType.Quantitative,
-  attrName: string,
-  extent: [number, number]
-}
+  baseOn: QueryType.Data;
+  type: DataQueryType.Quantitative;
+  attrName: string;
+  extent: [number, number];
+};
 export type NominalQuery = {
-  baseOn: QueryType.Data,
-  type: DataQueryType.Nominal,
-  attrName: string,
-  extent: unknown[]
-}
+  baseOn: QueryType.Data;
+  type: DataQueryType.Nominal;
+  attrName: string;
+  extent: unknown[];
+};
 export type TemporalQuery = {
-  baseOn: QueryType.Data,
-  type: DataQueryType.Temporal,
-  attrName: string,
-  extent: [Date, Date],
-  dateParser?: (value: unknown) => Date
-}
+  baseOn: QueryType.Data;
+  type: DataQueryType.Temporal;
+  attrName: string;
+  extent: [Date, Date];
+  dateParser?: (value: unknown) => Date;
+};
 
 export type AttributeBasedQuery = {
   baseOn: QueryType.Attr;
@@ -105,6 +125,8 @@ export function makeFindableList(list: any) {
       if (p === "find") {
         return (name: string) =>
           makeFindableList(target.filter((item) => item.isInstanceOf(name)));
+      } else {
+        return list[p];
       }
     },
   });

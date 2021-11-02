@@ -75,11 +75,12 @@ export default class Layer<T> {
     query(options: helpers.ArbitraryQuery): T[];
     _use(service: InteractionService, options?: any): void;
     use(service: string | InteractionService, options?: any): void;
+    getSiblingLayer(siblingLayerName: string): Layer<T>;
     isInstanceOf(name: string): boolean;
     get services(): any;
 }
 export declare function register(baseName: string, options: LayerRegisterOption): void;
 export declare function unregister(baseName: string): boolean;
-export declare function initialize<T>(baseName: string, options: LayerInitOption): Layer<T>;
+export declare function initialize<T>(baseName: string, options?: LayerInitOption): Layer<T>;
 export declare function findLayer(baseNameOrRealName: string): Layer<any>[];
 export {};

@@ -62,7 +62,7 @@ export default class Instrument {
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: InstrumentInitTemplate): void;
     static unregister(baseName: string): boolean;
-    static initialize(baseName: string, options: InstrumentInitOption): Instrument;
+    static initialize(baseName: string, options?: InstrumentInitOption): Instrument;
     static findInstrument(baseNameOrRealName: string): Instrument[];
 }
 export declare const register: typeof Instrument.register;

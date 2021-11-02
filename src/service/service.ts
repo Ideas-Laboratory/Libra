@@ -14,18 +14,9 @@ type ServiceInitOption = {
   [param: string]: any;
 };
 
-interface ServiceConstructor {
-  new (baseName: string, options: ServiceInitOption): InteractionService;
-
-  register(baseName: string, options: ServiceInitTemplate): void;
-  unregister(baseName: string): boolean;
-  initialize(baseName: string, options: ServiceInitOption): InteractionService;
-  findService(baseNameOrRealName: string): InteractionService[];
-}
-
 type ServiceInitTemplate = ServiceInitOption & {
   [param: string]: any;
-  constructor?: ServiceConstructor;
+  constructor?: typeof InteractionService;
 };
 
 const registeredServices: { [name: string]: ServiceInitTemplate } = {};
@@ -66,30 +57,34 @@ export default class InteractionService {
     this._on[action] = command;
   }
 
-  getSharedVar(sharedName: string, options: any): any {
-    if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+  getSharedVar(sharedName: string, options?: any): any {
+    if (
+      !(sharedName in this._sharedVar) &&
+      options &&
+      "defaultValue" in options
+    ) {
       this.setSharedVar(sharedName, options.defaultValue, options);
     }
     return this._sharedVar[sharedName];
   }
 
-  setSharedVar(sharedName: string, value: any, options: any) {
+  setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
       this._on.update.execute({
         self: this,
-        layer: null,
-        instrument: null,
-        interactor: null,
+        layer: options?.layer ?? null,
+        instrument: options?.instrument ?? null,
+        interactor: options?.interactor ?? null,
       });
     }
     if (this._on[`update:${sharedName}`]) {
       this._on[`update:${sharedName}`].execute({
         self: this,
-        layer: null,
-        instrument: null,
-        interactor: null,
+        layer: options?.layer ?? null,
+        instrument: options?.instrument ?? null,
+        interactor: options?.interactor ?? null,
       });
     }
     this.postUpdate();
@@ -129,23 +124,23 @@ export default class InteractionService {
   }
   static initialize(
     baseName: string,
-    options: ServiceInitOption
+    options?: ServiceInitOption
   ): InteractionService {
     const mergedOptions = Object.assign(
       {},
       registeredServices[baseName] ?? { constructor: InteractionService },
-      options,
+      options ?? {},
       {
         // needs to deep merge object
         on: Object.assign(
           {},
           (registeredServices[baseName] ?? {}).on ?? {},
-          options.on ?? {}
+          options?.on ?? {}
         ),
         sharedVar: Object.assign(
           {},
           (registeredServices[baseName] ?? {}).sharedVar ?? {},
-          options.sharedVar ?? {}
+          options?.sharedVar ?? {}
         ),
       }
     );

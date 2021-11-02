@@ -1,5 +1,6 @@
 import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
+import { Layer } from "../layer";
 
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 
@@ -92,7 +93,7 @@ export default class Interactor {
     );
   }
 
-  dispatch(event: string | Event): void {
+  dispatch(event: string | Event, layer?: Layer<any>): void {
     const moveAction = this._actions.find(
       (action) =>
         (event instanceof Event
@@ -113,7 +114,7 @@ export default class Interactor {
       if (moveAction.sideEffect) {
         moveAction.sideEffect({
           self: this,
-          layer: null,
+          layer,
           instrument: null,
           interactor: this,
           event,
@@ -149,9 +150,12 @@ export default class Interactor {
     const mergedOptions = Object.assign(
       {},
       registeredInteractors[baseName] ?? { constructor: Interactor },
-      options
+      options ?? {}
     );
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
+    const service = new mergedOptions.constructor(
+      baseName,
+      mergedOptions as InteractorInitTemplate
+    );
     return service;
   }
   static findInteractor(baseNameOrRealName: string): Interactor[] {

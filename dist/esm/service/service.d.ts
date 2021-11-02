@@ -16,16 +16,9 @@ declare type ServiceInitOption = {
     postUse?: (service: InteractionService, layer: Layer<any>) => void;
     [param: string]: any;
 };
-interface ServiceConstructor {
-    new (baseName: string, options: ServiceInitOption): InteractionService;
-    register(baseName: string, options: ServiceInitTemplate): void;
-    unregister(baseName: string): boolean;
-    initialize(baseName: string, options: ServiceInitOption): InteractionService;
-    findService(baseNameOrRealName: string): InteractionService[];
-}
 declare type ServiceInitTemplate = ServiceInitOption & {
     [param: string]: any;
-    constructor?: ServiceConstructor;
+    constructor?: typeof InteractionService;
 };
 export default class InteractionService {
     _baseName: string;
@@ -46,8 +39,8 @@ export default class InteractionService {
     _layerInstances: Layer<any>[];
     constructor(baseName: string, options: ServiceInitOption);
     on(action: string, command: Command): void;
-    getSharedVar(sharedName: string, options: any): any;
-    setSharedVar(sharedName: string, value: any, options: any): void;
+    getSharedVar(sharedName: string, options?: any): any;
+    setSharedVar(sharedName: string, value: any, options?: any): void;
     watchSharedVar(sharedName: string, handler: Command): void;
     preUpdate(): void;
     postUpdate(): void;
@@ -56,7 +49,7 @@ export default class InteractionService {
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: ServiceInitTemplate): void;
     static unregister(baseName: string): boolean;
-    static initialize(baseName: string, options: ServiceInitOption): InteractionService;
+    static initialize(baseName: string, options?: ServiceInitOption): InteractionService;
     static findService(baseNameOrRealName: string): InteractionService[];
 }
 export declare const register: typeof InteractionService.register;

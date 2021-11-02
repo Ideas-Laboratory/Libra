@@ -76,7 +76,7 @@ export default class Instrument {
                 .getAcceptEvents()
                 .forEach((event) => layr
                 .getContainerGraphic()
-                .addEventListener(event, (e) => interactor.dispatch(e)));
+                .addEventListener(event, (e) => interactor.dispatch(e, layr)));
         });
         interactor.postUse(this);
     }
@@ -135,7 +135,7 @@ export default class Instrument {
                 .getAcceptEvents()
                 .forEach((event) => layer
                 .getContainerGraphic()
-                .addEventListener(event, (e) => inter.dispatch(e)));
+                .addEventListener(event, (e) => inter.dispatch(e, layer)));
         });
     }
     postUse(layer) {
@@ -153,8 +153,8 @@ export default class Instrument {
     }
     static initialize(baseName, options) {
         var _a, _b, _c, _d;
-        const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options, {
-            on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options.on) !== null && _d !== void 0 ? _d : {}),
+        const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options !== null && options !== void 0 ? options : {}, {
+            on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;

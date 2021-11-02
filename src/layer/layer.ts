@@ -8,11 +8,11 @@ import { Command } from "../command";
 
 type LayerInitRequiredOption = Required<{
   container: HTMLElement;
-}>
+}>;
 
 type LayerRegisterRequiredOption = Required<{
   constructor: typeof Layer;
-}>
+}>;
 
 type LayerPartialOption = Partial<{
   name: string;
@@ -23,11 +23,7 @@ type LayerPartialOption = Partial<{
     | { service: string | InteractionService; options: any }
   )[];
   sharedVar: { [varName: string]: any };
-  redraw: <T>(
-    data: any,
-    scale: helpers.Transformation,
-    selection: T[]
-  ) => void;
+  redraw: <T>(data: any, scale: helpers.Transformation, selection: T[]) => void;
   preInitialize: <T>(layer: Layer<T>) => void;
   postInitialize: <T>(layer: Layer<T>) => void;
   preUpdate: <T>(layer: Layer<T>) => void;
@@ -36,15 +32,22 @@ type LayerPartialOption = Partial<{
 }>;
 
 export type LayerInitOption = LayerInitRequiredOption & LayerPartialOption;
-export type LayerRegisterOption = LayerRegisterRequiredOption & LayerPartialOption;
-
+export type LayerRegisterOption = LayerRegisterRequiredOption &
+  LayerPartialOption;
 
 const registeredLayers: { [name: string]: LayerRegisterOption } = {};
 const instanceLayers: Layer<any>[] = [];
+const siblingLayers: Map<
+  Layer<any>,
+  { [name: string]: Layer<any> }
+> = new Map();
 
 export default class Layer<T> {
   static register: (baseName: string, options: LayerRegisterOption) => void;
-  static initialize: <T>(baseName: string, options: LayerInitOption) => Layer<T>
+  static initialize: <T>(
+    baseName: string,
+    options: LayerInitOption
+  ) => Layer<T>;
   static findLayer: (baseNameOrRealName: string) => Layer<any>[];
 
   _baseName: string;
@@ -224,6 +227,24 @@ export default class Layer<T> {
       this._use(service, options);
     }
   }
+  getSiblingLayer(siblingLayerName: string): Layer<T> {
+    if (!siblingLayers.has(this)) {
+      siblingLayers.set(this, { [this._name]: this });
+    }
+    const siblings = siblingLayers.get(this);
+    if (!(siblingLayerName in siblings)) {
+      const layer = Layer.initialize(this._baseName, {
+        ...this._userOptions,
+        name: siblingLayerName,
+      });
+      siblings[siblingLayerName] = layer;
+      layer.getGraphic() &&
+        (layer.getGraphic() as any).style &&
+        ((layer.getGraphic() as any).style.pointerEvents = "none");
+      // only receive events by main layer
+    }
+    return siblings[siblingLayerName];
+  }
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
   }
@@ -242,27 +263,30 @@ export function unregister(baseName: string): boolean {
 }
 export function initialize<T>(
   baseName: string,
-  options: LayerInitOption
+  options?: LayerInitOption
 ): Layer<T> {
   const mergedOptions = Object.assign(
     {},
     registeredLayers[baseName] ?? { constructor: Layer },
-    options,
+    options ?? {},
     {
       // needs to deep merge object
       transformation: Object.assign(
         {},
         (registeredLayers[baseName] ?? {}).transformation ?? {},
-        options.transformation ?? {}
+        options?.transformation ?? {}
       ),
       sharedVar: Object.assign(
         {},
         (registeredLayers[baseName] ?? {}).sharedVar ?? {},
-        options.sharedVar ?? {}
+        options?.sharedVar ?? {}
       ),
     }
   );
-  const layer = new mergedOptions.constructor<T>(baseName, mergedOptions);
+  const layer = new mergedOptions.constructor<T>(
+    baseName,
+    mergedOptions as unknown as LayerInitOption
+  );
   return layer;
 }
 export function findLayer(baseNameOrRealName: string): Layer<any>[] {

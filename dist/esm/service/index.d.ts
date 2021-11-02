@@ -1,5 +1,6 @@
 import * as ServiceConstructor from "./service";
 import ServiceClass from "./service";
+import "./selectionManager";
 export default ServiceClass;
 export declare const register: typeof ServiceConstructor.default.register;
 export declare const initialize: typeof ServiceConstructor.default.initialize;

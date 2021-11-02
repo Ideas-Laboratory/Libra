@@ -7,10 +7,11 @@ export declare enum QueryType {
     Attr = 2
 }
 export declare enum ShapeQueryType {
-    Point = 0,
-    Circle = 1,
-    Rect = 2,
-    Polygon = 3
+    SurfacePoint = 0,
+    Point = 1,
+    Circle = 2,
+    Rect = 3,
+    Polygon = 4
 }
 export declare enum DataQueryType {
     Quantitative = 0,
@@ -21,7 +22,13 @@ export declare type Transformation = {
     (domain: any): number;
     inverse(range: number): any;
 };
-export declare type ShapeBasedQuery = PointQuery | CircleQuery | RectQuery | PolygonQuery;
+export declare type ShapeBasedQuery = SurfacePointQuery | PointQuery | CircleQuery | RectQuery | PolygonQuery;
+export declare type SurfacePointQuery = {
+    baseOn: QueryType.Shape;
+    type: ShapeQueryType.SurfacePoint;
+    x: number;
+    y: number;
+};
 export declare type PointQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.Point;

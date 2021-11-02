@@ -83,13 +83,16 @@ export default class Command {
     delete registeredCommands[baseName];
     return true;
   }
-  static initialize(baseName: string, options: CommandInitOption): Command {
+  static initialize(baseName: string, options?: CommandInitOption): Command {
     const mergedOptions = Object.assign(
       {},
       registeredCommands[baseName] ?? { constructor: Command },
-      options
+      options ?? {}
     );
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
+    const service = new mergedOptions.constructor(
+      baseName,
+      mergedOptions as CommandInitTemplate
+    );
     return service;
   }
   static findCommand(baseNameOrRealName: string): Command[] {

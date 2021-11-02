@@ -46,7 +46,7 @@ export default class Command {
     }
     static initialize(baseName, options) {
         var _a;
-        const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName]) !== null && _a !== void 0 ? _a : { constructor: Command }, options);
+        const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName]) !== null && _a !== void 0 ? _a : { constructor: Command }, options !== null && options !== void 0 ? options : {});
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
     }

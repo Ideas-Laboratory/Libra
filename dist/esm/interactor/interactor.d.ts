@@ -1,5 +1,6 @@
 import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
+import { Layer } from "../layer";
 declare type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 declare type InteractorInnerAction = {
     action: string;
@@ -36,7 +37,7 @@ export default class Interactor {
     setActions(actions: InteractorInnerAction[]): void;
     _parseEvent(event: string): any[];
     getAcceptEvents(): string[];
-    dispatch(event: string | Event): void;
+    dispatch(event: string | Event, layer?: Layer<any>): void;
     preUse(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;
