@@ -10,12 +10,10 @@ Instrument.register("HoverInstrument", {
   interactors: [mousePositionInteractor],
   on: {
     hover: ({ event, layer }) => {
-      layer.services
-        .find("SelectionManager", "SurfacePointSelectionManager")
-        .forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
-        });
+      layer.services.find("SelectionManager").forEach((service) => {
+        service.setSharedVar("x", event.clientX);
+        service.setSharedVar("y", event.clientY);
+      });
     },
   },
   preUse: (instrument, layer) => {
