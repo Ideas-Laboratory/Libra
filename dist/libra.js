@@ -504,6 +504,9 @@ var SelectionManager = class extends InteractionService {
     }
     this.postUpdate();
   }
+  isInstanceOf(name) {
+    return name === "SelectionManager" || this._baseName === name || this._name === name;
+  }
   get results() {
     return this._result;
   }
@@ -519,6 +522,34 @@ InteractionService.register("SurfacePointSelectionManager", {
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.SurfacePoint
+  }
+});
+InteractionService.register("PointSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Point
+  }
+});
+InteractionService.register("RectSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Rect
+  }
+});
+InteractionService.register("CircleSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Circle
+  }
+});
+InteractionService.register("PolygonSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Polygon
   }
 });
 

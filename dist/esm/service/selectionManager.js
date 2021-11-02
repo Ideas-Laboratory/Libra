@@ -36,6 +36,11 @@ export default class SelectionManager extends InteractionService {
         }
         this.postUpdate();
     }
+    isInstanceOf(name) {
+        return ("SelectionManager" === name ||
+            this._baseName === name ||
+            this._name === name);
+    }
     get results() {
         return this._result;
     }
@@ -51,5 +56,33 @@ InteractionService.register("SurfacePointSelectionManager", {
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.SurfacePoint,
+    },
+});
+InteractionService.register("PointSelectionManager", {
+    constructor: SelectionManager,
+    query: {
+        baseOn: helpers.QueryType.Shape,
+        type: helpers.ShapeQueryType.Point,
+    },
+});
+InteractionService.register("RectSelectionManager", {
+    constructor: SelectionManager,
+    query: {
+        baseOn: helpers.QueryType.Shape,
+        type: helpers.ShapeQueryType.Rect,
+    },
+});
+InteractionService.register("CircleSelectionManager", {
+    constructor: SelectionManager,
+    query: {
+        baseOn: helpers.QueryType.Shape,
+        type: helpers.ShapeQueryType.Circle,
+    },
+});
+InteractionService.register("PolygonSelectionManager", {
+    constructor: SelectionManager,
+    query: {
+        baseOn: helpers.QueryType.Shape,
+        type: helpers.ShapeQueryType.Polygon,
     },
 });
