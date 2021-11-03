@@ -9,3 +9,32 @@ Interactor.register("MousePositionInteractor", {
         },
     ],
 });
+Interactor.register("MouseTraceInteractor", {
+    constructor: Interactor,
+    state: "start",
+    actions: [
+        {
+            action: "dragstart",
+            events: ["mousedown"],
+            transition: [["start", "drag"]],
+        },
+        {
+            action: "drag",
+            events: ["mousemove"],
+            transition: [["drag", "drag"]],
+        },
+        {
+            action: "dragend",
+            events: ["mouseup"],
+            transition: [["drag", "start"]],
+        },
+        {
+            action: "dragabort",
+            events: ["contextmenu"],
+            transition: [
+                ["drag", "start"],
+                ["start", "start"],
+            ],
+        },
+    ],
+});

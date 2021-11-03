@@ -4,6 +4,7 @@ import * as helpers from "../helpers";
 export default class SelectionManager extends InteractionService {
   _oldResult: any = [];
   _result: any = [];
+  _nextTick: number = 0;
 
   setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
@@ -13,47 +14,90 @@ export default class SelectionManager extends InteractionService {
       this._userOptions.query
     ) {
       const layer = options?.layer || this._layerInstances[0];
-      this._oldResult = this._result;
-      this._result = layer.query({
-        ...this._userOptions.query,
-        ...this._sharedVar,
-      });
-      const selectionLayer = layer
-        .getSiblingLayer("selectionLayer")
-        .getGraphic();
-      while (selectionLayer.firstChild) {
-        selectionLayer.removeChild(selectionLayer.lastChild);
+      if (this._nextTick) {
+        cancelAnimationFrame(this._nextTick);
       }
-      this._result.forEach((node) =>
-        selectionLayer.appendChild(node.cloneNode(false))
-      );
-    }
-    if (this._on.update) {
-      this._on.update.forEach((command) =>
-        command.execute({
-          self: this,
-          layer:
-            options?.layer ??
-            (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null,
-        })
-      );
-    }
-    if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].forEach((command) =>
-        command.execute({
-          self: this,
-          layer:
-            options?.layer ??
-            (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null,
-        })
-      );
-    }
+      this._nextTick = requestAnimationFrame(() => {
+        this._oldResult = this._result;
+        this._result = layer.query({
+          ...this._userOptions.query,
+          ...this._sharedVar,
+        });
+        const selectionLayer = layer
+          .getSiblingLayer("selectionLayer")
+          .getGraphic();
+        while (selectionLayer.firstChild) {
+          selectionLayer.removeChild(selectionLayer.lastChild);
+        }
+        this._result.forEach((node) =>
+          selectionLayer.appendChild(node.cloneNode(false))
+        );
 
-    this.postUpdate();
+        this._nextTick = 0;
+
+        if (this._on.update) {
+          this._on.update.forEach((command) =>
+            command.execute({
+              self: this,
+              layer:
+                options?.layer ??
+                (this._layerInstances.length == 1
+                  ? this._layerInstances[0]
+                  : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null,
+            })
+          );
+        }
+        if (this._on[`update:${sharedName}`]) {
+          this._on[`update:${sharedName}`].forEach((command) =>
+            command.execute({
+              self: this,
+              layer:
+                options?.layer ??
+                (this._layerInstances.length == 1
+                  ? this._layerInstances[0]
+                  : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null,
+            })
+          );
+        }
+
+        this.postUpdate();
+      });
+    } else {
+      if (this._on.update) {
+        this._on.update.forEach((command) =>
+          command.execute({
+            self: this,
+            layer:
+              options?.layer ??
+              (this._layerInstances.length == 1
+                ? this._layerInstances[0]
+                : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          })
+        );
+      }
+      if (this._on[`update:${sharedName}`]) {
+        this._on[`update:${sharedName}`].forEach((command) =>
+          command.execute({
+            self: this,
+            layer:
+              options?.layer ??
+              (this._layerInstances.length == 1
+                ? this._layerInstances[0]
+                : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          })
+        );
+      }
+
+      this.postUpdate();
+    }
   }
 
   isInstanceOf(name: string): boolean {

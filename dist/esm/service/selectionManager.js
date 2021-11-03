@@ -5,6 +5,7 @@ export default class SelectionManager extends InteractionService {
         super(...arguments);
         this._oldResult = [];
         this._result = [];
+        this._nextTick = 0;
     }
     setSharedVar(sharedName, value, options) {
         this.preUpdate();
@@ -12,42 +13,81 @@ export default class SelectionManager extends InteractionService {
         if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) &&
             this._userOptions.query) {
             const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
-            this._oldResult = this._result;
-            this._result = layer.query({
-                ...this._userOptions.query,
-                ...this._sharedVar,
-            });
-            const selectionLayer = layer
-                .getSiblingLayer("selectionLayer")
-                .getGraphic();
-            while (selectionLayer.firstChild) {
-                selectionLayer.removeChild(selectionLayer.lastChild);
+            if (this._nextTick) {
+                cancelAnimationFrame(this._nextTick);
             }
-            this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
-        }
-        if (this._on.update) {
-            this._on.update.forEach((command) => {
-                var _a, _b, _c;
-                return command.execute({
-                    self: this,
-                    layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-                    instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                    interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+            this._nextTick = requestAnimationFrame(() => {
+                this._oldResult = this._result;
+                this._result = layer.query({
+                    ...this._userOptions.query,
+                    ...this._sharedVar,
                 });
+                const selectionLayer = layer
+                    .getSiblingLayer("selectionLayer")
+                    .getGraphic();
+                while (selectionLayer.firstChild) {
+                    selectionLayer.removeChild(selectionLayer.lastChild);
+                }
+                this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
+                this._nextTick = 0;
+                if (this._on.update) {
+                    this._on.update.forEach((command) => {
+                        var _a, _b, _c;
+                        return command.execute({
+                            self: this,
+                            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                                ? this._layerInstances[0]
+                                : null),
+                            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+                            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+                        });
+                    });
+                }
+                if (this._on[`update:${sharedName}`]) {
+                    this._on[`update:${sharedName}`].forEach((command) => {
+                        var _a, _b, _c;
+                        return command.execute({
+                            self: this,
+                            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                                ? this._layerInstances[0]
+                                : null),
+                            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+                            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+                        });
+                    });
+                }
+                this.postUpdate();
             });
         }
-        if (this._on[`update:${sharedName}`]) {
-            this._on[`update:${sharedName}`].forEach((command) => {
-                var _a, _b, _c;
-                return command.execute({
-                    self: this,
-                    layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-                    instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                    interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+        else {
+            if (this._on.update) {
+                this._on.update.forEach((command) => {
+                    var _a, _b, _c;
+                    return command.execute({
+                        self: this,
+                        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                            ? this._layerInstances[0]
+                            : null),
+                        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+                        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+                    });
                 });
-            });
+            }
+            if (this._on[`update:${sharedName}`]) {
+                this._on[`update:${sharedName}`].forEach((command) => {
+                    var _a, _b, _c;
+                    return command.execute({
+                        self: this,
+                        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                            ? this._layerInstances[0]
+                            : null),
+                        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+                        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
+                    });
+                });
+            }
+            this.postUpdate();
         }
-        this.postUpdate();
     }
     isInstanceOf(name) {
         return ("SelectionManager" === name ||

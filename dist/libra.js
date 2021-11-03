@@ -320,6 +320,10 @@ var Interactor = class {
   dispatch(event, layer) {
     const moveAction = this._actions.find((action) => (event instanceof Event ? action.events.includes(event.type) : action.events.includes(event)) && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state)));
     if (moveAction) {
+      if (event instanceof Event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state);
       if (moveTransition) {
         this._state = moveTransition[1];
@@ -374,6 +378,35 @@ Interactor.register("MousePositionInteractor", {
     {
       action: "hover",
       events: ["mousemove"]
+    }
+  ]
+});
+Interactor.register("MouseTraceInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "dragstart",
+      events: ["mousedown"],
+      transition: [["start", "drag"]]
+    },
+    {
+      action: "drag",
+      events: ["mousemove"],
+      transition: [["drag", "drag"]]
+    },
+    {
+      action: "dragend",
+      events: ["mouseup"],
+      transition: [["drag", "start"]]
+    },
+    {
+      action: "dragabort",
+      events: ["contextmenu"],
+      transition: [
+        ["drag", "start"],
+        ["start", "start"]
+      ]
     }
   ]
 });
@@ -495,46 +528,77 @@ var SelectionManager = class extends InteractionService {
     super(...arguments);
     this._oldResult = [];
     this._result = [];
+    this._nextTick = 0;
   }
   setSharedVar(sharedName, value, options) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
       const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
-      this._oldResult = this._result;
-      this._result = layer.query({
-        ...this._userOptions.query,
-        ...this._sharedVar
-      });
-      const selectionLayer = layer.getSiblingLayer("selectionLayer").getGraphic();
-      while (selectionLayer.firstChild) {
-        selectionLayer.removeChild(selectionLayer.lastChild);
+      if (this._nextTick) {
+        cancelAnimationFrame(this._nextTick);
       }
-      this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
-    }
-    if (this._on.update) {
-      this._on.update.forEach((command) => {
-        var _a, _b, _c;
-        return command.execute({
-          self: this,
-          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+      this._nextTick = requestAnimationFrame(() => {
+        this._oldResult = this._result;
+        this._result = layer.query({
+          ...this._userOptions.query,
+          ...this._sharedVar
         });
+        const selectionLayer = layer.getSiblingLayer("selectionLayer").getGraphic();
+        while (selectionLayer.firstChild) {
+          selectionLayer.removeChild(selectionLayer.lastChild);
+        }
+        this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
+        this._nextTick = 0;
+        if (this._on.update) {
+          this._on.update.forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        if (this._on[`update:${sharedName}`]) {
+          this._on[`update:${sharedName}`].forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        this.postUpdate();
       });
-    }
-    if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].forEach((command) => {
-        var _a, _b, _c;
-        return command.execute({
-          self: this,
-          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+    } else {
+      if (this._on.update) {
+        this._on.update.forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
         });
-      });
+      }
+      if (this._on[`update:${sharedName}`]) {
+        this._on[`update:${sharedName}`].forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      this.postUpdate();
     }
-    this.postUpdate();
   }
   isInstanceOf(name) {
     return name === "SelectionManager" || this._baseName === name || this._name === name;
@@ -3528,6 +3592,7 @@ var findInstrument = Instrument.findInstrument;
 
 // dist/esm/instrument/builtin.js
 var mousePositionInteractor = interactor_default.initialize("MousePositionInteractor");
+var mouseTraceInteractor = interactor_default.initialize("MouseTraceInteractor");
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
   interactors: [mousePositionInteractor],
@@ -3543,6 +3608,76 @@ Instrument.register("HoverInstrument", {
   },
   preUse: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+  }
+});
+Instrument.register("BrushInstrument", {
+  constructor: Instrument,
+  interactors: [mouseTraceInteractor],
+  on: {
+    dragstart: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+          service.setSharedVar("width", 1);
+          service.setSharedVar("height", 1);
+          service.setSharedVar("startx", event.clientX);
+          service.setSharedVar("starty", event.clientY);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    drag: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const startx = service.getSharedVar("startx");
+          const starty = service.getSharedVar("starty");
+          service.setSharedVar("x", Math.min(event.clientX, startx));
+          service.setSharedVar("y", Math.min(event.clientY, starty));
+          service.setSharedVar("width", Math.abs(event.clientX - startx));
+          service.setSharedVar("height", Math.abs(event.clientY - starty));
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          const baseBBox = layer.getContainerGraphic().getBoundingClientRect();
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+        });
+      }
+    ],
+    dragend: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("width", 0);
+          service.setSharedVar("height", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
 
