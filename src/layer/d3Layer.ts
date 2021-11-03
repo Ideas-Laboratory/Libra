@@ -37,6 +37,7 @@ export default class D3Layer extends Layer<SVGElement> {
     if (tempElem.tagName !== "svg")
       throw Error("Container must be wrapped in SVGSVGElement");
     this._svg = tempElem as Element as SVGSVGElement;
+    this._postInitialize && this._postInitialize.call(this, this);
   }
 
   // _toTemplate() {  // it is better to store initOption in base class.

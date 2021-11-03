@@ -1,3 +1,70 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[Object.keys(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __reExport = (target, module, desc) => {
+  if (module && typeof module === "object" || typeof module === "function") {
+    for (let key of __getOwnPropNames(module))
+      if (!__hasOwnProp.call(target, key) && key !== "default")
+        __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
+  }
+  return target;
+};
+var __toModule = (module) => {
+  return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", module && module.__esModule && "default" in module ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
+};
+
+// node_modules/get-style-property/get-style-property.js
+var require_get_style_property = __commonJS({
+  "node_modules/get-style-property/get-style-property.js"(exports, module) {
+    "use strict";
+    module.exports = function(el, propName) {
+      return el.currentStyle ? el.currentStyle[propName] : window.getComputedStyle ? document.defaultView.getComputedStyle(el, null).getPropertyValue(propName) : null;
+    };
+  }
+});
+
+// node_modules/2d-css-matrix-parse/index.js
+var require_d_css_matrix_parse = __commonJS({
+  "node_modules/2d-css-matrix-parse/index.js"(exports, module) {
+    var getStyle = require_get_style_property();
+    function CssMatrixTransformation() {
+      this._initRegexs();
+    }
+    CssMatrixTransformation.prototype = {
+      _initRegexs: function() {
+        var floating = "(\\-?[\\d\\.e]+)";
+        var commaSpace = "\\,?\\s*";
+        this.regex = {
+          matrix: new RegExp("^matrix\\(" + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + "\\)$")
+        };
+      },
+      parse: function(transform2) {
+        var matrix = this.regex.matrix.exec(transform2);
+        if (matrix) {
+          matrix.shift();
+          for (var i = matrix.length - 1; i >= 0; i--) {
+            matrix[i] = parseFloat(matrix[i]);
+          }
+          ;
+        }
+        return matrix || [1, 0, 0, 1, 0, 0];
+      },
+      fromElement: function(element) {
+        var transform2 = getStyle(element, "transform");
+        return this.parse(transform2);
+      }
+    };
+    module.exports = new CssMatrixTransformation();
+  }
+});
+
 // dist/esm/command/command.js
 var registeredCommands = {};
 var instanceCommands = [];
@@ -3316,6 +3383,7 @@ var D3Layer = class extends Layer {
     if (tempElem.tagName !== "svg")
       throw Error("Container must be wrapped in SVGSVGElement");
     this._svg = tempElem;
+    this._postInitialize && this._postInitialize.call(this, this);
   }
   getVisualElements() {
     const elems = [
@@ -3591,6 +3659,7 @@ var initialize6 = Instrument.initialize;
 var findInstrument = Instrument.findInstrument;
 
 // dist/esm/instrument/builtin.js
+var import_d_css_matrix_parse = __toModule(require_d_css_matrix_parse());
 var mousePositionInteractor = interactor_default.initialize("MousePositionInteractor");
 var mouseTraceInteractor = interactor_default.initialize("MouseTraceInteractor");
 Instrument.register("HoverInstrument", {
@@ -3643,7 +3712,8 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           const baseBBox = layer.getContainerGraphic().getBoundingClientRect();
           const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+          const matrix = import_d_css_matrix_parse.default.fromElement(layer.getGraphic());
+          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]} y=${Math.min(event.clientY, starty) - baseBBox.y - matrix[5]} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
         });
       }
     ],
@@ -3670,6 +3740,68 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "RectSelectionManager");
+  }
+});
+Instrument.register("BrushXInstrument", {
+  constructor: Instrument,
+  interactors: [mouseTraceInteractor],
+  on: {
+    dragstart: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", baseBBox.y);
+          service.setSharedVar("width", 1);
+          service.setSharedVar("height", baseBBox.height);
+          service.setSharedVar("startx", event.clientX);
+          service.setSharedVar("currentx", event.clientX);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    drag: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const startx = service.getSharedVar("startx");
+          service.setSharedVar("x", Math.min(event.clientX, startx));
+          service.setSharedVar("width", Math.abs(event.clientX - startx));
+          service.setSharedVar("currentx", event.clientX);
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const matrix = import_d_css_matrix_parse.default.fromElement(layer.getGraphic());
+          transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
+        });
+      }
+    ],
+    dragend: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("endx", event.clientX);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("width", 0);
+          service.setSharedVar("height", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("endx", event.clientX);
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
