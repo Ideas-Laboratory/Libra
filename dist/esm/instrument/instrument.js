@@ -41,7 +41,17 @@ export default class Instrument {
         options.postInitialize && options.postInitialize.call(this, this);
     }
     on(action, feedforwardOrCommand) {
-        this._on[action] = feedforwardOrCommand;
+        if (!this._on[action]) {
+            this._on[action] = [];
+        }
+        this._on[action].push(feedforwardOrCommand);
+    }
+    off(action, feedforwardOrCommand) {
+        if (!this._on[action])
+            return;
+        if (this._on[action].includes(feedforwardOrCommand)) {
+            this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
+        }
     }
     use(interactor, options) {
         interactor.preUse(this);
@@ -57,11 +67,11 @@ export default class Instrument {
             sideEffect: (options) => {
                 action.sideEffect && action.sideEffect(options);
                 this._on[action.action] &&
-                    this._on[action.action]({
+                    this._on[action.action].forEach((command) => command({
                         ...options,
                         self: this,
                         instrument: this,
-                    });
+                    }));
             },
         })));
         this._layers.forEach((layer) => {
@@ -99,23 +109,25 @@ export default class Instrument {
     setSharedVar(sharedName, value, options) {
         this._sharedVar[sharedName] = value;
         if (this._on[`update:${sharedName}`]) {
-            const feedforwardOrCommand = this._on[`update:${sharedName}`];
-            if (feedforwardOrCommand instanceof Command) {
-                feedforwardOrCommand.execute({
-                    self: this,
-                    layer: null,
-                    instrument: this,
-                    interactor: null,
-                });
-            }
-            else {
-                feedforwardOrCommand({
-                    self: this,
-                    layer: null,
-                    instrument: this,
-                    interactor: null,
-                });
-            }
+            const feedforwardOrCommands = this._on[`update:${sharedName}`];
+            feedforwardOrCommands.forEach((feedforwardOrCommand) => {
+                if (feedforwardOrCommand instanceof Command) {
+                    feedforwardOrCommand.execute({
+                        self: this,
+                        layer: null,
+                        instrument: this,
+                        interactor: null,
+                    });
+                }
+                else {
+                    feedforwardOrCommand({
+                        self: this,
+                        layer: null,
+                        instrument: this,
+                        interactor: null,
+                    });
+                }
+            });
         }
     }
     watchSharedVar(sharedName, handler) {

@@ -29,24 +29,28 @@ export default class SelectionManager extends InteractionService {
       );
     }
     if (this._on.update) {
-      this._on.update.execute({
-        self: this,
-        layer:
-          options?.layer ??
-          (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-        instrument: options?.instrument ?? null,
-        interactor: options?.interactor ?? null,
-      });
+      this._on.update.forEach((command) =>
+        command.execute({
+          self: this,
+          layer:
+            options?.layer ??
+            (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null,
+        })
+      );
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].execute({
-        self: this,
-        layer:
-          options?.layer ??
-          (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-        instrument: options?.instrument ?? null,
-        interactor: options?.interactor ?? null,
-      });
+      this._on[`update:${sharedName}`].forEach((command) =>
+        command.execute({
+          self: this,
+          layer:
+            options?.layer ??
+            (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null,
+        })
+      );
     }
 
     this.postUpdate();

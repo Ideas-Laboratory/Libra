@@ -3,7 +3,7 @@ import { Layer } from "../layer";
 
 type ServiceInitOption = {
   name?: string;
-  on?: { [action: string]: Command };
+  on?: { [action: string]: Command[] };
   sharedVar?: { [key: string]: any };
   preInitialize?: (service: InteractionService) => void;
   postInitialize?: (service: InteractionService) => void;
@@ -26,7 +26,7 @@ export default class InteractionService {
   _baseName: string;
   _name: string;
   _userOptions: ServiceInitOption;
-  _on: { [action: string]: Command };
+  _on: { [action: string]: Command[] };
   _sharedVar: { [key: string]: any };
   _preInitialize?: (service: InteractionService) => void;
   _postInitialize?: (service: InteractionService) => void;
@@ -54,7 +54,10 @@ export default class InteractionService {
   }
 
   on(action: string, command: Command): void {
-    this._on[action] = command;
+    if (!this._on[action]) {
+      this._on[action] = [];
+    }
+    this._on[action].push(command);
   }
 
   getSharedVar(sharedName: string, options?: any): any {
@@ -72,20 +75,24 @@ export default class InteractionService {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      this._on.update.execute({
-        self: this,
-        layer: options?.layer ?? null,
-        instrument: options?.instrument ?? null,
-        interactor: options?.interactor ?? null,
-      });
+      this._on.update.forEach((command) =>
+        command.execute({
+          self: this,
+          layer: options?.layer ?? null,
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null,
+        })
+      );
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].execute({
-        self: this,
-        layer: options?.layer ?? null,
-        instrument: options?.instrument ?? null,
-        interactor: options?.interactor ?? null,
-      });
+      this._on[`update:${sharedName}`].forEach((command) =>
+        command.execute({
+          self: this,
+          layer: options?.layer ?? null,
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null,
+        })
+      );
     }
     this.postUpdate();
   }

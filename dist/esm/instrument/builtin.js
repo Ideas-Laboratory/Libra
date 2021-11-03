@@ -5,12 +5,14 @@ Instrument.register("HoverInstrument", {
     constructor: Instrument,
     interactors: [mousePositionInteractor],
     on: {
-        hover: ({ event, layer }) => {
-            layer.services.find("SelectionManager").forEach((service) => {
-                service.setSharedVar("x", event.clientX);
-                service.setSharedVar("y", event.clientY);
-            });
-        },
+        hover: [
+            ({ event, layer }) => {
+                layer.services.find("SelectionManager").forEach((service) => {
+                    service.setSharedVar("x", event.clientX);
+                    service.setSharedVar("y", event.clientY);
+                });
+            },
+        ],
     },
     preUse: (instrument, layer) => {
         // Create default SM on layer

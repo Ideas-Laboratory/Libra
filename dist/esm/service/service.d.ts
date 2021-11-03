@@ -3,7 +3,7 @@ import { Layer } from "../layer";
 declare type ServiceInitOption = {
     name?: string;
     on?: {
-        [action: string]: Command;
+        [action: string]: Command[];
     };
     sharedVar?: {
         [key: string]: any;
@@ -25,7 +25,7 @@ export default class InteractionService {
     _name: string;
     _userOptions: ServiceInitOption;
     _on: {
-        [action: string]: Command;
+        [action: string]: Command[];
     };
     _sharedVar: {
         [key: string]: any;

@@ -98,8 +98,12 @@ function makeFindableList(list, typing, addFunc) {
           }
           return makeFindableList(filteredResult, typing, addFunc);
         };
-      } else {
+      } else if (p in target) {
         return target[p];
+      } else {
+        return function() {
+          return target.map((t) => t[p].apply(t, arguments));
+        };
       }
     }
   });
@@ -403,7 +407,10 @@ var InteractionService = class {
     options.postInitialize && options.postInitialize.call(this, this);
   }
   on(action, command) {
-    this._on[action] = command;
+    if (!this._on[action]) {
+      this._on[action] = [];
+    }
+    this._on[action].push(command);
   }
   getSharedVar(sharedName, options) {
     if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
@@ -412,23 +419,28 @@ var InteractionService = class {
     return this._sharedVar[sharedName];
   }
   setSharedVar(sharedName, value, options) {
-    var _a, _b, _c, _d, _e, _f;
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      this._on.update.execute({
-        self: this,
-        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
-        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+      this._on.update.forEach((command) => {
+        var _a, _b, _c;
+        return command.execute({
+          self: this,
+          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
+          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+        });
       });
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].execute({
-        self: this,
-        layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : null,
-        instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
-        interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null
+      this._on[`update:${sharedName}`].forEach((command) => {
+        var _a, _b, _c;
+        return command.execute({
+          self: this,
+          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
+          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+        });
       });
     }
     this.postUpdate();
@@ -485,7 +497,6 @@ var SelectionManager = class extends InteractionService {
     this._result = [];
   }
   setSharedVar(sharedName, value, options) {
-    var _a, _b, _c, _d, _e, _f;
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
@@ -502,19 +513,25 @@ var SelectionManager = class extends InteractionService {
       this._result.forEach((node) => selectionLayer.appendChild(node.cloneNode(false)));
     }
     if (this._on.update) {
-      this._on.update.execute({
-        self: this,
-        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+      this._on.update.forEach((command) => {
+        var _a, _b, _c;
+        return command.execute({
+          self: this,
+          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+        });
       });
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].execute({
-        self: this,
-        layer: (_d = options === null || options === void 0 ? void 0 : options.layer) !== null && _d !== void 0 ? _d : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-        instrument: (_e = options === null || options === void 0 ? void 0 : options.instrument) !== null && _e !== void 0 ? _e : null,
-        interactor: (_f = options === null || options === void 0 ? void 0 : options.interactor) !== null && _f !== void 0 ? _f : null
+      this._on[`update:${sharedName}`].forEach((command) => {
+        var _a, _b, _c;
+        return command.execute({
+          self: this,
+          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+        });
       });
     }
     this.postUpdate();
@@ -3385,7 +3402,17 @@ var Instrument = class {
     options.postInitialize && options.postInitialize.call(this, this);
   }
   on(action, feedforwardOrCommand) {
-    this._on[action] = feedforwardOrCommand;
+    if (!this._on[action]) {
+      this._on[action] = [];
+    }
+    this._on[action].push(feedforwardOrCommand);
+  }
+  off(action, feedforwardOrCommand) {
+    if (!this._on[action])
+      return;
+    if (this._on[action].includes(feedforwardOrCommand)) {
+      this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
+    }
   }
   use(interactor, options) {
     interactor.preUse(this);
@@ -3398,11 +3425,11 @@ var Instrument = class {
       ...action,
       sideEffect: (options2) => {
         action.sideEffect && action.sideEffect(options2);
-        this._on[action.action] && this._on[action.action]({
+        this._on[action.action] && this._on[action.action].forEach((command) => command({
           ...options2,
           self: this,
           instrument: this
-        });
+        }));
       }
     })));
     this._layers.forEach((layer) => {
@@ -3434,22 +3461,24 @@ var Instrument = class {
   setSharedVar(sharedName, value, options) {
     this._sharedVar[sharedName] = value;
     if (this._on[`update:${sharedName}`]) {
-      const feedforwardOrCommand = this._on[`update:${sharedName}`];
-      if (feedforwardOrCommand instanceof Command2) {
-        feedforwardOrCommand.execute({
-          self: this,
-          layer: null,
-          instrument: this,
-          interactor: null
-        });
-      } else {
-        feedforwardOrCommand({
-          self: this,
-          layer: null,
-          instrument: this,
-          interactor: null
-        });
-      }
+      const feedforwardOrCommands = this._on[`update:${sharedName}`];
+      feedforwardOrCommands.forEach((feedforwardOrCommand) => {
+        if (feedforwardOrCommand instanceof Command2) {
+          feedforwardOrCommand.execute({
+            self: this,
+            layer: null,
+            instrument: this,
+            interactor: null
+          });
+        } else {
+          feedforwardOrCommand({
+            self: this,
+            layer: null,
+            instrument: this,
+            interactor: null
+          });
+        }
+      });
     }
   }
   watchSharedVar(sharedName, handler) {
@@ -3503,12 +3532,14 @@ Instrument.register("HoverInstrument", {
   constructor: Instrument,
   interactors: [mousePositionInteractor],
   on: {
-    hover: ({ event, layer }) => {
-      layer.services.find("SelectionManager").forEach((service) => {
-        service.setSharedVar("x", event.clientX);
-        service.setSharedVar("y", event.clientY);
-      });
-    }
+    hover: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+        });
+      }
+    ]
   },
   preUse: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");

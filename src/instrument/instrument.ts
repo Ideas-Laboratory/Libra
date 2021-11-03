@@ -6,9 +6,10 @@ import { Layer } from "../layer";
 type InstrumentInitOption = {
   name?: string;
   on?: {
-    [action: string]:
+    [action: string]: (
       | (<T>(options: helpers.CommonHandlerInput<T>) => void)
-      | Command;
+      | Command
+    )[];
   };
   interactors?: (Interactor | { interactor: Interactor; options: any })[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
@@ -33,9 +34,10 @@ export default class Instrument {
   _name: string;
   _userOptions: InstrumentInitOption;
   _on: {
-    [action: string]:
+    [action: string]: (
       | (<T>(options: helpers.CommonHandlerInput<T>) => void)
-      | Command;
+      | Command
+    )[];
   };
   _interactors: (Interactor | { interactor: Interactor; options: any })[];
   _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
@@ -85,7 +87,25 @@ export default class Instrument {
       | (<T>(options: helpers.CommonHandlerInput<T>) => void)
       | Command
   ) {
-    this._on[action] = feedforwardOrCommand;
+    if (!this._on[action]) {
+      this._on[action] = [];
+    }
+    this._on[action].push(feedforwardOrCommand);
+  }
+
+  off(
+    action: string,
+    feedforwardOrCommand:
+      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | Command
+  ) {
+    if (!this._on[action]) return;
+    if (this._on[action].includes(feedforwardOrCommand)) {
+      this._on[action].splice(
+        this._on[action].indexOf(feedforwardOrCommand),
+        1
+      );
+    }
   }
 
   use(interactor: Interactor, options?: any) {
@@ -102,11 +122,13 @@ export default class Instrument {
         sideEffect: (options) => {
           action.sideEffect && action.sideEffect(options);
           this._on[action.action] &&
-            (this._on[action.action] as any)({
-              ...options,
-              self: this,
-              instrument: this,
-            });
+            this._on[action.action].forEach((command) =>
+              (command as any)({
+                ...options,
+                self: this,
+                instrument: this,
+              })
+            );
         },
       }))
     );
@@ -148,22 +170,24 @@ export default class Instrument {
   setSharedVar(sharedName: string, value: any, options: any) {
     this._sharedVar[sharedName] = value;
     if (this._on[`update:${sharedName}`]) {
-      const feedforwardOrCommand = this._on[`update:${sharedName}`];
-      if (feedforwardOrCommand instanceof Command) {
-        feedforwardOrCommand.execute({
-          self: this,
-          layer: null,
-          instrument: this,
-          interactor: null,
-        });
-      } else {
-        feedforwardOrCommand({
-          self: this,
-          layer: null,
-          instrument: this,
-          interactor: null,
-        });
-      }
+      const feedforwardOrCommands = this._on[`update:${sharedName}`];
+      feedforwardOrCommands.forEach((feedforwardOrCommand) => {
+        if (feedforwardOrCommand instanceof Command) {
+          feedforwardOrCommand.execute({
+            self: this,
+            layer: null,
+            instrument: this,
+            interactor: null,
+          });
+        } else {
+          feedforwardOrCommand({
+            self: this,
+            layer: null,
+            instrument: this,
+            interactor: null,
+          });
+        }
+      });
     }
   }
 

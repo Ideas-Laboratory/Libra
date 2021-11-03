@@ -32,8 +32,13 @@ export function makeFindableList(list, typing, addFunc) {
                     return makeFindableList(filteredResult, typing, addFunc);
                 };
             }
-            else {
+            else if (p in target) {
                 return target[p];
+            }
+            else {
+                return function () {
+                    return target.map((t) => t[p].apply(t, arguments));
+                };
             }
         },
     });
