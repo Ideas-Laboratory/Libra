@@ -55,8 +55,8 @@ export default class Instrument {
     off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
     use(interactor: Interactor, options?: any): void;
     attach(layer: Layer<any>, options?: any): void;
-    getSharedVar(sharedName: string, options: any): any;
-    setSharedVar(sharedName: string, value: any, options: any): void;
+    getSharedVar(sharedName: string, options?: any): any;
+    setSharedVar(sharedName: string, value: any, options?: any): void;
     watchSharedVar(sharedName: string, handler: Command): void;
     preUse(layer: Layer<any>): void;
     postUse(layer: Layer<any>): void;

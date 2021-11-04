@@ -64,18 +64,16 @@ Instrument.register("BrushInstrument", {
       },
     ],
     dragend: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         layer.services.find("SelectionManager").forEach((service) => {
-          // service.setSharedVar("x", 0);
-          // service.setSharedVar("y", 0);
-          // service.setSharedVar("width", 0);
-          // service.setSharedVar("height", 0);
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
+          if (!instrument.getSharedVar("persistant")) {
+            const transientLayer = layer.getSiblingLayer("transientLayer");
+            transientLayer.getGraphic().innerHTML = "";
+          }
         });
       },
     ],
@@ -140,12 +138,14 @@ Instrument.register("BrushXInstrument", {
       },
     ],
     dragend: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
+          if (!instrument.getSharedVar("persistant")) {
+            const transientLayer = layer.getSiblingLayer("transientLayer");
+            transientLayer.getGraphic().innerHTML = "";
+          }
         });
       },
     ],
@@ -272,7 +272,7 @@ Instrument.register("DataBrushInstrument", {
       },
     ],
     dragend: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         layer.services.find("SelectionManager").forEach((service) => {
           // service.setSharedVar("x", 0);
           // service.setSharedVar("y", 0);
@@ -282,8 +282,10 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
+          if (!instrument.getSharedVar("persistant")) {
+            const transientLayer = layer.getSiblingLayer("transientLayer");
+            transientLayer.getGraphic().innerHTML = "";
+          }
         });
       },
     ],
@@ -359,12 +361,14 @@ Instrument.register("DataBrushXInstrument", {
       },
     ],
     dragend: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
+          if (!instrument.getSharedVar("persistant")) {
+            const transientLayer = layer.getSiblingLayer("transientLayer");
+            transientLayer.getGraphic().innerHTML = "";
+          }
         });
       },
     ],

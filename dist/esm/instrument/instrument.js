@@ -120,7 +120,7 @@ export default class Instrument {
         this.postUse(layer);
     }
     getSharedVar(sharedName, options) {
-        if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+        if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
             this.setSharedVar(sharedName, options.defaultValue, options);
         }
         return this._sharedVar[sharedName];

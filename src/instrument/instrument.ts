@@ -180,14 +180,14 @@ export default class Instrument {
     this.postUse(layer);
   }
 
-  getSharedVar(sharedName: string, options: any): any {
-    if (!(sharedName in this._sharedVar) && "defaultValue" in options) {
+  getSharedVar(sharedName: string, options?: any): any {
+    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
       this.setSharedVar(sharedName, options.defaultValue, options);
     }
     return this._sharedVar[sharedName];
   }
 
-  setSharedVar(sharedName: string, value: any, options: any) {
+  setSharedVar(sharedName: string, value: any, options?: any) {
     this._sharedVar[sharedName] = value;
     if (this._on[`update:${sharedName}`]) {
       const feedforwardOrCommands = this._on[`update:${sharedName}`];
