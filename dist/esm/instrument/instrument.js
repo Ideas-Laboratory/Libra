@@ -75,11 +75,22 @@ export default class Instrument {
             sideEffect: (options) => {
                 action.sideEffect && action.sideEffect(options);
                 this._on[action.action] &&
-                    this._on[action.action].forEach((command) => command({
-                        ...options,
-                        self: this,
-                        instrument: this,
-                    }));
+                    this._on[action.action].forEach((command) => {
+                        if (command instanceof Command) {
+                            command.execute({
+                                ...options,
+                                self: this,
+                                instrument: this,
+                            });
+                        }
+                        else {
+                            command({
+                                ...options,
+                                self: this,
+                                instrument: this,
+                            });
+                        }
+                    });
             },
         })));
         this._layers.forEach((layer) => {
