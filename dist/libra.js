@@ -82,8 +82,9 @@ var ShapeQueryType;
 var DataQueryType;
 (function(DataQueryType2) {
   DataQueryType2[DataQueryType2["Quantitative"] = 0] = "Quantitative";
-  DataQueryType2[DataQueryType2["Nominal"] = 1] = "Nominal";
-  DataQueryType2[DataQueryType2["Temporal"] = 2] = "Temporal";
+  DataQueryType2[DataQueryType2["Quantitative2D"] = 1] = "Quantitative2D";
+  DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
+  DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
 function makeFindableList(list, typing, addFunc) {
   return new Proxy(list, {
@@ -3404,6 +3405,10 @@ var D3Layer = class extends Layer {
     if (options.type === DataQueryType.Quantitative) {
       const { attrName, extent } = options;
       result = visualElements.filter((d) => extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
+    }
+    if (options.type === DataQueryType.Quantitative2D) {
+      const { attrNameX, extentX, attrNameY, extentY } = options;
+      result = visualElements.filter((d) => extentX[0] < d[attrNameX] && d[attrNameX] < extentX[1] && extentY[0] < d[attrNameY] && d[attrNameY] < extentY[1]).nodes();
     } else if (options.type === DataQueryType.Nominal) {
       const { attrName, extent } = options;
       result = visualElements.filter((d) => extent.find(d[attrName])).nodes();
@@ -3782,6 +3787,146 @@ Instrument.register("HelperBarInstrument", {
     helperBar.setAttribute("stroke", `black`);
     helperBar.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBar);
+  }
+});
+Instrument.register("DataBrushInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+          service.setSharedVar("width", 1);
+          service.setSharedVar("height", 1);
+          service.setSharedVar("startx", event.clientX);
+          service.setSharedVar("starty", event.clientY);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("attrNameX", layer.getSharedVar("fieldX", service.getSharedVar("attrNameX")));
+          service.setSharedVar("attrNameY", layer.getSharedVar("fieldY", service.getSharedVar("attrNameY")));
+          service.setSharedVar("extentX", [0, 0]);
+          service.setSharedVar("extentY", [0, 0]);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    drag: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          const startx = service.getSharedVar("startx");
+          const starty = service.getSharedVar("starty");
+          service.setSharedVar("x", Math.min(event.clientX, startx));
+          service.setSharedVar("y", Math.min(event.clientY, starty));
+          service.setSharedVar("width", Math.abs(event.clientX - startx));
+          service.setSharedVar("height", Math.abs(event.clientY - starty));
+          service.setSharedVar("extentX", [event.clientX, startx].map((x) => layer.getSharedVar("scaleX").invert(x - baseBBox.x)).sort((a, b) => a - b));
+          service.setSharedVar("extentY", [event.clientY, starty].map((y) => layer.getSharedVar("scaleY").invert(y - baseBBox.y)).sort((a, b) => a - b));
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+        });
+      }
+    ],
+    dragend: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("width", 0);
+          service.setSharedVar("height", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "RectSelectionManager");
+  }
+});
+Instrument.register("DataBrushXInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", baseBBox.y);
+          service.setSharedVar("width", 1);
+          service.setSharedVar("height", baseBBox.height);
+          service.setSharedVar("startx", event.clientX);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("attrName", layer.getSharedVar("fieldX", service.getSharedVar("attrName")));
+          service.setSharedVar("extent", [0, 0]);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    drag: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const startx = service.getSharedVar("startx");
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("x", Math.min(event.clientX, startx));
+          service.setSharedVar("width", Math.abs(event.clientX - startx));
+          service.setSharedVar("extent", [event.clientX, startx].map((x) => layer.getSharedVar("scaleX").invert(x - baseBBox.x)).sort((a, b) => a - b));
+          service.setSharedVar("currentx", event.clientX);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
+        });
+      }
+    ],
+    dragend: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("endx", event.clientX);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("width", 0);
+          service.setSharedVar("height", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("endx", event.clientX);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
 

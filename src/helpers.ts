@@ -18,6 +18,7 @@ export enum ShapeQueryType {
 
 export enum DataQueryType {
   Quantitative,
+  Quantitative2D,
   Nominal,
   Temporal,
 }
@@ -76,13 +77,25 @@ export type PolygonQuery = {
   points: { x: number; y: number }[];
 };
 
-export type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
+export type DataBasedQuery =
+  | QuantitativeQuery
+  | Quantitative2DQuery
+  | NominalQuery
+  | TemporalQuery;
 
 export type QuantitativeQuery = {
   baseOn: QueryType.Data;
   type: DataQueryType.Quantitative;
   attrName: string;
   extent: [number, number];
+};
+export type Quantitative2DQuery = {
+  baseOn: QueryType.Data;
+  type: DataQueryType.Quantitative2D;
+  attrNameX: string;
+  extentX: [number, number];
+  attrNameY: string;
+  extentY: [number, number];
 };
 export type NominalQuery = {
   baseOn: QueryType.Data;

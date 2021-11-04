@@ -183,6 +183,18 @@ export default class D3Layer extends Layer<SVGElement> {
       result = visualElements
         .filter((d) => extent[0] < d[attrName] && d[attrName] < extent[1])
         .nodes();
+    }
+    if (options.type === helpers.DataQueryType.Quantitative2D) {
+      const { attrNameX, extentX, attrNameY, extentY } = options;
+      result = visualElements
+        .filter(
+          (d) =>
+            extentX[0] < d[attrNameX] &&
+            d[attrNameX] < extentX[1] &&
+            extentY[0] < d[attrNameY] &&
+            d[attrNameY] < extentY[1]
+        )
+        .nodes();
     } else if (options.type === helpers.DataQueryType.Nominal) {
       const { attrName, extent } = options;
       result = visualElements.filter((d) => extent.find(d[attrName])).nodes();
