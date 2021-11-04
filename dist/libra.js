@@ -3745,6 +3745,36 @@ Instrument.register("BrushXInstrument", {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
+Instrument.register("HelperBarInstrument", {
+  constructor: Instrument,
+  interactors: ["MousePositionInteractor"],
+  on: {
+    hover: [
+      ({ event, layer, instrument }) => {
+        console.log("hover");
+        const height = layer.getSharedVar("height", 100);
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const helperBar = transientLayer.getGraphic().querySelector("line");
+        helperBar.setAttribute("x1", event.offsetX);
+        helperBar.setAttribute("x2", event.offsetX);
+        instrument.setSharedVar("barX", event.offsetX, {});
+      }
+    ]
+  },
+  preUse: function(instrument, layer) {
+    console.log("preuse");
+    const height = layer.getSharedVar("height", 100);
+    const transientLayer = layer.getSiblingLayer("transientLayer");
+    const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    helperBar.setAttribute("x1", "0");
+    helperBar.setAttribute("y1", "0");
+    helperBar.setAttribute("x2", "0");
+    helperBar.setAttribute("y2", `${height}`);
+    helperBar.setAttribute("stroke", `black`);
+    helperBar.setAttribute("stroke-width", `1px`);
+    transientLayer.getGraphic().append(helperBar);
+  }
+});
 
 // dist/esm/instrument/index.js
 var Instrument2 = Instrument;
