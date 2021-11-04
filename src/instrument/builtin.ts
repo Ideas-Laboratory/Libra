@@ -180,14 +180,13 @@ Instrument.register("HelperBarInstrument", {
         const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
-        helperBar.setAttribute("x1", event.offsetX);
-        helperBar.setAttribute("x2", event.offsetX);
-        instrument.setSharedVar("barX", event.offsetX, {});
+        helperBar.setAttribute("x1", event.clientX);
+        helperBar.setAttribute("x2", event.clientX);
+        instrument.setSharedVar("barX", event.clientX, {});
       },
     ],
   },
   preUse: function (instrument, layer) {
-    //layer.services.find("SelectionManager", "SurfacePointSelectionManager");
     console.log("preuse");
     const height = layer.getSharedVar("height", 100);
     const transientLayer = layer.getSiblingLayer("transientLayer");
