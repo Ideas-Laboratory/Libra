@@ -180,8 +180,7 @@ Instrument.register("HelperBarInstrument", {
         const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
-        helperBar.setAttribute("x1", event.offsetX-50);
-        helperBar.setAttribute("x2", event.offsetX-50);
+        helperBar.setAttribute("transform", `translate(${event.offsetX-50}, 0)`)
         instrument.setSharedVar("barX", event.offsetX-50, {});
       },
     ],
