@@ -19,8 +19,16 @@ export default class Instrument {
         this._layers = [];
         if (options.interactors) {
             options.interactors.forEach((interactor) => {
-                if ("options" in interactor) {
-                    this.use(interactor.interactor, interactor.options);
+                if (typeof interactor === "string") {
+                    this.use(Interactor.initialize(interactor));
+                }
+                else if ("options" in interactor) {
+                    if (typeof interactor.interactor === "string") {
+                        this.use(Interactor.initialize(interactor.interactor, interactor.options));
+                    }
+                    else {
+                        this.use(interactor.interactor, interactor.options);
+                    }
                 }
                 else {
                     this.use(interactor);
