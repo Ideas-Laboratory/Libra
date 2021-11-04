@@ -1,11 +1,7 @@
-import Interactor from "../interactor";
 import Instrument from "./instrument";
-import matrixParse from "2d-css-matrix-parse";
-const mousePositionInteractor = Interactor.initialize("MousePositionInteractor");
-const mouseTraceInteractor = Interactor.initialize("MouseTraceInteractor");
 Instrument.register("HoverInstrument", {
     constructor: Instrument,
-    interactors: [mousePositionInteractor],
+    interactors: ["MousePositionInteractor"],
     on: {
         hover: [
             ({ event, layer }) => {
@@ -23,7 +19,7 @@ Instrument.register("HoverInstrument", {
 });
 Instrument.register("BrushInstrument", {
     constructor: Instrument,
-    interactors: [mouseTraceInteractor],
+    interactors: ["MouseTraceInteractor"],
     on: {
         dragstart: [
             ({ event, layer }) => {
@@ -52,10 +48,9 @@ Instrument.register("BrushInstrument", {
                     service.setSharedVar("height", Math.abs(event.clientY - starty));
                     service.setSharedVar("currentx", event.clientX);
                     service.setSharedVar("currenty", event.clientY);
-                    const baseBBox = layer.getContainerGraphic().getBoundingClientRect();
+                    const baseBBox = layer.getGraphic().getBoundingClientRect();
                     const transientLayer = layer.getSiblingLayer("transientLayer");
-                    const matrix = matrixParse.fromElement(layer.getGraphic());
-                    transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]} y=${Math.min(event.clientY, starty) - baseBBox.y - matrix[5]} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+                    transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
                 });
             },
         ],
@@ -99,7 +94,7 @@ Instrument.register("BrushInstrument", {
 });
 Instrument.register("BrushXInstrument", {
     constructor: Instrument,
-    interactors: [mouseTraceInteractor],
+    interactors: ["MouseTraceInteractor"],
     on: {
         dragstart: [
             ({ event, layer }) => {
@@ -125,8 +120,8 @@ Instrument.register("BrushXInstrument", {
                     service.setSharedVar("currentx", event.clientX);
                     const baseBBox = layer.getGraphic().getBoundingClientRect();
                     const transientLayer = layer.getSiblingLayer("transientLayer");
-                    const matrix = matrixParse.fromElement(layer.getGraphic());
-                    transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
+                    // const matrix = matrixParse.fromElement(layer.getGraphic());
+                    transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
                 });
             },
         ],
@@ -162,16 +157,17 @@ Instrument.register("BrushXInstrument", {
 });
 Instrument.register("HelperBarInstrument", {
     constructor: Instrument,
-    interactors: [mousePositionInteractor],
+    interactors: ["MousePositionInteractor"],
     on: {
         hover: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 console.log("hover");
                 const height = layer.getSharedVar("height", 100);
                 const transientLayer = layer.getSiblingLayer("transientLayer");
                 const helperBar = transientLayer.getGraphic().querySelector("line");
                 helperBar.setAttribute("x1", event.offsetX);
                 helperBar.setAttribute("x2", event.offsetX);
+                instrument.setSharedVar("barX", event.offsetX, {});
             },
         ],
     },
@@ -188,5 +184,5 @@ Instrument.register("HelperBarInstrument", {
         helperBar.setAttribute("stroke", `black`);
         helperBar.setAttribute("stroke-width", `1px`);
         transientLayer.getGraphic().append(helperBar);
-    }
+    },
 });

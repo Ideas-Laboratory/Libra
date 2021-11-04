@@ -1,70 +1,3 @@
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[Object.keys(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
-var __reExport = (target, module, desc) => {
-  if (module && typeof module === "object" || typeof module === "function") {
-    for (let key of __getOwnPropNames(module))
-      if (!__hasOwnProp.call(target, key) && key !== "default")
-        __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
-  }
-  return target;
-};
-var __toModule = (module) => {
-  return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", module && module.__esModule && "default" in module ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
-};
-
-// node_modules/get-style-property/get-style-property.js
-var require_get_style_property = __commonJS({
-  "node_modules/get-style-property/get-style-property.js"(exports, module) {
-    "use strict";
-    module.exports = function(el, propName) {
-      return el.currentStyle ? el.currentStyle[propName] : window.getComputedStyle ? document.defaultView.getComputedStyle(el, null).getPropertyValue(propName) : null;
-    };
-  }
-});
-
-// node_modules/2d-css-matrix-parse/index.js
-var require_d_css_matrix_parse = __commonJS({
-  "node_modules/2d-css-matrix-parse/index.js"(exports, module) {
-    var getStyle = require_get_style_property();
-    function CssMatrixTransformation() {
-      this._initRegexs();
-    }
-    CssMatrixTransformation.prototype = {
-      _initRegexs: function() {
-        var floating = "(\\-?[\\d\\.e]+)";
-        var commaSpace = "\\,?\\s*";
-        this.regex = {
-          matrix: new RegExp("^matrix\\(" + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + commaSpace + floating + "\\)$")
-        };
-      },
-      parse: function(transform2) {
-        var matrix = this.regex.matrix.exec(transform2);
-        if (matrix) {
-          matrix.shift();
-          for (var i = matrix.length - 1; i >= 0; i--) {
-            matrix[i] = parseFloat(matrix[i]);
-          }
-          ;
-        }
-        return matrix || [1, 0, 0, 1, 0, 0];
-      },
-      fromElement: function(element) {
-        var transform2 = getStyle(element, "transform");
-        return this.parse(transform2);
-      }
-    };
-    module.exports = new CssMatrixTransformation();
-  }
-});
-
 // dist/esm/command/command.js
 var registeredCommands = {};
 var instanceCommands = [];
@@ -479,7 +412,6 @@ Interactor.register("MouseTraceInteractor", {
 });
 
 // dist/esm/interactor/index.js
-var interactor_default = Interactor;
 var register3 = Interactor.register;
 var initialize3 = Interactor.initialize;
 var findInteractor2 = Interactor.findInteractor;
@@ -3514,8 +3446,14 @@ var Instrument = class {
     this._layers = [];
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
-        if ("options" in interactor) {
-          this.use(interactor.interactor, interactor.options);
+        if (typeof interactor === "string") {
+          this.use(Interactor2.initialize(interactor));
+        } else if ("options" in interactor) {
+          if (typeof interactor.interactor === "string") {
+            this.use(Interactor2.initialize(interactor.interactor, interactor.options));
+          } else {
+            this.use(interactor.interactor, interactor.options);
+          }
         } else {
           this.use(interactor);
         }
@@ -3659,12 +3597,9 @@ var initialize6 = Instrument.initialize;
 var findInstrument = Instrument.findInstrument;
 
 // dist/esm/instrument/builtin.js
-var import_d_css_matrix_parse = __toModule(require_d_css_matrix_parse());
-var mousePositionInteractor = interactor_default.initialize("MousePositionInteractor");
-var mouseTraceInteractor = interactor_default.initialize("MouseTraceInteractor");
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
-  interactors: [mousePositionInteractor],
+  interactors: ["MousePositionInteractor"],
   on: {
     hover: [
       ({ event, layer }) => {
@@ -3681,7 +3616,7 @@ Instrument.register("HoverInstrument", {
 });
 Instrument.register("BrushInstrument", {
   constructor: Instrument,
-  interactors: [mouseTraceInteractor],
+  interactors: ["MouseTraceInteractor"],
   on: {
     dragstart: [
       ({ event, layer }) => {
@@ -3710,10 +3645,9 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("height", Math.abs(event.clientY - starty));
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("currenty", event.clientY);
-          const baseBBox = layer.getContainerGraphic().getBoundingClientRect();
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
           const transientLayer = layer.getSiblingLayer("transientLayer");
-          const matrix = import_d_css_matrix_parse.default.fromElement(layer.getGraphic());
-          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]} y=${Math.min(event.clientY, starty) - baseBBox.y - matrix[5]} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+          transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
         });
       }
     ],
@@ -3752,7 +3686,7 @@ Instrument.register("BrushInstrument", {
 });
 Instrument.register("BrushXInstrument", {
   constructor: Instrument,
-  interactors: [mouseTraceInteractor],
+  interactors: ["MouseTraceInteractor"],
   on: {
     dragstart: [
       ({ event, layer }) => {
@@ -3778,8 +3712,7 @@ Instrument.register("BrushXInstrument", {
           service.setSharedVar("currentx", event.clientX);
           const baseBBox = layer.getGraphic().getBoundingClientRect();
           const transientLayer = layer.getSiblingLayer("transientLayer");
-          const matrix = import_d_css_matrix_parse.default.fromElement(layer.getGraphic());
-          transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x - matrix[4]}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
+          transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
         });
       }
     ],
@@ -3814,16 +3747,17 @@ Instrument.register("BrushXInstrument", {
 });
 Instrument.register("HelperBarInstrument", {
   constructor: Instrument,
-  interactors: [mousePositionInteractor],
+  interactors: ["MousePositionInteractor"],
   on: {
     hover: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         console.log("hover");
         const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         helperBar.setAttribute("x1", event.offsetX);
         helperBar.setAttribute("x2", event.offsetX);
+        instrument.setSharedVar("barX", event.offsetX, {});
       }
     ]
   },

@@ -7,8 +7,8 @@ declare type InstrumentInitOption = {
     on?: {
         [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => void) | Command)[];
     };
-    interactors?: (Interactor | {
-        interactor: Interactor;
+    interactors?: (string | Interactor | {
+        interactor: string | Interactor;
         options: any;
     })[];
     layers?: (Layer<any> | {
