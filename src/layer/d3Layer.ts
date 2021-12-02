@@ -144,8 +144,40 @@ export default class D3Layer extends Layer<SVGElement> {
         .getIntersectionList(outerRect, this._graphic)
         .forEach((elem) => outerElemSet.add(elem));
 
-      for (let elem of outerElemSet) {
-        if (elemSet.has(elem)) continue;
+      let outer = 1;
+      while (true) {
+        for (let elem of outerElemSet) {
+          if (elemSet.has(elem)) outerElemSet.delete(elem);
+        }
+        if (!outerElemSet.size) break;
+        if (outer * 2 + innerRectWidth >= r * 2) break;
+        const w = Math.sqrt(r * r - Math.pow(innerRectWidth / 2 + outer, 2));
+        const topRect = this._svg.createSVGRect();
+        topRect.x = x - w;
+        topRect.y = innerRectY - outer;
+        topRect.width = w * 2;
+        topRect.height = 1;
+        const bottomRect = this._svg.createSVGRect();
+        bottomRect.x = x - w;
+        bottomRect.y = innerRectY + innerRectWidth + outer - 1;
+        bottomRect.width = w * 2;
+        bottomRect.height = 1;
+        const leftRect = this._svg.createSVGRect();
+        leftRect.x = innerRectX - outer;
+        leftRect.y = y - w;
+        leftRect.width = 1;
+        leftRect.height = w * 2;
+        const rightRect = this._svg.createSVGRect();
+        rightRect.x = innerRectX + innerRectWidth + outer - 1;
+        rightRect.y = y - w;
+        rightRect.width = 1;
+        rightRect.height = w * 2;
+        [topRect, bottomRect, leftRect, rightRect].forEach((rect) => {
+          this._svg
+            .getIntersectionList(rect, this._graphic)
+            .forEach((elem) => elemSet.add(elem));
+        });
+        outer++;
       }
       // // get the elements between circle and innerRect;
       // for (let i = x - r; i <= x + r; i++) {
