@@ -61,7 +61,7 @@ Instrument.register("BrushInstrument", {
                     service.setSharedVar("currenty", event.clientY);
                     service.setSharedVar("endx", event.clientX);
                     service.setSharedVar("endy", event.clientY);
-                    if (!instrument.getSharedVar("keepTransient")) {
+                    if (!instrument.getSharedVar("persistant")) {
                         const transientLayer = layer.getSiblingLayer("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
@@ -128,7 +128,7 @@ Instrument.register("BrushXInstrument", {
                 layer.services.find("SelectionManager").forEach((service) => {
                     service.setSharedVar("currentx", event.clientX);
                     service.setSharedVar("endx", event.clientX);
-                    if (!instrument.getSharedVar("keepTransient")) {
+                    if (!instrument.getSharedVar("persistant")) {
                         const transientLayer = layer.getSiblingLayer("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
@@ -242,7 +242,7 @@ Instrument.register("DataBrushInstrument", {
                     service.setSharedVar("currenty", event.clientY);
                     service.setSharedVar("endx", event.clientX);
                     service.setSharedVar("endy", event.clientY);
-                    if (!instrument.getSharedVar("keepTransient")) {
+                    if (!instrument.getSharedVar("persistant")) {
                         const transientLayer = layer.getSiblingLayer("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
@@ -314,7 +314,7 @@ Instrument.register("DataBrushXInstrument", {
                 layer.services.find("SelectionManager").forEach((service) => {
                     service.setSharedVar("currentx", event.clientX);
                     service.setSharedVar("endx", event.clientX);
-                    if (!instrument.getSharedVar("keepTransient")) {
+                    if (!instrument.getSharedVar("persistant")) {
                         const transientLayer = layer.getSiblingLayer("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
@@ -340,4 +340,7 @@ Instrument.register("DataBrushXInstrument", {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
+});
+Instrument.register("", {
+    constructor: Instrument,
 });

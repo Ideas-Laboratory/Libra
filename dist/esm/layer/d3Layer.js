@@ -101,20 +101,39 @@ export default class D3Layer extends Layer {
             this._svg
                 .getIntersectionList(innerRect, this._graphic)
                 .forEach((elem) => elemSet.add(elem));
-            // get the elements between circle and innerRect;
-            for (let i = x - r; i <= x + r; i++) {
-                for (let j = y - r; j <= y + r; j++) {
-                    if (innerRect.x < i &&
-                        i < innerRect.x + innerRect.width &&
-                        innerRect.y < j &&
-                        j < innerRect.y + innerRect.y + innerRect.height)
-                        continue;
-                    document
-                        .elementsFromPoint(i + svgBCR.left, j + svgBCR.top)
-                        .forEach((elem) => elemSet.add(elem));
-                }
+            const outerRectWidth = r;
+            const outerRectX = x - r;
+            const outerRectY = y - r;
+            const outerElemSet = new Set();
+            // get the elements intersect with the outerRect
+            const outerRect = this._svg.createSVGRect();
+            outerRect.x = outerRectX;
+            outerRect.y = outerRectY;
+            outerRect.width = outerRectWidth * 2;
+            outerRect.height = outerRectWidth * 2;
+            this._svg
+                .getIntersectionList(outerRect, this._graphic)
+                .forEach((elem) => outerElemSet.add(elem));
+            for (let elem of outerElemSet) {
+                if (elemSet.has(elem))
+                    continue;
             }
-            result = [...elemSet].filter(this._isElementInLayer);
+            // // get the elements between circle and innerRect;
+            // for (let i = x - r; i <= x + r; i++) {
+            //   for (let j = y - r; j <= y + r; j++) {
+            //     if (
+            //       innerRect.x < i &&
+            //       i < innerRect.x + innerRect.width &&
+            //       innerRect.y < j &&
+            //       j < innerRect.y + innerRect.height
+            //     )
+            //       continue;
+            //     document
+            //       .elementsFromPoint(i + svgBCR.left, j + svgBCR.top)
+            //       .forEach((elem) => elemSet.add(elem));
+            //   }
+            // }
+            result = [...elemSet].filter(this._isElementInLayer.bind(this));
         }
         else if (options.type === helpers.ShapeQueryType.Rect) {
             const { x, y, width, height } = options;

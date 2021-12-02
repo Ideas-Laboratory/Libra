@@ -377,8 +377,22 @@ Interactor.register("MousePositionInteractor", {
   state: "start",
   actions: [
     {
+      action: "enter",
+      events: ["mouseenter"],
+      transition: [["start", "running"]]
+    },
+    {
       action: "hover",
-      events: ["mousemove"]
+      events: ["mousemove"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "leave",
+      events: ["mouseleave"],
+      transition: [
+        ["running", "start"],
+        ["start", "start"]
+      ]
     }
   ]
 });
@@ -3371,14 +3385,21 @@ var D3Layer = class extends Layer {
       innerRect.width = innerRectWidth;
       innerRect.height = innerRectWidth;
       this._svg.getIntersectionList(innerRect, this._graphic).forEach((elem) => elemSet.add(elem));
-      for (let i = x - r; i <= x + r; i++) {
-        for (let j = y - r; j <= y + r; j++) {
-          if (innerRect.x < i && i < innerRect.x + innerRect.width && innerRect.y < j && j < innerRect.y + innerRect.y + innerRect.height)
-            continue;
-          document.elementsFromPoint(i + svgBCR.left, j + svgBCR.top).forEach((elem) => elemSet.add(elem));
-        }
+      const outerRectWidth = r;
+      const outerRectX = x - r;
+      const outerRectY = y - r;
+      const outerElemSet = new Set();
+      const outerRect = this._svg.createSVGRect();
+      outerRect.x = outerRectX;
+      outerRect.y = outerRectY;
+      outerRect.width = outerRectWidth * 2;
+      outerRect.height = outerRectWidth * 2;
+      this._svg.getIntersectionList(outerRect, this._graphic).forEach((elem) => outerElemSet.add(elem));
+      for (let elem of outerElemSet) {
+        if (elemSet.has(elem))
+          continue;
       }
-      result = [...elemSet].filter(this._isElementInLayer);
+      result = [...elemSet].filter(this._isElementInLayer.bind(this));
     } else if (options.type === ShapeQueryType.Rect) {
       const { x, y, width, height } = options;
       const x0 = Math.min(x, x + width) - svgBCR.left, y0 = Math.min(y, y + height) - svgBCR.top, absWidth = Math.abs(width), absHeight = Math.abs(height);
@@ -3449,6 +3470,7 @@ var Instrument = class {
     this._on = (_f = options.on) !== null && _f !== void 0 ? _f : {};
     this._interactors = [];
     this._layers = [];
+    this._sharedVar = (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {};
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
         if (typeof interactor === "string") {
@@ -3473,7 +3495,6 @@ var Instrument = class {
         }
       });
     }
-    this._sharedVar = (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {};
     options.postInitialize && options.postInitialize.call(this, this);
   }
   on(action, feedforwardOrCommand) {
@@ -3673,7 +3694,7 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          if (!instrument.getSharedVar("keepTransient")) {
+          if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
@@ -3738,7 +3759,7 @@ Instrument.register("BrushXInstrument", {
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
-          if (!instrument.getSharedVar("keepTransient")) {
+          if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
@@ -3843,7 +3864,7 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          if (!instrument.getSharedVar("keepTransient")) {
+          if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
@@ -3911,7 +3932,7 @@ Instrument.register("DataBrushXInstrument", {
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
-          if (!instrument.getSharedVar("keepTransient")) {
+          if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
@@ -3936,6 +3957,9 @@ Instrument.register("DataBrushXInstrument", {
   preUse: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
+});
+Instrument.register("", {
+  constructor: Instrument
 });
 
 // dist/esm/instrument/index.js

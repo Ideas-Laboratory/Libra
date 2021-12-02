@@ -392,3 +392,8 @@ Instrument.register("DataBrushXInstrument", {
     layer.services.find("SelectionManager", "RectSelectionManager");
   },
 });
+
+Instrument.register("", {
+  constructor: Instrument,
+  
+});

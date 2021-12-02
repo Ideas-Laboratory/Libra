@@ -63,6 +63,7 @@ export default class Instrument {
     this._on = options.on ?? {};
     this._interactors = [];
     this._layers = [];
+    this._sharedVar = options.sharedVar ?? {};
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
         if (typeof interactor === "string") {
@@ -89,7 +90,6 @@ export default class Instrument {
         }
       });
     }
-    this._sharedVar = options.sharedVar ?? {};
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
@@ -181,7 +181,11 @@ export default class Instrument {
   }
 
   getSharedVar(sharedName: string, options?: any): any {
-    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
+    if (
+      !(sharedName in this._sharedVar) &&
+      options &&
+      "defaultValue" in options
+    ) {
       this.setSharedVar(sharedName, options.defaultValue, options);
     }
     return this._sharedVar[sharedName];
