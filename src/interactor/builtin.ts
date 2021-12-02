@@ -5,8 +5,22 @@ Interactor.register("MousePositionInteractor", {
   state: "start",
   actions: [
     {
+      action: "enter",
+      events: ["mouseenter"],
+      transition: [["start", "running"]],
+    },
+    {
       action: "hover",
       events: ["mousemove"],
+      transition: [["running", "running"]],
+    },
+    {
+      action: "leave",
+      events: ["mouseleave"],
+      transition: [
+        ["running", "start"],
+        ["start", "start"]
+      ],
     },
   ],
 });
