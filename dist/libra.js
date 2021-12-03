@@ -3990,8 +3990,30 @@ Instrument.register("DataBrushXInstrument", {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
-Instrument.register("", {
-  constructor: Instrument
+Instrument.register("ClickInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragend: [
+      ({ event, layer, instrument }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+  }
 });
 
 // dist/esm/instrument/index.js
