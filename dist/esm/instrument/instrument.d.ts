@@ -51,6 +51,7 @@ export default class Instrument {
     _preUse?: (instrument: Instrument, layer: Layer<any>) => void;
     _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     constructor(baseName: string, options: InstrumentInitOption);
+    emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
     on(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
     off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
     use(interactor: Interactor, options?: any): void;

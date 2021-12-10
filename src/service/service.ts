@@ -20,7 +20,7 @@ type ServiceInitTemplate = ServiceInitOption & {
 };
 
 const registeredServices: { [name: string]: ServiceInitTemplate } = {};
-const instanceServices: InteractionService[] = [];
+export const instanceServices: InteractionService[] = [];
 
 export default class InteractionService {
   _baseName: string;
@@ -42,7 +42,7 @@ export default class InteractionService {
     this._userOptions = options;
     this._name = options.name ?? baseName;
     this._on = options.on ?? {};
-    this._sharedVar = options.sharedVar ?? {};
+    this._sharedVar = {};
     this._layerInstances = [];
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -50,6 +50,10 @@ export default class InteractionService {
     this._postUpdate = options.postUpdate ?? null;
     this._preUse = options.preUse ?? null;
     this._postUse = options.postUse ?? null;
+    Object.entries(options.sharedVar || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+    instanceServices.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
   }
 

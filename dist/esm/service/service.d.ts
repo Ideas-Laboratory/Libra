@@ -20,6 +20,7 @@ declare type ServiceInitTemplate = ServiceInitOption & {
     [param: string]: any;
     constructor?: typeof InteractionService;
 };
+export declare const instanceServices: InteractionService[];
 export default class InteractionService {
     _baseName: string;
     _name: string;

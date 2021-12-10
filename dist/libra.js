@@ -437,20 +437,24 @@ var registeredServices = {};
 var instanceServices = [];
 var InteractionService = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
     this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
     this._on = (_b = options.on) !== null && _b !== void 0 ? _b : {};
-    this._sharedVar = (_c = options.sharedVar) !== null && _c !== void 0 ? _c : {};
+    this._sharedVar = {};
     this._layerInstances = [];
-    this._preInitialize = (_d = options.preInitialize) !== null && _d !== void 0 ? _d : null;
-    this._postInitialize = (_e = options.postInitialize) !== null && _e !== void 0 ? _e : null;
-    this._preUpdate = (_f = options.preUpdate) !== null && _f !== void 0 ? _f : null;
-    this._postUpdate = (_g = options.postUpdate) !== null && _g !== void 0 ? _g : null;
-    this._preUse = (_h = options.preUse) !== null && _h !== void 0 ? _h : null;
-    this._postUse = (_j = options.postUse) !== null && _j !== void 0 ? _j : null;
+    this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
+    this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
+    this._preUpdate = (_e = options.preUpdate) !== null && _e !== void 0 ? _e : null;
+    this._postUpdate = (_f = options.postUpdate) !== null && _f !== void 0 ? _f : null;
+    this._preUse = (_g = options.preUse) !== null && _g !== void 0 ? _g : null;
+    this._postUse = (_h = options.postUse) !== null && _h !== void 0 ? _h : null;
+    Object.entries(options.sharedVar || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+    instanceServices.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
   }
   on(action, command) {
@@ -3118,8 +3122,98 @@ InteractionService.register("PolygonSelectionManager", {
   }
 });
 
+// dist/esm/service/algorithmManager.js
+var AlgorithmManager = class extends InteractionService {
+  constructor(baseName2, options) {
+    super(baseName2, options);
+    this._oldResult = null;
+    this._result = null;
+    this._nextTick = 0;
+    Object.entries(options.params || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+  }
+  setSharedVar(sharedName, value, options) {
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    if (this._userOptions.algorithm && this._userOptions.params) {
+      if (this._nextTick) {
+        cancelAnimationFrame(this._nextTick);
+      }
+      this._nextTick = requestAnimationFrame(() => {
+        this._oldResult = this._result;
+        this._result = this._userOptions.algorithm({
+          ...this._userOptions.params,
+          ...this._sharedVar
+        });
+        this._nextTick = 0;
+        if (this._on.update) {
+          this._on.update.forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        if (this._on[`update:${sharedName}`]) {
+          this._on[`update:${sharedName}`].forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        this.postUpdate();
+      });
+    } else {
+      if (this._on.update) {
+        this._on.update.forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      if (this._on[`update:${sharedName}`]) {
+        this._on[`update:${sharedName}`].forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      this.postUpdate();
+    }
+  }
+  isInstanceOf(name) {
+    return name === "AlgorithmManager" || this._baseName === name || this._name === name;
+  }
+  get results() {
+    return this._result;
+  }
+  get oldResults() {
+    return this._oldResult;
+  }
+};
+InteractionService.register("AlgorithmManager", {
+  constructor: AlgorithmManager
+});
+
 // dist/esm/service/index.js
 var findService2 = findService;
+var instanceServices2 = instanceServices;
 var InteractionService2 = InteractionService;
 
 // dist/esm/layer/layer.js
@@ -3529,6 +3623,25 @@ var Instrument = class {
     }
     options.postInitialize && options.postInitialize.call(this, this);
   }
+  emit(action, options) {
+    this._on[action].forEach((feedforwardOrCommand) => {
+      if (feedforwardOrCommand instanceof Command2) {
+        feedforwardOrCommand.execute(Object.assign({
+          self: this,
+          layer: null,
+          instrument: this,
+          interactor: null
+        }, options || {}));
+      } else {
+        feedforwardOrCommand(Object.assign({
+          self: this,
+          layer: null,
+          instrument: this,
+          interactor: null
+        }, options || {}));
+      }
+    });
+  }
   on(action, feedforwardOrCommand) {
     if (!this._on[action]) {
       this._on[action] = [];
@@ -3865,9 +3978,9 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("attrNameY", layer.getSharedVar("fieldY", service.getSharedVar("attrNameY")));
           service.setSharedVar("extentX", [0, 0]);
           service.setSharedVar("extentY", [0, 0]);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
         });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       }
     ],
     drag: [
@@ -3896,11 +4009,11 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
-            transientLayer.getGraphic().innerHTML = "";
-          }
         });
+        if (!instrument.getSharedVar("persistant")) {
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        }
       }
     ],
     dragabort: [
@@ -3914,9 +4027,9 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
         });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       }
     ]
   },
@@ -3995,19 +4108,93 @@ Instrument.register("ClickInstrument", {
   interactors: ["MouseTraceInteractor"],
   on: {
     dragend: [
-      ({ event, layer, instrument }) => {
-        layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
+      (options) => {
+        options.layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", options.event.clientX);
+          service.setSharedVar("y", options.event.clientY);
+        });
+        options.instrument.emit("click", {
+          ...options,
+          self: options.instrument
         });
       }
     ],
     dragabort: [
-      ({ event, layer }) => {
-        layer.services.find("SelectionManager").forEach((service) => {
+      (options) => {
+        options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
         });
+        options.instrument.emit("clickabort", {
+          ...options,
+          self: options.instrument
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+  }
+});
+Instrument.register("DragInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
+      }
+    ],
+    drag: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+          const selectionLayer = layer.getSiblingLayer("selectionLayer");
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${selectionLayer.getGraphic().innerHTML}</g>`;
+        });
+      }
+    ],
+    dragend: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
+      }
+    ],
+    dragabort: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       }
     ]
   },
@@ -4019,16 +4206,80 @@ Instrument.register("ClickInstrument", {
 // dist/esm/instrument/index.js
 var Instrument2 = Instrument;
 
+// dist/esm/history/index.js
+var historyRecords = [];
+var historyPointer = -1;
+var commitLock = false;
+var HistoryManager = {
+  commit() {
+    if (commitLock) {
+      return;
+    }
+    const record = new Map();
+    instanceServices2.forEach((service) => {
+      if ("results" in service) {
+        record.set(service, service.results);
+      }
+    });
+    historyRecords.splice(historyPointer + 1, historyRecords.length, record);
+    historyPointer++;
+  },
+  undo() {
+    historyPointer--;
+    if (historyPointer < 0) {
+      historyPointer = 0;
+      return;
+    }
+    const record = historyRecords[historyPointer];
+    commitLock = true;
+    for (let [service, results] of record.entries()) {
+      service._result = results;
+      if (service._on.update) {
+        service._on.update.forEach((command) => command.execute({
+          self: service,
+          layer: service._layerInstances.length == 1 ? service._layerInstances[0] : null,
+          instrument: null,
+          interactor: null
+        }));
+      }
+    }
+    commitLock = false;
+  },
+  redo() {
+    historyPointer++;
+    if (historyPointer >= historyRecords.length) {
+      historyPointer = historyRecords.length - 1;
+      return;
+    }
+    const record = historyRecords[historyPointer];
+    commitLock = true;
+    for (let [service, results] of record.entries()) {
+      service._result = results;
+      if (service._on.update) {
+        service._on.update.forEach((command) => command.execute({
+          self: service,
+          layer: service._layerInstances.length == 1 ? service._layerInstances[0] : null,
+          instrument: null,
+          interactor: null
+        }));
+      }
+    }
+    commitLock = false;
+  }
+};
+
 // dist/esm/index.js
 var esm_default = {
   Command: Command2,
   Instrument: Instrument2,
   Interactor: Interactor2,
   Layer: Layer2,
-  InteractionService: InteractionService2
+  InteractionService: InteractionService2,
+  HistoryManager
 };
 export {
   Command2 as Command,
+  HistoryManager,
   Instrument2 as Instrument,
   InteractionService2 as InteractionService,
   Interactor2 as Interactor,

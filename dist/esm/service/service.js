@@ -1,21 +1,25 @@
 const registeredServices = {};
-const instanceServices = [];
+export const instanceServices = [];
 export default class InteractionService {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
         this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
         this._on = (_b = options.on) !== null && _b !== void 0 ? _b : {};
-        this._sharedVar = (_c = options.sharedVar) !== null && _c !== void 0 ? _c : {};
+        this._sharedVar = {};
         this._layerInstances = [];
-        this._preInitialize = (_d = options.preInitialize) !== null && _d !== void 0 ? _d : null;
-        this._postInitialize = (_e = options.postInitialize) !== null && _e !== void 0 ? _e : null;
-        this._preUpdate = (_f = options.preUpdate) !== null && _f !== void 0 ? _f : null;
-        this._postUpdate = (_g = options.postUpdate) !== null && _g !== void 0 ? _g : null;
-        this._preUse = (_h = options.preUse) !== null && _h !== void 0 ? _h : null;
-        this._postUse = (_j = options.postUse) !== null && _j !== void 0 ? _j : null;
+        this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
+        this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
+        this._preUpdate = (_e = options.preUpdate) !== null && _e !== void 0 ? _e : null;
+        this._postUpdate = (_f = options.postUpdate) !== null && _f !== void 0 ? _f : null;
+        this._preUse = (_g = options.preUse) !== null && _g !== void 0 ? _g : null;
+        this._postUse = (_h = options.postUse) !== null && _h !== void 0 ? _h : null;
+        Object.entries(options.sharedVar || {}).forEach((entry) => {
+            this.setSharedVar(entry[0], entry[1]);
+        });
+        instanceServices.push(this);
         options.postInitialize && options.postInitialize.call(this, this);
     }
     on(action, command) {

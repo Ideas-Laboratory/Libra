@@ -231,9 +231,9 @@ Instrument.register("DataBrushInstrument", {
           );
           service.setSharedVar("extentX", [0, 0]);
           service.setSharedVar("extentY", [0, 0]);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
         });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       },
     ],
     drag: [
@@ -282,11 +282,11 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
-            transientLayer.getGraphic().innerHTML = "";
-          }
         });
+        if (!instrument.getSharedVar("persistant")) {
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        }
       },
     ],
     dragabort: [
@@ -300,9 +300,9 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endx", event.clientX);
           service.setSharedVar("endy", event.clientY);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
         });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       },
     ],
   },
@@ -398,19 +398,97 @@ Instrument.register("ClickInstrument", {
   interactors: ["MouseTraceInteractor"],
   on: {
     dragend: [
-      ({ event, layer, instrument }) => {
-        layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
+      (options) => {
+        options.layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", options.event.clientX);
+          service.setSharedVar("y", options.event.clientY);
+        });
+        options.instrument.emit("click", {
+          ...options,
+          self: options.instrument,
         });
       },
     ],
     dragabort: [
-      ({ event, layer }) => {
-        layer.services.find("SelectionManager").forEach((service) => {
+      (options) => {
+        options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
         });
+        options.instrument.emit("clickabort", {
+          ...options,
+          self: options.instrument,
+        });
+      },
+    ],
+  },
+  preUse: (instrument, layer) => {
+    // Create default SM on layer
+    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+  },
+});
+
+Instrument.register("DragInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", event.clientX);
+          service.setSharedVar("y", event.clientY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
+      },
+    ],
+    drag: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+          const selectionLayer = layer.getSiblingLayer("selectionLayer");
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${
+            selectionLayer.getGraphic().innerHTML
+          }</g>`;
+        });
+      },
+    ],
+    dragend: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
+      },
+    ],
+    dragabort: [
+      ({ layer, event }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          let offsetX = event.clientX - service.getSharedVar("x");
+          let offsetY = event.clientY - service.getSharedVar("y");
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("offsetx", offsetX);
+          service.setSharedVar("offsety", offsetY);
+        });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       },
     ],
   },

@@ -48,6 +48,26 @@ export default class Instrument {
         }
         options.postInitialize && options.postInitialize.call(this, this);
     }
+    emit(action, options) {
+        this._on[action].forEach((feedforwardOrCommand) => {
+            if (feedforwardOrCommand instanceof Command) {
+                feedforwardOrCommand.execute(Object.assign({
+                    self: this,
+                    layer: null,
+                    instrument: this,
+                    interactor: null,
+                }, options || {}));
+            }
+            else {
+                feedforwardOrCommand(Object.assign({
+                    self: this,
+                    layer: null,
+                    instrument: this,
+                    interactor: null,
+                }, options || {}));
+            }
+        });
+    }
     on(action, feedforwardOrCommand) {
         if (!this._on[action]) {
             this._on[action] = [];

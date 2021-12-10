@@ -3,36 +3,30 @@ import * as helpers from "../helpers";
 import * as d3 from "d3";
 
 export default class AlgorithmManager extends InteractionService {
-  _oldResult: any = [];
-  _result: any = [];
+  _oldResult: any = null;
+  _result: any = null;
   _nextTick: number = 0;
+
+  constructor(baseName: string, options: any) {
+    super(baseName, options);
+    Object.entries(options.params || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+  }
 
   setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (
-      (options?.layer || this._layerInstances.length == 1) &&
-      this._userOptions.query
-    ) {
-      const layer = options?.layer || this._layerInstances[0];
+    if (this._userOptions.algorithm && this._userOptions.params) {
       if (this._nextTick) {
         cancelAnimationFrame(this._nextTick);
       }
       this._nextTick = requestAnimationFrame(() => {
         this._oldResult = this._result;
-        this._result = layer.query({
-          ...this._userOptions.query,
+        this._result = this._userOptions.algorithm({
+          ...this._userOptions.params,
           ...this._sharedVar,
         });
-        const selectionLayer = layer
-          .getSiblingLayer("selectionLayer")
-          .getGraphic();
-        while (selectionLayer.firstChild) {
-          selectionLayer.removeChild(selectionLayer.lastChild);
-        }
-        this._result.forEach((node) =>
-          selectionLayer.appendChild(d3.select(node).clone(false).node())
-        );
 
         this._nextTick = 0;
 
@@ -121,4 +115,3 @@ export default class AlgorithmManager extends InteractionService {
 InteractionService.register("AlgorithmManager", {
   constructor: AlgorithmManager,
 });
-
