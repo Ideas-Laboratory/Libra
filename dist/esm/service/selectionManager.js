@@ -1,6 +1,5 @@
 import InteractionService from "./service";
 import * as helpers from "../helpers";
-import * as d3 from "d3";
 export default class SelectionManager extends InteractionService {
     constructor() {
         super(...arguments);
@@ -29,7 +28,23 @@ export default class SelectionManager extends InteractionService {
                 while (selectionLayer.firstChild) {
                     selectionLayer.removeChild(selectionLayer.lastChild);
                 }
-                this._result.forEach((node) => selectionLayer.appendChild(d3.select(node).clone(false).node()));
+                if (this._sharedVar.deepClone) {
+                    let resultNode;
+                    this._result.forEach((node) => {
+                        if (node !== layer.getGraphic()) {
+                            if (resultNode) {
+                                resultNode.remove(); // avoid redundant elements
+                            }
+                            resultNode = layer.cloneVisualElements(node, this._sharedVar.deepClone);
+                        }
+                    });
+                    if (resultNode) {
+                        selectionLayer.appendChild(resultNode);
+                    }
+                }
+                else {
+                    this._result.forEach((node) => selectionLayer.appendChild(layer.cloneVisualElements(node)));
+                }
                 this._nextTick = 0;
                 if (this._on.update) {
                     this._on.update.forEach((command) => {

@@ -540,6 +540,449 @@ var unregister3 = InteractionService.unregister;
 var initialize4 = InteractionService.initialize;
 var findService = InteractionService.findService;
 
+// dist/esm/service/selectionManager.js
+var SelectionManager = class extends InteractionService {
+  constructor() {
+    super(...arguments);
+    this._oldResult = [];
+    this._result = [];
+    this._nextTick = 0;
+  }
+  setSharedVar(sharedName, value, options) {
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
+      const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
+      if (this._nextTick) {
+        cancelAnimationFrame(this._nextTick);
+      }
+      this._nextTick = requestAnimationFrame(() => {
+        this._oldResult = this._result;
+        this._result = layer.query({
+          ...this._userOptions.query,
+          ...this._sharedVar
+        });
+        const selectionLayer = layer.getSiblingLayer("selectionLayer").getGraphic();
+        while (selectionLayer.firstChild) {
+          selectionLayer.removeChild(selectionLayer.lastChild);
+        }
+        if (this._sharedVar.deepClone) {
+          let resultNode;
+          this._result.forEach((node) => {
+            if (node !== layer.getGraphic()) {
+              if (resultNode) {
+                resultNode.remove();
+              }
+              resultNode = layer.cloneVisualElements(node, this._sharedVar.deepClone);
+            }
+          });
+          if (resultNode) {
+            selectionLayer.appendChild(resultNode);
+          }
+        } else {
+          this._result.forEach((node) => selectionLayer.appendChild(layer.cloneVisualElements(node)));
+        }
+        this._nextTick = 0;
+        if (this._on.update) {
+          this._on.update.forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        if (this._on[`update:${sharedName}`]) {
+          this._on[`update:${sharedName}`].forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        this.postUpdate();
+      });
+    } else {
+      if (this._on.update) {
+        this._on.update.forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      if (this._on[`update:${sharedName}`]) {
+        this._on[`update:${sharedName}`].forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      this.postUpdate();
+    }
+  }
+  isInstanceOf(name) {
+    return name === "SelectionManager" || this._baseName === name || this._name === name;
+  }
+  get results() {
+    return this._result;
+  }
+  get oldResults() {
+    return this._oldResult;
+  }
+};
+InteractionService.register("SelectionManager", {
+  constructor: SelectionManager
+});
+InteractionService.register("SurfacePointSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.SurfacePoint,
+    x: 0,
+    y: 0
+  }
+});
+InteractionService.register("PointSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Point,
+    x: 0,
+    y: 0
+  }
+});
+InteractionService.register("RectSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Rect,
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1
+  }
+});
+InteractionService.register("CircleSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Circle,
+    x: 0,
+    y: 0,
+    r: 1
+  }
+});
+InteractionService.register("PolygonSelectionManager", {
+  constructor: SelectionManager,
+  query: {
+    baseOn: QueryType.Shape,
+    type: ShapeQueryType.Polygon,
+    points: []
+  }
+});
+
+// dist/esm/service/algorithmManager.js
+var AlgorithmManager = class extends InteractionService {
+  constructor(baseName2, options) {
+    super(baseName2, options);
+    this._oldResult = null;
+    this._result = null;
+    this._nextTick = 0;
+    Object.entries(options.params || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+  }
+  setSharedVar(sharedName, value, options) {
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    if (this._userOptions.algorithm && this._userOptions.params) {
+      if (this._nextTick) {
+        cancelAnimationFrame(this._nextTick);
+      }
+      this._nextTick = requestAnimationFrame(() => {
+        this._oldResult = this._result;
+        this._result = this._userOptions.algorithm({
+          ...this._userOptions.params,
+          ...this._sharedVar
+        });
+        this._nextTick = 0;
+        if (this._on.update) {
+          this._on.update.forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        if (this._on[`update:${sharedName}`]) {
+          this._on[`update:${sharedName}`].forEach((command) => {
+            var _a, _b, _c;
+            return command.execute({
+              self: this,
+              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+            });
+          });
+        }
+        this.postUpdate();
+      });
+    } else {
+      if (this._on.update) {
+        this._on.update.forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      if (this._on[`update:${sharedName}`]) {
+        this._on[`update:${sharedName}`].forEach((command) => {
+          var _a, _b, _c;
+          return command.execute({
+            self: this,
+            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
+            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
+            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
+          });
+        });
+      }
+      this.postUpdate();
+    }
+  }
+  isInstanceOf(name) {
+    return name === "AlgorithmManager" || this._baseName === name || this._name === name;
+  }
+  get results() {
+    return this._result;
+  }
+  get oldResults() {
+    return this._oldResult;
+  }
+};
+InteractionService.register("AlgorithmManager", {
+  constructor: AlgorithmManager
+});
+
+// dist/esm/service/index.js
+var findService2 = findService;
+var instanceServices2 = instanceServices;
+var InteractionService2 = InteractionService;
+
+// dist/esm/layer/layer.js
+var registeredLayers = {};
+var instanceLayers = [];
+var siblingLayers = new Map();
+var Layer = class {
+  constructor(baseName2, options) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    options.preInitialize && options.preInitialize.call(this, this);
+    this._baseName = baseName2;
+    this._userOptions = options;
+    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
+    this._transformation = (_b = options.transformation) !== null && _b !== void 0 ? _b : {};
+    this._services = (_c = options.services) !== null && _c !== void 0 ? _c : [];
+    this._container = options.container;
+    this._sharedVar = (_d = options.sharedVar) !== null && _d !== void 0 ? _d : {};
+    this._sharedVarWatcher = {};
+    this._transformationWatcher = {};
+    this._serviceInstances = [];
+    this._redraw = options.redraw;
+    this._preInitialize = (_e = options.preInitialize) !== null && _e !== void 0 ? _e : null;
+    this._postInitialize = (_f = options.postInitialize) !== null && _f !== void 0 ? _f : null;
+    this._preUpdate = (_g = options.preUpdate) !== null && _g !== void 0 ? _g : null;
+    this._postUpdate = (_h = options.postUpdate) !== null && _h !== void 0 ? _h : null;
+    this._services.forEach((service) => {
+      if (typeof service === "string" || !("options" in service)) {
+        this.use(service);
+      } else {
+        this.use(service.service, service.options);
+      }
+    });
+    instanceLayers.push(this);
+    this._postInitialize && this._postInitialize.call(this, this);
+  }
+  getGraphic() {
+    return this._graphic;
+  }
+  getContainerGraphic() {
+    return this._container;
+  }
+  getVisualElements() {
+    return [];
+  }
+  cloneVisualElements(element, deep = false) {
+    return element.cloneNode(deep);
+  }
+  getSharedVar(sharedName, defaultValue) {
+    if (sharedName in this._sharedVar) {
+      return this._sharedVar[sharedName];
+    } else {
+      this.setSharedVar(sharedName, defaultValue);
+      return defaultValue;
+    }
+  }
+  setSharedVar(sharedName, value) {
+    this.preUpdate();
+    const oldValue = this._sharedVar[sharedName];
+    this._sharedVar[sharedName] = value;
+    if (sharedName in this._sharedVarWatcher) {
+      this._sharedVarWatcher[sharedName].forEach((callback) => {
+        if (callback instanceof Command2) {
+          callback.execute({
+            self: this,
+            layer: this,
+            instrument: null,
+            interactor: null,
+            value,
+            oldValue
+          });
+        } else {
+          callback({ value, oldValue });
+        }
+      });
+    }
+    this.postUpdate();
+  }
+  watchSharedVar(sharedName, handler) {
+    if (!(sharedName in this._sharedVarWatcher)) {
+      this._sharedVarWatcher[sharedName] = [];
+    }
+    this._sharedVarWatcher[sharedName].push(handler);
+  }
+  getTransformation(scaleName, defaultValue) {
+    if (scaleName in this._transformation) {
+      return this._transformation[scaleName];
+    } else {
+      this.setTransformation(scaleName, defaultValue);
+      return defaultValue;
+    }
+  }
+  setTransformation(scaleName, transformation) {
+    this.preUpdate();
+    const oldValue = this._transformation[scaleName];
+    this._transformation[scaleName] = transformation;
+    if (scaleName in this._transformationWatcher) {
+      this._transformationWatcher[scaleName].forEach((callback) => {
+        if (callback instanceof Command2) {
+          callback.execute({
+            self: this,
+            layer: this,
+            instrument: null,
+            interactor: null,
+            value: transformation,
+            oldValue
+          });
+        } else {
+          callback({ value: transformation, oldValue });
+        }
+      });
+    }
+    this.postUpdate();
+  }
+  watchTransformation(scaleName, handler) {
+    if (!(scaleName in this._transformationWatcher)) {
+      this._transformationWatcher[scaleName] = [];
+    }
+    this._transformationWatcher[scaleName].push(handler);
+  }
+  redraw(data, scale, selection2) {
+    this.preUpdate();
+    if (this._redraw && this._redraw instanceof Function) {
+      this._redraw(data, scale, selection2);
+    }
+    this.postUpdate();
+  }
+  preUpdate() {
+    this._preUpdate && this._preUpdate.call(this, this);
+  }
+  postUpdate() {
+    this._postUpdate && this._postUpdate.call(this, this);
+  }
+  query(options) {
+    return [];
+  }
+  _use(service, options) {
+    service.preUse(this);
+    this._serviceInstances.push(service);
+    service.postUse(this);
+  }
+  use(service, options) {
+    if (this._services.includes(service)) {
+      return;
+    }
+    if (arguments.length >= 2) {
+      this._services.push({ service, options });
+    } else {
+      this._services.push(service);
+    }
+    if (typeof service === "string") {
+      const services = findService2(service);
+      services.forEach((service2) => this._use(service2, options));
+    } else {
+      this._use(service, options);
+    }
+  }
+  getSiblingLayer(siblingLayerName) {
+    if (!siblingLayers.has(this)) {
+      siblingLayers.set(this, { [this._name]: this });
+    }
+    const siblings = siblingLayers.get(this);
+    if (!(siblingLayerName in siblings)) {
+      const layer = Layer.initialize(this._baseName, {
+        ...this._userOptions,
+        name: siblingLayerName
+      });
+      siblings[siblingLayerName] = layer;
+      layer.getGraphic() && layer.getGraphic().style && (layer.getGraphic().style.pointerEvents = "none");
+    }
+    return siblings[siblingLayerName];
+  }
+  isInstanceOf(name) {
+    return this._baseName === name || this._name === name;
+  }
+  get services() {
+    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.use.bind(this));
+  }
+};
+function register5(baseName2, options) {
+  registeredLayers[baseName2] = options;
+}
+function initialize5(baseName2, options) {
+  var _a, _b, _c, _d, _e, _f, _g;
+  const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
+    transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName2]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
+    sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
+  });
+  const layer = new mergedOptions.constructor(baseName2, mergedOptions);
+  return layer;
+}
+function findLayer(baseNameOrRealName) {
+  return instanceLayers.filter((layer) => layer.isInstanceOf(baseNameOrRealName));
+}
+Layer.register = register5;
+Layer.initialize = initialize5;
+Layer.findLayer = findLayer;
+
 // node_modules/d3-dispatch/src/dispatch.js
 var noop = { value: () => {
 } };
@@ -2983,431 +3426,6 @@ function transform(node) {
   return node.__zoom;
 }
 
-// dist/esm/service/selectionManager.js
-var SelectionManager = class extends InteractionService {
-  constructor() {
-    super(...arguments);
-    this._oldResult = [];
-    this._result = [];
-    this._nextTick = 0;
-  }
-  setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
-      const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
-      if (this._nextTick) {
-        cancelAnimationFrame(this._nextTick);
-      }
-      this._nextTick = requestAnimationFrame(() => {
-        this._oldResult = this._result;
-        this._result = layer.query({
-          ...this._userOptions.query,
-          ...this._sharedVar
-        });
-        const selectionLayer = layer.getSiblingLayer("selectionLayer").getGraphic();
-        while (selectionLayer.firstChild) {
-          selectionLayer.removeChild(selectionLayer.lastChild);
-        }
-        this._result.forEach((node) => selectionLayer.appendChild(select_default2(node).clone(false).node()));
-        this._nextTick = 0;
-        if (this._on.update) {
-          this._on.update.forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
-        }
-        if (this._on[`update:${sharedName}`]) {
-          this._on[`update:${sharedName}`].forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
-        }
-        this.postUpdate();
-      });
-    } else {
-      if (this._on.update) {
-        this._on.update.forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
-      }
-      if (this._on[`update:${sharedName}`]) {
-        this._on[`update:${sharedName}`].forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
-      }
-      this.postUpdate();
-    }
-  }
-  isInstanceOf(name) {
-    return name === "SelectionManager" || this._baseName === name || this._name === name;
-  }
-  get results() {
-    return this._result;
-  }
-  get oldResults() {
-    return this._oldResult;
-  }
-};
-InteractionService.register("SelectionManager", {
-  constructor: SelectionManager
-});
-InteractionService.register("SurfacePointSelectionManager", {
-  constructor: SelectionManager,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.SurfacePoint,
-    x: 0,
-    y: 0
-  }
-});
-InteractionService.register("PointSelectionManager", {
-  constructor: SelectionManager,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Point,
-    x: 0,
-    y: 0
-  }
-});
-InteractionService.register("RectSelectionManager", {
-  constructor: SelectionManager,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Rect,
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1
-  }
-});
-InteractionService.register("CircleSelectionManager", {
-  constructor: SelectionManager,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Circle,
-    x: 0,
-    y: 0,
-    r: 1
-  }
-});
-InteractionService.register("PolygonSelectionManager", {
-  constructor: SelectionManager,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Polygon,
-    points: []
-  }
-});
-
-// dist/esm/service/algorithmManager.js
-var AlgorithmManager = class extends InteractionService {
-  constructor(baseName2, options) {
-    super(baseName2, options);
-    this._oldResult = null;
-    this._result = null;
-    this._nextTick = 0;
-    Object.entries(options.params || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
-  }
-  setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if (this._userOptions.algorithm && this._userOptions.params) {
-      if (this._nextTick) {
-        cancelAnimationFrame(this._nextTick);
-      }
-      this._nextTick = requestAnimationFrame(() => {
-        this._oldResult = this._result;
-        this._result = this._userOptions.algorithm({
-          ...this._userOptions.params,
-          ...this._sharedVar
-        });
-        this._nextTick = 0;
-        if (this._on.update) {
-          this._on.update.forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
-        }
-        if (this._on[`update:${sharedName}`]) {
-          this._on[`update:${sharedName}`].forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
-        }
-        this.postUpdate();
-      });
-    } else {
-      if (this._on.update) {
-        this._on.update.forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
-      }
-      if (this._on[`update:${sharedName}`]) {
-        this._on[`update:${sharedName}`].forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
-      }
-      this.postUpdate();
-    }
-  }
-  isInstanceOf(name) {
-    return name === "AlgorithmManager" || this._baseName === name || this._name === name;
-  }
-  get results() {
-    return this._result;
-  }
-  get oldResults() {
-    return this._oldResult;
-  }
-};
-InteractionService.register("AlgorithmManager", {
-  constructor: AlgorithmManager
-});
-
-// dist/esm/service/index.js
-var findService2 = findService;
-var instanceServices2 = instanceServices;
-var InteractionService2 = InteractionService;
-
-// dist/esm/layer/layer.js
-var registeredLayers = {};
-var instanceLayers = [];
-var siblingLayers = new Map();
-var Layer = class {
-  constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
-    this._transformation = (_b = options.transformation) !== null && _b !== void 0 ? _b : {};
-    this._services = (_c = options.services) !== null && _c !== void 0 ? _c : [];
-    this._container = options.container;
-    this._sharedVar = (_d = options.sharedVar) !== null && _d !== void 0 ? _d : {};
-    this._sharedVarWatcher = {};
-    this._transformationWatcher = {};
-    this._serviceInstances = [];
-    this._redraw = options.redraw;
-    this._preInitialize = (_e = options.preInitialize) !== null && _e !== void 0 ? _e : null;
-    this._postInitialize = (_f = options.postInitialize) !== null && _f !== void 0 ? _f : null;
-    this._preUpdate = (_g = options.preUpdate) !== null && _g !== void 0 ? _g : null;
-    this._postUpdate = (_h = options.postUpdate) !== null && _h !== void 0 ? _h : null;
-    this._services.forEach((service) => {
-      if (typeof service === "string" || !("options" in service)) {
-        this.use(service);
-      } else {
-        this.use(service.service, service.options);
-      }
-    });
-    instanceLayers.push(this);
-    this._postInitialize && this._postInitialize.call(this, this);
-  }
-  getGraphic() {
-    return this._graphic;
-  }
-  getContainerGraphic() {
-    return this._container;
-  }
-  getVisualElements() {
-    return [];
-  }
-  getSharedVar(sharedName, defaultValue) {
-    if (sharedName in this._sharedVar) {
-      return this._sharedVar[sharedName];
-    } else {
-      this.setSharedVar(sharedName, defaultValue);
-      return defaultValue;
-    }
-  }
-  setSharedVar(sharedName, value) {
-    this.preUpdate();
-    const oldValue = this._sharedVar[sharedName];
-    this._sharedVar[sharedName] = value;
-    if (sharedName in this._sharedVarWatcher) {
-      this._sharedVarWatcher[sharedName].forEach((callback) => {
-        if (callback instanceof Command2) {
-          callback.execute({
-            self: this,
-            layer: this,
-            instrument: null,
-            interactor: null,
-            value,
-            oldValue
-          });
-        } else {
-          callback({ value, oldValue });
-        }
-      });
-    }
-    this.postUpdate();
-  }
-  watchSharedVar(sharedName, handler) {
-    if (!(sharedName in this._sharedVarWatcher)) {
-      this._sharedVarWatcher[sharedName] = [];
-    }
-    this._sharedVarWatcher[sharedName].push(handler);
-  }
-  getTransformation(scaleName, defaultValue) {
-    if (scaleName in this._transformation) {
-      return this._transformation[scaleName];
-    } else {
-      this.setTransformation(scaleName, defaultValue);
-      return defaultValue;
-    }
-  }
-  setTransformation(scaleName, transformation) {
-    this.preUpdate();
-    const oldValue = this._transformation[scaleName];
-    this._transformation[scaleName] = transformation;
-    if (scaleName in this._transformationWatcher) {
-      this._transformationWatcher[scaleName].forEach((callback) => {
-        if (callback instanceof Command2) {
-          callback.execute({
-            self: this,
-            layer: this,
-            instrument: null,
-            interactor: null,
-            value: transformation,
-            oldValue
-          });
-        } else {
-          callback({ value: transformation, oldValue });
-        }
-      });
-    }
-    this.postUpdate();
-  }
-  watchTransformation(scaleName, handler) {
-    if (!(scaleName in this._transformationWatcher)) {
-      this._transformationWatcher[scaleName] = [];
-    }
-    this._transformationWatcher[scaleName].push(handler);
-  }
-  redraw(data, scale, selection2) {
-    this.preUpdate();
-    if (this._redraw && this._redraw instanceof Function) {
-      this._redraw(data, scale, selection2);
-    }
-    this.postUpdate();
-  }
-  preUpdate() {
-    this._preUpdate && this._preUpdate.call(this, this);
-  }
-  postUpdate() {
-    this._postUpdate && this._postUpdate.call(this, this);
-  }
-  query(options) {
-    return [];
-  }
-  _use(service, options) {
-    service.preUse(this);
-    this._serviceInstances.push(service);
-    service.postUse(this);
-  }
-  use(service, options) {
-    if (this._services.includes(service)) {
-      return;
-    }
-    if (arguments.length >= 2) {
-      this._services.push({ service, options });
-    } else {
-      this._services.push(service);
-    }
-    if (typeof service === "string") {
-      const services = findService2(service);
-      services.forEach((service2) => this._use(service2, options));
-    } else {
-      this._use(service, options);
-    }
-  }
-  getSiblingLayer(siblingLayerName) {
-    if (!siblingLayers.has(this)) {
-      siblingLayers.set(this, { [this._name]: this });
-    }
-    const siblings = siblingLayers.get(this);
-    if (!(siblingLayerName in siblings)) {
-      const layer = Layer.initialize(this._baseName, {
-        ...this._userOptions,
-        name: siblingLayerName
-      });
-      siblings[siblingLayerName] = layer;
-      layer.getGraphic() && layer.getGraphic().style && (layer.getGraphic().style.pointerEvents = "none");
-    }
-    return siblings[siblingLayerName];
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  get services() {
-    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.use.bind(this));
-  }
-};
-function register5(baseName2, options) {
-  registeredLayers[baseName2] = options;
-}
-function initialize5(baseName2, options) {
-  var _a, _b, _c, _d, _e, _f, _g;
-  const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
-    transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName2]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
-    sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
-  });
-  const layer = new mergedOptions.constructor(baseName2, mergedOptions);
-  return layer;
-}
-function findLayer(baseNameOrRealName) {
-  return instanceLayers.filter((layer) => layer.isInstanceOf(baseNameOrRealName));
-}
-Layer.register = register5;
-Layer.initialize = initialize5;
-Layer.findLayer = findLayer;
-
 // dist/esm/layer/d3Layer.js
 var baseName = "D3Layer";
 var backgroundClassName = "ig-layer-background";
@@ -3431,6 +3449,9 @@ var D3Layer = class extends Layer {
       ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)
     ];
     return elems;
+  }
+  cloneVisualElements(element, deep = false) {
+    return select_default2(element).clone(deep).node();
   }
   select(selector) {
     return this._graphic.querySelectorAll(selector);

@@ -111,6 +111,9 @@ export default class Layer<T> {
   getVisualElements(): T[] {
     return [];
   }
+  cloneVisualElements(element: Element, deep: boolean = false) {
+    return element.cloneNode(deep);
+  }
   getSharedVar(sharedName: string, defaultValue?: any): any {
     if (sharedName in this._sharedVar) {
       return this._sharedVar[sharedName];

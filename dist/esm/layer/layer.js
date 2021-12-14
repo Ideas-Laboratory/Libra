@@ -43,6 +43,9 @@ export default class Layer {
     getVisualElements() {
         return [];
     }
+    cloneVisualElements(element, deep = false) {
+        return element.cloneNode(deep);
+    }
     getSharedVar(sharedName, defaultValue) {
         if (sharedName in this._sharedVar) {
             return this._sharedVar[sharedName];

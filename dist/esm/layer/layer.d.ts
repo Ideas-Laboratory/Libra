@@ -63,6 +63,7 @@ export default class Layer<T> {
     getGraphic(): T;
     getContainerGraphic(): HTMLElement;
     getVisualElements(): T[];
+    cloneVisualElements(element: Element, deep?: boolean): Node;
     getSharedVar(sharedName: string, defaultValue?: any): any;
     setSharedVar(sharedName: string, value: any): void;
     watchSharedVar(sharedName: string, handler: Function | Command): void;

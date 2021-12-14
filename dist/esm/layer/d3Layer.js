@@ -35,6 +35,9 @@ export default class D3Layer extends Layer {
         ];
         return elems;
     }
+    cloneVisualElements(element, deep = false) {
+        return d3.select(element).clone(deep).node();
+    }
     // onObject(pointer: { x: number, y: number }): boolean {
     //   const elements = document.elementsFromPoint(pointer.x, pointer.y);
     //   return (
