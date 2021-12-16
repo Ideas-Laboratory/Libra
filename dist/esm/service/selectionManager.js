@@ -29,18 +29,27 @@ export default class SelectionManager extends InteractionService {
                     selectionLayer.removeChild(selectionLayer.lastChild);
                 }
                 if (this._sharedVar.deepClone) {
-                    let resultNode;
+                    let resultNodes = [];
+                    let refNodes = [];
                     this._result.forEach((node) => {
                         if (node !== layer.getGraphic()) {
-                            if (resultNode) {
-                                resultNode.remove(); // avoid redundant elements
+                            let k = refNodes.length;
+                            for (let i = 0; i < k; i++) {
+                                const refNode = refNodes[i];
+                                const resultNode = resultNodes[i];
+                                if (node.contains(refNode)) {
+                                    refNodes.splice(i, 1);
+                                    resultNodes.splice(i, 1);
+                                    resultNode.remove();
+                                    i--;
+                                    k--;
+                                }
                             }
-                            resultNode = layer.cloneVisualElements(node, this._sharedVar.deepClone);
+                            resultNodes.push(layer.cloneVisualElements(node, this._sharedVar.deepClone));
+                            refNodes.push(node);
                         }
                     });
-                    if (resultNode) {
-                        selectionLayer.appendChild(resultNode);
-                    }
+                    resultNodes.forEach((resultNode) => selectionLayer.appendChild(resultNode));
                 }
                 else {
                     this._result.forEach((node) => selectionLayer.appendChild(layer.cloneVisualElements(node)));
