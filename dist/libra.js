@@ -3960,6 +3960,72 @@ Instrument.register("BrushXInstrument", {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
+Instrument.register("BrushYInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("x", baseBBox.x);
+          service.setSharedVar("y", event.clientY);
+          service.setSharedVar("width", baseBBox.width);
+          service.setSharedVar("height", 1);
+          service.setSharedVar("starty", event.clientY);
+          service.setSharedVar("currenty", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ],
+    drag: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          const startx = service.getSharedVar("startx");
+          const starty = service.getSharedVar("starty");
+          service.setSharedVar("y", Math.min(event.clientY, starty));
+          service.setSharedVar("height", Math.abs(event.clientY - starty));
+          service.setSharedVar("currenty", event.clientY);
+          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = `<rect x=0 y=${Math.min(event.clientY, starty) - baseBBox.y} width=${baseBBox.width} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
+        });
+      }
+    ],
+    dragend: [
+      ({ event, layer, instrument }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endy", event.clientY);
+          if (!instrument.getSharedVar("persistant")) {
+            const transientLayer = layer.getSiblingLayer("transientLayer");
+            transientLayer.getGraphic().innerHTML = "";
+          }
+        });
+      }
+    ],
+    dragabort: [
+      ({ event, layer }) => {
+        layer.services.find("SelectionManager").forEach((service) => {
+          service.setSharedVar("x", 0);
+          service.setSharedVar("y", 0);
+          service.setSharedVar("width", 0);
+          service.setSharedVar("height", 0);
+          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("endy", event.clientY);
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        });
+      }
+    ]
+  },
+  preUse: (instrument, layer) => {
+    layer.services.find("SelectionManager", "RectSelectionManager");
+  }
+});
 Instrument.register("HelperBarInstrument", {
   constructor: Instrument,
   interactors: ["MousePositionInteractor"],
