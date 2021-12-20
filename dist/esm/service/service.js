@@ -13,7 +13,7 @@ export default class InteractionService {
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
         this._postUpdate = options.postUpdate ?? null;
-        this._preUse = options.preUse ?? null;
+        this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
         Object.entries(options.sharedVar || {}).forEach((entry) => {
             this.setSharedVar(entry[0], entry[1]);
@@ -65,8 +65,8 @@ export default class InteractionService {
     postUpdate() {
         this._postUpdate && this._postUpdate.call(this, this);
     }
-    preUse(layer) {
-        this._preUse && this._preUse.call(this, this, layer);
+    preAttach(layer) {
+        this._preAttach && this._preAttach.call(this, this, layer);
         this._layerInstances.push(layer);
     }
     postUse(layer) {

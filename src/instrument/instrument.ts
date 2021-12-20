@@ -20,7 +20,7 @@ type InstrumentInitOption = {
   sharedVar?: { [varName: string]: any };
   preInitialize?: (instrument: Instrument) => void;
   postInitialize?: (instrument: Instrument) => void;
-  preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
   postUse?: (instrument: Instrument, layer: Layer<any>) => void;
   [param: string]: any;
 };
@@ -32,6 +32,7 @@ type InstrumentInitTemplate = InstrumentInitOption & {
 
 const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
 const instanceInstruments: Instrument[] = [];
+let lastEvent = null;
 
 export default class Instrument {
   _baseName: string;
@@ -48,14 +49,14 @@ export default class Instrument {
   _sharedVar: { [varName: string]: any };
   _preInitialize?: (instrument: Instrument) => void;
   _postInitialize?: (instrument: Instrument) => void;
-  _preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
   _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
 
   constructor(baseName: string, options: InstrumentInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
-    this._preUse = options.preUse ?? null;
+    this._preAttach = options.preAttach ?? null;
     this._postUse = options.postUse ?? null;
     this._baseName = baseName;
     this._userOptions = options;
@@ -189,19 +190,19 @@ export default class Instrument {
       } else {
         layr = layer.layer;
       }
-      interactor
-        .getAcceptEvents()
-        .forEach((event) =>
-          layr
-            .getContainerGraphic()
-            .addEventListener(event, (e) => interactor.dispatch(e, layr))
-        );
+      interactor.getAcceptEvents().forEach((event) =>
+        layr.getContainerGraphic().addEventListener(event, (e) => {
+          console.log(e == lastEvent);
+          lastEvent = e;
+          interactor.dispatch(e, layr);
+        })
+      );
     });
     interactor.postUse(this);
   }
 
   attach(layer: Layer<any>, options?: any) {
-    this.preUse(layer);
+    this.preAttach(layer);
     if (arguments.length >= 2) {
       this._layers.push({ layer, options });
     } else {
@@ -249,8 +250,8 @@ export default class Instrument {
     this.on(`update:${sharedName}`, handler);
   }
 
-  preUse(layer: Layer<any>) {
-    this._preUse && this._preUse.call(this, this, layer);
+  preAttach(layer: Layer<any>) {
+    this._preAttach && this._preAttach.call(this, this, layer);
     this._interactors.forEach((interactor) => {
       let inter: Interactor;
       if (interactor instanceof Interactor) {

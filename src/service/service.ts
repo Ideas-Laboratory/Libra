@@ -9,7 +9,7 @@ type ServiceInitOption = {
   postInitialize?: (service: InteractionService) => void;
   preUpdate?: (service: InteractionService) => void;
   postUpdate?: (service: InteractionService) => void;
-  preUse?: (service: InteractionService, layer: Layer<any>) => void;
+  preAttach?: (service: InteractionService, layer: Layer<any>) => void;
   postUse?: (service: InteractionService, layer: Layer<any>) => void;
   [param: string]: any;
 };
@@ -32,7 +32,7 @@ export default class InteractionService {
   _postInitialize?: (service: InteractionService) => void;
   _preUpdate?: (service: InteractionService) => void;
   _postUpdate?: (service: InteractionService) => void;
-  _preUse?: (service: InteractionService, layer: Layer<any>) => void;
+  _preAttach?: (service: InteractionService, layer: Layer<any>) => void;
   _postUse?: (service: InteractionService, layer: Layer<any>) => void;
   _layerInstances: Layer<any>[];
 
@@ -48,7 +48,7 @@ export default class InteractionService {
     this._postInitialize = options.postInitialize ?? null;
     this._preUpdate = options.preUpdate ?? null;
     this._postUpdate = options.postUpdate ?? null;
-    this._preUse = options.preUse ?? null;
+    this._preAttach = options.preAttach ?? null;
     this._postUse = options.postUse ?? null;
     Object.entries(options.sharedVar || {}).forEach((entry) => {
       this.setSharedVar(entry[0], entry[1]);
@@ -113,8 +113,8 @@ export default class InteractionService {
     this._postUpdate && this._postUpdate.call(this, this);
   }
 
-  preUse(layer: Layer<any>) {
-    this._preUse && this._preUse.call(this, this, layer);
+  preAttach(layer: Layer<any>) {
+    this._preAttach && this._preAttach.call(this, this, layer);
     this._layerInstances.push(layer);
   }
 

@@ -12,7 +12,7 @@ Instrument.register("HoverInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "SurfacePointSelectionManager");
     },
@@ -85,7 +85,7 @@ Instrument.register("BrushInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
@@ -150,7 +150,7 @@ Instrument.register("BrushXInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
@@ -217,7 +217,7 @@ Instrument.register("BrushYInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
@@ -237,7 +237,7 @@ Instrument.register("HelperBarInstrument", {
             },
         ],
     },
-    preUse: function (instrument, layer) {
+    preAttach: function (instrument, layer) {
         console.log("preuse");
         const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
@@ -333,7 +333,7 @@ Instrument.register("DataBrushInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
@@ -403,7 +403,7 @@ Instrument.register("DataBrushXInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "RectSelectionManager");
     },
@@ -437,7 +437,7 @@ Instrument.register("ClickInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "SurfacePointSelectionManager");
     },
@@ -504,7 +504,7 @@ Instrument.register("DragInstrument", {
             },
         ],
     },
-    preUse: (instrument, layer) => {
+    preAttach: (instrument, layer) => {
         // Create default SM on layer
         layer.services.find("SelectionManager", "SurfacePointSelectionManager");
     },

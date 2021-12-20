@@ -20,7 +20,7 @@ declare type InstrumentInitOption = {
     };
     preInitialize?: (instrument: Instrument) => void;
     postInitialize?: (instrument: Instrument) => void;
-    preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+    preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
     postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     [param: string]: any;
 };
@@ -48,7 +48,7 @@ export default class Instrument {
     };
     _preInitialize?: (instrument: Instrument) => void;
     _postInitialize?: (instrument: Instrument) => void;
-    _preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+    _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
     _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     constructor(baseName: string, options: InstrumentInitOption);
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
@@ -59,7 +59,7 @@ export default class Instrument {
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): void;
     watchSharedVar(sharedName: string, handler: Command): void;
-    preUse(layer: Layer<any>): void;
+    preAttach(layer: Layer<any>): void;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: InstrumentInitTemplate): void;

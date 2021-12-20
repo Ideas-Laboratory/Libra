@@ -77,6 +77,9 @@ export default class Layer<T> {
     _use(service: InteractionService, options?: any): void;
     use(service: string | InteractionService, options?: any): void;
     getSiblingLayer(siblingLayerName: string): Layer<T>;
+    setLayersOrder(layerNameOrderKVPairs: {
+        [key: string]: number;
+    }): void;
     isInstanceOf(name: string): boolean;
     get services(): any;
 }

@@ -518,7 +518,7 @@ var InteractionService = class {
     this._postInitialize = options.postInitialize ?? null;
     this._preUpdate = options.preUpdate ?? null;
     this._postUpdate = options.postUpdate ?? null;
-    this._preUse = options.preUse ?? null;
+    this._preAttach = options.preAttach ?? null;
     this._postUse = options.postUse ?? null;
     Object.entries(options.sharedVar || {}).forEach((entry) => {
       this.setSharedVar(entry[0], entry[1]);
@@ -568,8 +568,8 @@ var InteractionService = class {
   postUpdate() {
     this._postUpdate && this._postUpdate.call(this, this);
   }
-  preUse(layer) {
-    this._preUse && this._preUse.call(this, this, layer);
+  preAttach(layer) {
+    this._preAttach && this._preAttach.call(this, this, layer);
     this._layerInstances.push(layer);
   }
   postUse(layer) {
@@ -853,6 +853,7 @@ var InteractionService2 = InteractionService;
 var registeredLayers = {};
 var instanceLayers = [];
 var siblingLayers = new Map();
+var orderLayers = new Map();
 var Layer = class {
   constructor(baseName2, options) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -982,7 +983,7 @@ var Layer = class {
     return [];
   }
   _use(service, options) {
-    service.preUse(this);
+    service.preAttach(this);
     this._serviceInstances.push(service);
     service.postUse(this);
   }
@@ -1006,6 +1007,9 @@ var Layer = class {
     if (!siblingLayers.has(this)) {
       siblingLayers.set(this, { [this._name]: this });
     }
+    if (!orderLayers.has(this)) {
+      orderLayers.set(this, { [this._name]: 0 });
+    }
     const siblings = siblingLayers.get(this);
     if (!(siblingLayerName in siblings)) {
       const layer = Layer.initialize(this._baseName, {
@@ -1015,7 +1019,31 @@ var Layer = class {
       siblings[siblingLayerName] = layer;
       layer.getGraphic() && layer.getGraphic().style && (layer.getGraphic().style.pointerEvents = "none");
     }
+    if (!(siblingLayerName in orderLayers.get(this))) {
+      orderLayers.get(this)[siblingLayerName] = -1;
+    }
     return siblings[siblingLayerName];
+  }
+  setLayersOrder(layerNameOrderKVPairs) {
+    if (!siblingLayers.has(this)) {
+      siblingLayers.set(this, { [this._name]: this });
+    }
+    if (!orderLayers.has(this)) {
+      orderLayers.set(this, { [this._name]: 0 });
+    }
+    const orders = orderLayers.get(this);
+    Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
+      orders[layerName] = order;
+      if (order >= 0) {
+        const graphic = this.getSiblingLayer(layerName).getGraphic();
+        graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+        graphic && graphic.style && (graphic.style.display = "initial");
+      } else {
+        const graphic = this.getSiblingLayer(layerName).getGraphic();
+        graphic && graphic.style && (graphic.style.pointerEvents = "none");
+        graphic && graphic.style && (graphic.style.display = "none");
+      }
+    });
   }
   isInstanceOf(name) {
     return this._baseName === name || this._name === name;
@@ -3662,12 +3690,13 @@ var Layer2 = Layer;
 // dist/esm/instrument/instrument.js
 var registeredInstruments = {};
 var instanceInstruments = [];
+var lastEvent = null;
 var Instrument = class {
   constructor(baseName2, options) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
-    this._preUse = options.preUse ?? null;
+    this._preAttach = options.preAttach ?? null;
     this._postUse = options.postUse ?? null;
     this._baseName = baseName2;
     this._userOptions = options;
@@ -3769,12 +3798,16 @@ var Instrument = class {
       } else {
         layr = layer.layer;
       }
-      interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => interactor.dispatch(e, layr)));
+      interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => {
+        console.log(e == lastEvent);
+        lastEvent = e;
+        interactor.dispatch(e, layr);
+      }));
     });
     interactor.postUse(this);
   }
   attach(layer, options) {
-    this.preUse(layer);
+    this.preAttach(layer);
     if (arguments.length >= 2) {
       this._layers.push({ layer, options });
     } else {
@@ -3814,8 +3847,8 @@ var Instrument = class {
   watchSharedVar(sharedName, handler) {
     this.on(`update:${sharedName}`, handler);
   }
-  preUse(layer) {
-    this._preUse && this._preUse.call(this, this, layer);
+  preAttach(layer) {
+    this._preAttach && this._preAttach.call(this, this, layer);
     this._interactors.forEach((interactor) => {
       let inter;
       if (interactor instanceof Interactor2) {
@@ -3869,7 +3902,7 @@ Instrument.register("HoverInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
   }
 });
@@ -3941,7 +3974,7 @@ Instrument.register("BrushInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
@@ -4004,7 +4037,7 @@ Instrument.register("BrushXInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
@@ -4070,7 +4103,7 @@ Instrument.register("BrushYInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
@@ -4089,7 +4122,7 @@ Instrument.register("HelperBarInstrument", {
       }
     ]
   },
-  preUse: function(instrument, layer) {
+  preAttach: function(instrument, layer) {
     console.log("preuse");
     const height = layer.getSharedVar("height", 100);
     const transientLayer = layer.getSiblingLayer("transientLayer");
@@ -4177,7 +4210,7 @@ Instrument.register("DataBrushInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
@@ -4243,7 +4276,7 @@ Instrument.register("DataBrushXInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "RectSelectionManager");
   }
 });
@@ -4276,7 +4309,7 @@ Instrument.register("ClickInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
   }
 });
@@ -4342,7 +4375,7 @@ Instrument.register("DragInstrument", {
       }
     ]
   },
-  preUse: (instrument, layer) => {
+  preAttach: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
   }
 });

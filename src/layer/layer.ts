@@ -41,6 +41,7 @@ const siblingLayers: Map<
   Layer<any>,
   { [name: string]: Layer<any> }
 > = new Map();
+const orderLayers: Map<Layer<any>, { [name: string]: number }> = new Map();
 
 export default class Layer<T> {
   static register: (baseName: string, options: LayerRegisterOption) => void;
@@ -210,7 +211,7 @@ export default class Layer<T> {
     return [];
   }
   _use(service: InteractionService, options?: any) {
-    service.preUse(this);
+    service.preAttach(this);
     this._serviceInstances.push(service);
     service.postUse(this);
   }
@@ -234,6 +235,9 @@ export default class Layer<T> {
     if (!siblingLayers.has(this)) {
       siblingLayers.set(this, { [this._name]: this });
     }
+    if (!orderLayers.has(this)) {
+      orderLayers.set(this, { [this._name]: 0 });
+    }
     const siblings = siblingLayers.get(this);
     if (!(siblingLayerName in siblings)) {
       const layer = Layer.initialize(this._baseName, {
@@ -246,7 +250,31 @@ export default class Layer<T> {
         ((layer.getGraphic() as any).style.pointerEvents = "none");
       // only receive events by main layer
     }
+    if (!(siblingLayerName in orderLayers.get(this))) {
+      orderLayers.get(this)[siblingLayerName] = -1;
+    }
     return siblings[siblingLayerName];
+  }
+  setLayersOrder(layerNameOrderKVPairs: { [key: string]: number }): void {
+    if (!siblingLayers.has(this)) {
+      siblingLayers.set(this, { [this._name]: this });
+    }
+    if (!orderLayers.has(this)) {
+      orderLayers.set(this, { [this._name]: 0 });
+    }
+    const orders = orderLayers.get(this);
+    Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
+      orders[layerName] = order;
+      if (order >= 0) {
+        const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+        graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+        graphic && graphic.style && (graphic.style.display = "initial");
+      } else {
+        const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+        graphic && graphic.style && (graphic.style.pointerEvents = "none");
+        graphic && graphic.style && (graphic.style.display = "none");
+      }
+    });
   }
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;

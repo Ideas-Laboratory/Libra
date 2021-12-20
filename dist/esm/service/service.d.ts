@@ -12,7 +12,7 @@ declare type ServiceInitOption = {
     postInitialize?: (service: InteractionService) => void;
     preUpdate?: (service: InteractionService) => void;
     postUpdate?: (service: InteractionService) => void;
-    preUse?: (service: InteractionService, layer: Layer<any>) => void;
+    preAttach?: (service: InteractionService, layer: Layer<any>) => void;
     postUse?: (service: InteractionService, layer: Layer<any>) => void;
     [param: string]: any;
 };
@@ -35,7 +35,7 @@ export default class InteractionService {
     _postInitialize?: (service: InteractionService) => void;
     _preUpdate?: (service: InteractionService) => void;
     _postUpdate?: (service: InteractionService) => void;
-    _preUse?: (service: InteractionService, layer: Layer<any>) => void;
+    _preAttach?: (service: InteractionService, layer: Layer<any>) => void;
     _postUse?: (service: InteractionService, layer: Layer<any>) => void;
     _layerInstances: Layer<any>[];
     constructor(baseName: string, options: ServiceInitOption);
@@ -45,7 +45,7 @@ export default class InteractionService {
     watchSharedVar(sharedName: string, handler: Command): void;
     preUpdate(): void;
     postUpdate(): void;
-    preUse(layer: Layer<any>): void;
+    preAttach(layer: Layer<any>): void;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: ServiceInitTemplate): void;

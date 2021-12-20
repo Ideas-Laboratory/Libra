@@ -4,6 +4,7 @@ import { Command } from "../command";
 const registeredLayers = {};
 const instanceLayers = [];
 const siblingLayers = new Map();
+const orderLayers = new Map();
 export default class Layer {
     constructor(baseName, options) {
         options.preInitialize && options.preInitialize.call(this, this);
@@ -139,7 +140,7 @@ export default class Layer {
         return [];
     }
     _use(service, options) {
-        service.preUse(this);
+        service.preAttach(this);
         this._serviceInstances.push(service);
         service.postUse(this);
     }
@@ -165,6 +166,9 @@ export default class Layer {
         if (!siblingLayers.has(this)) {
             siblingLayers.set(this, { [this._name]: this });
         }
+        if (!orderLayers.has(this)) {
+            orderLayers.set(this, { [this._name]: 0 });
+        }
         const siblings = siblingLayers.get(this);
         if (!(siblingLayerName in siblings)) {
             const layer = Layer.initialize(this._baseName, {
@@ -177,7 +181,32 @@ export default class Layer {
                 (layer.getGraphic().style.pointerEvents = "none");
             // only receive events by main layer
         }
+        if (!(siblingLayerName in orderLayers.get(this))) {
+            orderLayers.get(this)[siblingLayerName] = -1;
+        }
         return siblings[siblingLayerName];
+    }
+    setLayersOrder(layerNameOrderKVPairs) {
+        if (!siblingLayers.has(this)) {
+            siblingLayers.set(this, { [this._name]: this });
+        }
+        if (!orderLayers.has(this)) {
+            orderLayers.set(this, { [this._name]: 0 });
+        }
+        const orders = orderLayers.get(this);
+        Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
+            orders[layerName] = order;
+            if (order >= 0) {
+                const graphic = this.getSiblingLayer(layerName).getGraphic();
+                graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+                graphic && graphic.style && (graphic.style.display = "initial");
+            }
+            else {
+                const graphic = this.getSiblingLayer(layerName).getGraphic();
+                graphic && graphic.style && (graphic.style.pointerEvents = "none");
+                graphic && graphic.style && (graphic.style.display = "none");
+            }
+        });
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

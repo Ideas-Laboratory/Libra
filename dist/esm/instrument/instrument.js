@@ -3,12 +3,13 @@ import { Command } from "../command";
 import { Layer } from "../layer";
 const registeredInstruments = {};
 const instanceInstruments = [];
+let lastEvent = null;
 export default class Instrument {
     constructor(baseName, options) {
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
-        this._preUse = options.preUse ?? null;
+        this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
         this._baseName = baseName;
         this._userOptions = options;
@@ -120,16 +121,16 @@ export default class Instrument {
             else {
                 layr = layer.layer;
             }
-            interactor
-                .getAcceptEvents()
-                .forEach((event) => layr
-                .getContainerGraphic()
-                .addEventListener(event, (e) => interactor.dispatch(e, layr)));
+            interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => {
+                console.log(e == lastEvent);
+                lastEvent = e;
+                interactor.dispatch(e, layr);
+            }));
         });
         interactor.postUse(this);
     }
     attach(layer, options) {
-        this.preUse(layer);
+        this.preAttach(layer);
         if (arguments.length >= 2) {
             this._layers.push({ layer, options });
         }
@@ -173,8 +174,8 @@ export default class Instrument {
     watchSharedVar(sharedName, handler) {
         this.on(`update:${sharedName}`, handler);
     }
-    preUse(layer) {
-        this._preUse && this._preUse.call(this, this, layer);
+    preAttach(layer) {
+        this._preAttach && this._preAttach.call(this, this, layer);
         this._interactors.forEach((interactor) => {
             let inter;
             if (interactor instanceof Interactor) {

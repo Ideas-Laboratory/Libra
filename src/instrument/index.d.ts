@@ -15,7 +15,7 @@ type InstrumentInitOption = {
   sharedVar?: { [varName: string]: any };
   preInitialize?: (instrument: Instrument) => void;
   postInitialize?: (instrument: Instrument) => void;
-  preUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
   postUse?: (instrument: Instrument, layer: Layer<any>) => void;
   [param: string]: any;
 };
