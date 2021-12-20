@@ -6,17 +6,17 @@ Interactor.register("MousePositionInteractor", {
   actions: [
     {
       action: "enter",
-      events: ["mouseenter"],
+      events: ["mouseenter, touchstart"],
       transition: [["start", "running"]],
     },
     {
       action: "hover",
-      events: ["mousemove"],
+      events: ["mousemove", "touchmove"],
       transition: [["running", "running"]],
     },
     {
       action: "leave",
-      events: ["mouseleave"],
+      events: ["mouseleave", "touchend"],
       transition: [
         ["running", "start"],
         ["start", "start"],
@@ -31,22 +31,22 @@ Interactor.register("MouseTraceInteractor", {
   actions: [
     {
       action: "dragstart",
-      events: ["mousedown"],
+      events: ["mousedown", "touchstart"],
       transition: [["start", "drag"]],
     },
     {
       action: "drag",
-      events: ["mousemove"],
+      events: ["mousemove", "touchmove"],
       transition: [["drag", "drag"]],
     },
     {
       action: "dragend",
-      events: ["mouseup"],
+      events: ["mouseup", "touchend"],
       transition: [["drag", "start"]],
     },
     {
       action: "dragabort",
-      events: ["contextmenu"],
+      events: ["contextmenu", "touchcancel"],
       transition: [
         ["drag", "start"],
         ["start", "start"],

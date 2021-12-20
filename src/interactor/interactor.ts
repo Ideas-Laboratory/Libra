@@ -2,12 +2,20 @@ import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 import { Layer } from "../layer";
 import Actions from "./actions.jsgf";
+import actionsJsgf from "./actions.jsgf";
 
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 
-type InteractorInnerAction = {
+type OriginInteractorInnerAction = {
   action: string;
   events: string[];
+  transition?: [string, string][];
+  sideEffect?: SideEffect;
+};
+
+type InteractorInnerAction = {
+  action: string;
+  eventStreams: helpers.EventStream[];
   transition?: [string, string][];
   sideEffect?: SideEffect;
 };
@@ -15,7 +23,7 @@ type InteractorInnerAction = {
 type InteractorInitOption = {
   name?: string;
   state: string;
-  actions?: InteractorInnerAction[];
+  actions?: OriginInteractorInnerAction[];
   preInitialize?: (interactor: Interactor) => void;
   postInitialize?: (interactor: Interactor) => void;
   preUse?: (interactor: Interactor, instrument: Instrument) => void;
@@ -42,6 +50,7 @@ export default class Interactor {
   _userOptions: InteractorInitOption;
   _state: string;
   _actions: InteractorInnerAction[];
+  _events: string[];
   _preInitialize?: (interactor: Interactor) => void;
   _postInitialize?: (interactor: Interactor) => void;
   _preUse?: (interactor: Interactor, instrument: Instrument) => void;
@@ -54,7 +63,7 @@ export default class Interactor {
     this._userOptions = options;
     this._name = options.name ?? baseName;
     this._state = options.state;
-    this._actions = options.actions ?? [];
+    this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
     this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -109,40 +118,45 @@ export default class Interactor {
       stream:
         | helpers.EventStream
         | {
-            between: (helpers.EventStream | helpers.BetweenEventStream)[];
-            stream: helpers.BetweenEventStream[];
-          }
+          between: (helpers.EventStream | helpers.BetweenEventStream)[];
+          stream: helpers.BetweenEventStream[];
+        }
     ) =>
       "stream" in stream
         ? stream.between.concat(stream.stream).flatMap(flatStream)
         : "between" in stream
-        ? (stream as any).between
+          ? (stream as any).between
             .concat([{ type: (stream as any).type }])
             .flatMap(flatStream)
-        : stream.type;
+          : stream.type;
 
     return helpers.parseEventSelector(event).flatMap(flatStream);
   }
 
   getAcceptEvents(): string[] {
     return this._actions.flatMap((action) =>
-      action.events.flatMap((event) => this._parseEvent(event))
+      action.eventStreams.flatMap((eventStream) => eventStream.type)
     );
   }
 
   dispatch(event: string | Event, layer?: Layer<any>): void {
     const moveAction = this._actions.find(
-      (action) =>
-        (action.events.includes("*")
+      (action) => {
+        const events = action.eventStreams.map(es => es.type);
+        return (events.includes("*")
           ? true
           : event instanceof Event
-          ? action.events.includes(event.type)
-          : action.events.includes(event)) &&
-        (!action.transition ||
-          action.transition.find(
-            (transition) =>
-              transition[0] === this._state || transition[0] === "*"
-          ))
+            ? events.includes(event.type) && 
+              action.eventStreams // filter events
+                .map(es => new Function("event", `return ${es.filter}`))
+                .every(filterFunc => filterFunc(event))
+            : events.includes(event)) &&
+          (!action.transition ||
+            action.transition.find(
+              (transition) =>
+                transition[0] === this._state || transition[0] === "*"
+            ))
+      }
     );
     if (moveAction) {
       if (event instanceof Event) {
@@ -168,16 +182,8 @@ export default class Interactor {
           const result = e.results[e.resultIndex][0];
           this.dispatch(result.transcript, layer);
         };
-        this._modalities.speech.onend = () => {
-          if (
-            layer &&
-            layer.getGraphic() &&
-            document.body.contains(layer.getGraphic()) // Avoid memory leak
-          ) {
-            this._modalities.speech.start();
-          } else {
-            this.disableModality("speech");
-          }
+        this._modalities.speech.onend = (e) => {
+          this._modalities.speech.start();
         };
       } else {
         this.disableModality("speech");
@@ -234,6 +240,14 @@ export default class Interactor {
       instrument.isInstanceOf(baseNameOrRealName)
     );
   }
+}
+
+function transferInteractorInnerAction(originAction: OriginInteractorInnerAction): InteractorInnerAction {
+  const eventStreams: helpers.EventStream[] = originAction.events.map(evtSelector => helpers.parseEventSelector(evtSelector)[0] as helpers.EventStream);  // do not accept combinator
+  return {
+    ...originAction,
+    eventStreams
+  };
 }
 
 export const register = Interactor.register;
