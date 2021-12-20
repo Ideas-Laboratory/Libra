@@ -373,8 +373,12 @@ var Interactor = class {
           const result = e.results[e.resultIndex][0];
           this.dispatch(result.transcript, layer);
         };
-        this._modalities.speech.onend = (e) => {
-          this._modalities.speech.start();
+        this._modalities.speech.onend = () => {
+          if (layer && layer.getGraphic() && document.body.contains(layer.getGraphic())) {
+            this._modalities.speech.start();
+          } else {
+            this.disableModality("speech");
+          }
         };
       } else {
         this.disableModality("speech");
