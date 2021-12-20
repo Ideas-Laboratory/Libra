@@ -1,6 +1,7 @@
 import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 import { Layer } from "../layer";
+import Actions from "./actions.jsgf";
 
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
 
@@ -27,6 +28,11 @@ type InteractorInitTemplate = InteractorInitOption & {
   constructor?: typeof Interactor;
 };
 
+const SR =
+  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const SGL =
+  (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+
 const registeredInteractors: { [name: string]: InteractorInitTemplate } = {};
 const instanceInteractors: Interactor[] = [];
 
@@ -40,6 +46,7 @@ export default class Interactor {
   _postInitialize?: (interactor: Interactor) => void;
   _preUse?: (interactor: Interactor, instrument: Instrument) => void;
   _postUse?: (interactor: Interactor, instrument: Instrument) => void;
+  _modalities: { [key: string]: any };
 
   constructor(baseName: string, options: InteractorInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -48,11 +55,41 @@ export default class Interactor {
     this._name = options.name ?? baseName;
     this._state = options.state;
     this._actions = options.actions ?? [];
+    this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
     this._preUse = options.preUse ?? null;
     this._postUse = options.postUse ?? null;
+    instanceInteractors.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
+  }
+
+  enableModality(modal: "speech") {
+    switch (modal) {
+      case "speech":
+        if (this._modalities["speech"]) break;
+        const recognition = new SR();
+        this._modalities["speech"] = recognition;
+        const speechRecognitionList = new SGL();
+        speechRecognitionList.addFromString(Actions);
+        recognition.grammars = speechRecognitionList;
+        // recognition.continuous = true;
+        recognition.lang = "en-US";
+        break;
+    }
+  }
+
+  disableModality(modal: "speech") {
+    switch (modal) {
+      case "speech":
+        if (this._modalities["speech"]) {
+          this._modalities.speech.onresult = null;
+          this._modalities.speech.onend = null;
+          this._modalities["speech"].abort();
+          this._modalities["speech"] = null;
+        }
+        break;
+    }
   }
 
   getActions(): InteractorInnerAction[] {
@@ -96,11 +133,16 @@ export default class Interactor {
   dispatch(event: string | Event, layer?: Layer<any>): void {
     const moveAction = this._actions.find(
       (action) =>
-        (event instanceof Event
+        (action.events.includes("*")
+          ? true
+          : event instanceof Event
           ? action.events.includes(event.type)
           : action.events.includes(event)) &&
         (!action.transition ||
-          action.transition.find((transition) => transition[0] === this._state))
+          action.transition.find(
+            (transition) =>
+              transition[0] === this._state || transition[0] === "*"
+          ))
     );
     if (moveAction) {
       if (event instanceof Event) {
@@ -110,10 +152,27 @@ export default class Interactor {
       const moveTransition =
         moveAction.transition &&
         moveAction.transition.find(
-          (transition) => transition[0] === this._state
+          (transition) => transition[0] === this._state || transition[0] === "*"
         );
       if (moveTransition) {
         this._state = moveTransition[1];
+      }
+      if (this._state.startsWith("speech:")) {
+        this.enableModality("speech");
+        try {
+          this._modalities.speech.start();
+        } catch {
+          // just ignore if already started
+        }
+        this._modalities.speech.onresult = (e) => {
+          const result = e.results[e.resultIndex][0];
+          this.dispatch(result.transcript, layer);
+        };
+        this._modalities.speech.onend = (e) => {
+          this._modalities.speech.start();
+        };
+      } else {
+        this.disableModality("speech");
       }
       if (moveAction.sideEffect) {
         moveAction.sideEffect({

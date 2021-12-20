@@ -18,7 +18,7 @@ Interactor.register("MousePositionInteractor", {
             events: ["mouseleave"],
             transition: [
                 ["running", "start"],
-                ["start", "start"]
+                ["start", "start"],
             ],
         },
     ],
@@ -49,6 +49,27 @@ Interactor.register("MouseTraceInteractor", {
                 ["drag", "start"],
                 ["start", "start"],
             ],
+        },
+    ],
+});
+Interactor.register("SpeechControlInteractor", {
+    constructor: Interactor,
+    state: "start",
+    actions: [
+        {
+            action: "enableSpeech",
+            events: ["click"],
+            transition: [["*", "speech:ready"]],
+        },
+        {
+            action: "disableSpeech",
+            events: ["contextmenu"],
+            transition: [["*", "start"]],
+        },
+        {
+            action: "speech",
+            events: ["*"],
+            transition: [["*", "speech:ready"]],
         },
     ],
 });

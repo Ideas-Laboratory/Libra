@@ -10,9 +10,9 @@ export default class SelectionManager extends InteractionService {
     setSharedVar(sharedName, value, options) {
         this.preUpdate();
         this._sharedVar[sharedName] = value;
-        if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) &&
+        if ((options?.layer || this._layerInstances.length == 1) &&
             this._userOptions.query) {
-            const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
+            const layer = options?.layer || this._layerInstances[0];
             if (this._nextTick) {
                 cancelAnimationFrame(this._nextTick);
             }
@@ -56,60 +56,52 @@ export default class SelectionManager extends InteractionService {
                 }
                 this._nextTick = 0;
                 if (this._on.update) {
-                    this._on.update.forEach((command) => {
-                        var _a, _b, _c;
-                        return command.execute({
-                            self: this,
-                            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                    this._on.update.forEach((command) => command.execute({
+                        self: this,
+                        layer: options?.layer ??
+                            (this._layerInstances.length == 1
                                 ? this._layerInstances[0]
                                 : null),
-                            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                        });
-                    });
+                        instrument: options?.instrument ?? null,
+                        interactor: options?.interactor ?? null,
+                    }));
                 }
                 if (this._on[`update:${sharedName}`]) {
-                    this._on[`update:${sharedName}`].forEach((command) => {
-                        var _a, _b, _c;
-                        return command.execute({
-                            self: this,
-                            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                    this._on[`update:${sharedName}`].forEach((command) => command.execute({
+                        self: this,
+                        layer: options?.layer ??
+                            (this._layerInstances.length == 1
                                 ? this._layerInstances[0]
                                 : null),
-                            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                        });
-                    });
+                        instrument: options?.instrument ?? null,
+                        interactor: options?.interactor ?? null,
+                    }));
                 }
                 this.postUpdate();
             });
         }
         else {
             if (this._on.update) {
-                this._on.update.forEach((command) => {
-                    var _a, _b, _c;
-                    return command.execute({
-                        self: this,
-                        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                this._on.update.forEach((command) => command.execute({
+                    self: this,
+                    layer: options?.layer ??
+                        (this._layerInstances.length == 1
                             ? this._layerInstances[0]
                             : null),
-                        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                    });
-                });
+                    instrument: options?.instrument ?? null,
+                    interactor: options?.interactor ?? null,
+                }));
             }
             if (this._on[`update:${sharedName}`]) {
-                this._on[`update:${sharedName}`].forEach((command) => {
-                    var _a, _b, _c;
-                    return command.execute({
-                        self: this,
-                        layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : (this._layerInstances.length == 1
+                this._on[`update:${sharedName}`].forEach((command) => command.execute({
+                    self: this,
+                    layer: options?.layer ??
+                        (this._layerInstances.length == 1
                             ? this._layerInstances[0]
                             : null),
-                        instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                        interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                    });
-                });
+                    instrument: options?.instrument ?? null,
+                    interactor: options?.interactor ?? null,
+                }));
             }
             this.postUpdate();
         }
@@ -120,9 +112,23 @@ export default class SelectionManager extends InteractionService {
             this._name === name);
     }
     get results() {
+        if (this._nextTick) {
+            return new Promise((res) => {
+                window.requestAnimationFrame(() => {
+                    res(this._result);
+                });
+            });
+        }
         return this._result;
     }
     get oldResults() {
+        if (this._nextTick) {
+            return new Promise((res) => {
+                window.requestAnimationFrame(() => {
+                    res(this._oldResult);
+                });
+            });
+        }
         return this._oldResult;
     }
 }

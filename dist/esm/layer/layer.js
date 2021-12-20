@@ -6,23 +6,22 @@ const instanceLayers = [];
 const siblingLayers = new Map();
 export default class Layer {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
-        this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
-        this._transformation = (_b = options.transformation) !== null && _b !== void 0 ? _b : {};
-        this._services = (_c = options.services) !== null && _c !== void 0 ? _c : [];
+        this._name = options.name ?? baseName;
+        this._transformation = options.transformation ?? {};
+        this._services = options.services ?? [];
         this._container = options.container;
-        this._sharedVar = (_d = options.sharedVar) !== null && _d !== void 0 ? _d : {};
+        this._sharedVar = options.sharedVar ?? {};
         this._sharedVarWatcher = {};
         this._transformationWatcher = {};
         this._serviceInstances = [];
         this._redraw = options.redraw;
-        this._preInitialize = (_e = options.preInitialize) !== null && _e !== void 0 ? _e : null;
-        this._postInitialize = (_f = options.postInitialize) !== null && _f !== void 0 ? _f : null;
-        this._preUpdate = (_g = options.preUpdate) !== null && _g !== void 0 ? _g : null;
-        this._postUpdate = (_h = options.postUpdate) !== null && _h !== void 0 ? _h : null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUpdate = options.preUpdate ?? null;
+        this._postUpdate = options.postUpdate ?? null;
         this._services.forEach((service) => {
             if (typeof service === "string" || !("options" in service)) {
                 this.use(service);
@@ -195,11 +194,10 @@ export function unregister(baseName) {
     return true;
 }
 export function initialize(baseName, options) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
+    const mergedOptions = Object.assign({}, registeredLayers[baseName] ?? { constructor: Layer }, options ?? {}, {
         // needs to deep merge object
-        transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
-        sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {}),
+        transformation: Object.assign({}, (registeredLayers[baseName] ?? {}).transformation ?? {}, options?.transformation ?? {}),
+        sharedVar: Object.assign({}, (registeredLayers[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
     });
     const layer = new mergedOptions.constructor(baseName, mergedOptions);
     return layer;

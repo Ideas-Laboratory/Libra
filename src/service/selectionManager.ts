@@ -138,10 +138,24 @@ export default class SelectionManager extends InteractionService {
   }
 
   get results() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._result);
+        });
+      });
+    }
     return this._result;
   }
 
   get oldResults() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._oldResult);
+        });
+      });
+    }
     return this._oldResult;
   }
 }

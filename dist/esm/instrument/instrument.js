@@ -5,19 +5,18 @@ const registeredInstruments = {};
 const instanceInstruments = [];
 export default class Instrument {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g;
         options.preInitialize && options.preInitialize.call(this, this);
-        this._preInitialize = (_a = options.preInitialize) !== null && _a !== void 0 ? _a : null;
-        this._postInitialize = (_b = options.postInitialize) !== null && _b !== void 0 ? _b : null;
-        this._preUse = (_c = options.preUse) !== null && _c !== void 0 ? _c : null;
-        this._postUse = (_d = options.postUse) !== null && _d !== void 0 ? _d : null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUse = options.preUse ?? null;
+        this._postUse = options.postUse ?? null;
         this._baseName = baseName;
         this._userOptions = options;
-        this._name = (_e = options.name) !== null && _e !== void 0 ? _e : baseName;
-        this._on = (_f = options.on) !== null && _f !== void 0 ? _f : {};
+        this._name = options.name ?? baseName;
+        this._on = options.on ?? {};
         this._interactors = [];
         this._layers = [];
-        this._sharedVar = (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {};
+        this._sharedVar = options.sharedVar ?? {};
         if (options.interactors) {
             options.interactors.forEach((interactor) => {
                 if (typeof interactor === "string") {
@@ -205,9 +204,8 @@ export default class Instrument {
         return true;
     }
     static initialize(baseName, options) {
-        var _a, _b, _c, _d;
-        const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options !== null && options !== void 0 ? options : {}, {
-            on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
+        const mergedOptions = Object.assign({}, registeredInstruments[baseName] ?? { constructor: Instrument }, options ?? {}, {
+            on: Object.assign({}, (registeredInstruments[baseName] ?? {}).on ?? {}, options?.on ?? {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;

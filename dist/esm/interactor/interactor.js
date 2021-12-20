@@ -1,20 +1,51 @@
 import * as helpers from "../helpers";
+import Actions from "./actions.jsgf";
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 const registeredInteractors = {};
 const instanceInteractors = [];
 export default class Interactor {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
-        this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
+        this._name = options.name ?? baseName;
         this._state = options.state;
-        this._actions = (_b = options.actions) !== null && _b !== void 0 ? _b : [];
-        this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
-        this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
-        this._preUse = (_e = options.preUse) !== null && _e !== void 0 ? _e : null;
-        this._postUse = (_f = options.postUse) !== null && _f !== void 0 ? _f : null;
+        this._actions = options.actions ?? [];
+        this._modalities = {};
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUse = options.preUse ?? null;
+        this._postUse = options.postUse ?? null;
+        instanceInteractors.push(this);
         options.postInitialize && options.postInitialize.call(this, this);
+    }
+    enableModality(modal) {
+        switch (modal) {
+            case "speech":
+                if (this._modalities["speech"])
+                    break;
+                const recognition = new SR();
+                this._modalities["speech"] = recognition;
+                const speechRecognitionList = new SGL();
+                speechRecognitionList.addFromString(Actions);
+                recognition.grammars = speechRecognitionList;
+                // recognition.continuous = true;
+                recognition.lang = "en-US";
+                break;
+        }
+    }
+    disableModality(modal) {
+        switch (modal) {
+            case "speech":
+                if (this._modalities["speech"]) {
+                    this._modalities.speech.onresult = null;
+                    this._modalities.speech.onend = null;
+                    this._modalities["speech"].abort();
+                    this._modalities["speech"] = null;
+                }
+                break;
+        }
     }
     getActions() {
         return this._actions.slice(0);
@@ -37,20 +68,41 @@ export default class Interactor {
         return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
     }
     dispatch(event, layer) {
-        const moveAction = this._actions.find((action) => (event instanceof Event
-            ? action.events.includes(event.type)
-            : action.events.includes(event)) &&
+        const moveAction = this._actions.find((action) => (action.events.includes("*")
+            ? true
+            : event instanceof Event
+                ? action.events.includes(event.type)
+                : action.events.includes(event)) &&
             (!action.transition ||
-                action.transition.find((transition) => transition[0] === this._state)));
+                action.transition.find((transition) => transition[0] === this._state || transition[0] === "*")));
         if (moveAction) {
             if (event instanceof Event) {
                 event.preventDefault();
                 event.stopPropagation();
             }
             const moveTransition = moveAction.transition &&
-                moveAction.transition.find((transition) => transition[0] === this._state);
+                moveAction.transition.find((transition) => transition[0] === this._state || transition[0] === "*");
             if (moveTransition) {
                 this._state = moveTransition[1];
+            }
+            if (this._state.startsWith("speech:")) {
+                this.enableModality("speech");
+                try {
+                    this._modalities.speech.start();
+                }
+                catch {
+                    // just ignore if already started
+                }
+                this._modalities.speech.onresult = (e) => {
+                    const result = e.results[e.resultIndex][0];
+                    this.dispatch(result.transcript, layer);
+                };
+                this._modalities.speech.onend = (e) => {
+                    this._modalities.speech.start();
+                };
+            }
+            else {
+                this.disableModality("speech");
             }
             if (moveAction.sideEffect) {
                 moveAction.sideEffect({
@@ -80,8 +132,7 @@ export default class Interactor {
         return true;
     }
     static initialize(baseName, options) {
-        var _a;
-        const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options !== null && options !== void 0 ? options : {});
+        const mergedOptions = Object.assign({}, registeredInteractors[baseName] ?? { constructor: Interactor }, options ?? {});
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
     }

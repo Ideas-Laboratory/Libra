@@ -569,3 +569,8 @@ Instrument.register("DragInstrument", {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
   },
 });
+
+Instrument.register("SpeechInstrument", {
+  constructor: Instrument,
+  interactors: ["SpeechControlInteractor"],
+});

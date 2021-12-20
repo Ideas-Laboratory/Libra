@@ -2,20 +2,19 @@ const registeredServices = {};
 export const instanceServices = [];
 export default class InteractionService {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
-        this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
-        this._on = (_b = options.on) !== null && _b !== void 0 ? _b : {};
+        this._name = options.name ?? baseName;
+        this._on = options.on ?? {};
         this._sharedVar = {};
         this._layerInstances = [];
-        this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
-        this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
-        this._preUpdate = (_e = options.preUpdate) !== null && _e !== void 0 ? _e : null;
-        this._postUpdate = (_f = options.postUpdate) !== null && _f !== void 0 ? _f : null;
-        this._preUse = (_g = options.preUse) !== null && _g !== void 0 ? _g : null;
-        this._postUse = (_h = options.postUse) !== null && _h !== void 0 ? _h : null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUpdate = options.preUpdate ?? null;
+        this._postUpdate = options.postUpdate ?? null;
+        this._preUse = options.preUse ?? null;
+        this._postUse = options.postUse ?? null;
         Object.entries(options.sharedVar || {}).forEach((entry) => {
             this.setSharedVar(entry[0], entry[1]);
         });
@@ -40,26 +39,20 @@ export default class InteractionService {
         this.preUpdate();
         this._sharedVar[sharedName] = value;
         if (this._on.update) {
-            this._on.update.forEach((command) => {
-                var _a, _b, _c;
-                return command.execute({
-                    self: this,
-                    layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
-                    instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                    interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                });
-            });
+            this._on.update.forEach((command) => command.execute({
+                self: this,
+                layer: options?.layer ?? null,
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null,
+            }));
         }
         if (this._on[`update:${sharedName}`]) {
-            this._on[`update:${sharedName}`].forEach((command) => {
-                var _a, _b, _c;
-                return command.execute({
-                    self: this,
-                    layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
-                    instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-                    interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null,
-                });
-            });
+            this._on[`update:${sharedName}`].forEach((command) => command.execute({
+                self: this,
+                layer: options?.layer ?? null,
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null,
+            }));
         }
         this.postUpdate();
     }
@@ -90,11 +83,10 @@ export default class InteractionService {
         return true;
     }
     static initialize(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const mergedOptions = Object.assign({}, (_a = registeredServices[baseName]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options !== null && options !== void 0 ? options : {}, {
+        const mergedOptions = Object.assign({}, registeredServices[baseName] ?? { constructor: InteractionService }, options ?? {}, {
             // needs to deep merge object
-            on: Object.assign({}, (_c = ((_b = registeredServices[baseName]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
-            sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {}),
+            on: Object.assign({}, (registeredServices[baseName] ?? {}).on ?? {}, options?.on ?? {}),
+            sharedVar: Object.assign({}, (registeredServices[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;

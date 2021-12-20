@@ -32,7 +32,12 @@ export default class Interactor {
     _postInitialize?: (interactor: Interactor) => void;
     _preUse?: (interactor: Interactor, instrument: Instrument) => void;
     _postUse?: (interactor: Interactor, instrument: Instrument) => void;
+    _modalities: {
+        [key: string]: any;
+    };
     constructor(baseName: string, options: InteractorInitOption);
+    enableModality(modal: "speech"): void;
+    disableModality(modal: "speech"): void;
     getActions(): InteractorInnerAction[];
     setActions(actions: InteractorInnerAction[]): void;
     _parseEvent(event: string): any[];

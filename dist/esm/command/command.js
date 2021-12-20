@@ -2,19 +2,18 @@ const registeredCommands = {};
 const instanceCommands = [];
 export default class Command {
     constructor(baseName, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
-        this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName;
-        this._feedbacks = (_b = options.feedbacks) !== null && _b !== void 0 ? _b : [];
-        this._undo = (_c = options.undo) !== null && _c !== void 0 ? _c : null;
-        this._redo = (_d = options.redo) !== null && _d !== void 0 ? _d : null;
-        this._execute = (_e = options.execute) !== null && _e !== void 0 ? _e : null;
-        this._preInitialize = (_f = options.preInitialize) !== null && _f !== void 0 ? _f : null;
-        this._postInitialize = (_g = options.postInitialize) !== null && _g !== void 0 ? _g : null;
-        this._preExecute = (_h = options.preExecute) !== null && _h !== void 0 ? _h : null;
-        this._postExecute = (_j = options.postExecute) !== null && _j !== void 0 ? _j : null;
+        this._name = options.name ?? baseName;
+        this._feedbacks = options.feedbacks ?? [];
+        this._undo = options.undo ?? null;
+        this._redo = options.redo ?? null;
+        this._execute = options.execute ?? null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preExecute = options.preExecute ?? null;
+        this._postExecute = options.postExecute ?? null;
         options.postInitialize && options.postInitialize.call(this, this);
     }
     undo() {
@@ -46,8 +45,7 @@ export default class Command {
         return true;
     }
     static initialize(baseName, options) {
-        var _a;
-        const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName]) !== null && _a !== void 0 ? _a : { constructor: Command }, options !== null && options !== void 0 ? options : {});
+        const mergedOptions = Object.assign({}, registeredCommands[baseName] ?? { constructor: Command }, options ?? {});
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
     }

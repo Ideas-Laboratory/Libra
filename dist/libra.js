@@ -3,19 +3,18 @@ var registeredCommands = {};
 var instanceCommands = [];
 var Command = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
-    this._feedbacks = (_b = options.feedbacks) !== null && _b !== void 0 ? _b : [];
-    this._undo = (_c = options.undo) !== null && _c !== void 0 ? _c : null;
-    this._redo = (_d = options.redo) !== null && _d !== void 0 ? _d : null;
-    this._execute = (_e = options.execute) !== null && _e !== void 0 ? _e : null;
-    this._preInitialize = (_f = options.preInitialize) !== null && _f !== void 0 ? _f : null;
-    this._postInitialize = (_g = options.postInitialize) !== null && _g !== void 0 ? _g : null;
-    this._preExecute = (_h = options.preExecute) !== null && _h !== void 0 ? _h : null;
-    this._postExecute = (_j = options.postExecute) !== null && _j !== void 0 ? _j : null;
+    this._name = options.name ?? baseName2;
+    this._feedbacks = options.feedbacks ?? [];
+    this._undo = options.undo ?? null;
+    this._redo = options.redo ?? null;
+    this._execute = options.execute ?? null;
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preExecute = options.preExecute ?? null;
+    this._postExecute = options.postExecute ?? null;
     options.postInitialize && options.postInitialize.call(this, this);
   }
   undo() {
@@ -47,8 +46,7 @@ var Command = class {
     return true;
   }
   static initialize(baseName2, options) {
-    var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredCommands[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Command }, options !== null && options !== void 0 ? options : {});
+    const mergedOptions = Object.assign({}, registeredCommands[baseName2] ?? { constructor: Command }, options ?? {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -286,23 +284,59 @@ function parseThrottle(s) {
   });
 }
 
+// dist/esm/interactor/actions.jsgf.js
+var actions_jsgf_default = `#JSGF V1.0;
+
+grammar actions;
+
+public <action> = start | stop | pause | resume | play | delete | add | insert | create | remove | drag | move | drag | brush;`;
+
 // dist/esm/interactor/interactor.js
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 var registeredInteractors = {};
 var instanceInteractors = [];
 var Interactor = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
+    this._name = options.name ?? baseName2;
     this._state = options.state;
-    this._actions = (_b = options.actions) !== null && _b !== void 0 ? _b : [];
-    this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
-    this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
-    this._preUse = (_e = options.preUse) !== null && _e !== void 0 ? _e : null;
-    this._postUse = (_f = options.postUse) !== null && _f !== void 0 ? _f : null;
+    this._actions = options.actions ?? [];
+    this._modalities = {};
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUse = options.preUse ?? null;
+    this._postUse = options.postUse ?? null;
+    instanceInteractors.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
+  }
+  enableModality(modal) {
+    switch (modal) {
+      case "speech":
+        if (this._modalities["speech"])
+          break;
+        const recognition = new SR();
+        this._modalities["speech"] = recognition;
+        const speechRecognitionList = new SGL();
+        speechRecognitionList.addFromString(actions_jsgf_default);
+        recognition.grammars = speechRecognitionList;
+        recognition.lang = "en-US";
+        break;
+    }
+  }
+  disableModality(modal) {
+    switch (modal) {
+      case "speech":
+        if (this._modalities["speech"]) {
+          this._modalities.speech.onresult = null;
+          this._modalities.speech.onend = null;
+          this._modalities["speech"].abort();
+          this._modalities["speech"] = null;
+        }
+        break;
+    }
   }
   getActions() {
     return this._actions.slice(0);
@@ -319,15 +353,31 @@ var Interactor = class {
     return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
   }
   dispatch(event, layer) {
-    const moveAction = this._actions.find((action) => (event instanceof Event ? action.events.includes(event.type) : action.events.includes(event)) && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state)));
+    const moveAction = this._actions.find((action) => (action.events.includes("*") ? true : event instanceof Event ? action.events.includes(event.type) : action.events.includes(event)) && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*")));
     if (moveAction) {
       if (event instanceof Event) {
         event.preventDefault();
         event.stopPropagation();
       }
-      const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state);
+      const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*");
       if (moveTransition) {
         this._state = moveTransition[1];
+      }
+      if (this._state.startsWith("speech:")) {
+        this.enableModality("speech");
+        try {
+          this._modalities.speech.start();
+        } catch {
+        }
+        this._modalities.speech.onresult = (e) => {
+          const result = e.results[e.resultIndex][0];
+          this.dispatch(result.transcript, layer);
+        };
+        this._modalities.speech.onend = (e) => {
+          this._modalities.speech.start();
+        };
+      } else {
+        this.disableModality("speech");
       }
       if (moveAction.sideEffect) {
         moveAction.sideEffect({
@@ -357,8 +407,7 @@ var Interactor = class {
     return true;
   }
   static initialize(baseName2, options) {
-    var _a;
-    const mergedOptions = Object.assign({}, (_a = registeredInteractors[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Interactor }, options !== null && options !== void 0 ? options : {});
+    const mergedOptions = Object.assign({}, registeredInteractors[baseName2] ?? { constructor: Interactor }, options ?? {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -425,6 +474,27 @@ Interactor.register("MouseTraceInteractor", {
     }
   ]
 });
+Interactor.register("SpeechControlInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "enableSpeech",
+      events: ["click"],
+      transition: [["*", "speech:ready"]]
+    },
+    {
+      action: "disableSpeech",
+      events: ["contextmenu"],
+      transition: [["*", "start"]]
+    },
+    {
+      action: "speech",
+      events: ["*"],
+      transition: [["*", "speech:ready"]]
+    }
+  ]
+});
 
 // dist/esm/interactor/index.js
 var register3 = Interactor.register;
@@ -437,20 +507,19 @@ var registeredServices = {};
 var instanceServices = [];
 var InteractionService = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
-    this._on = (_b = options.on) !== null && _b !== void 0 ? _b : {};
+    this._name = options.name ?? baseName2;
+    this._on = options.on ?? {};
     this._sharedVar = {};
     this._layerInstances = [];
-    this._preInitialize = (_c = options.preInitialize) !== null && _c !== void 0 ? _c : null;
-    this._postInitialize = (_d = options.postInitialize) !== null && _d !== void 0 ? _d : null;
-    this._preUpdate = (_e = options.preUpdate) !== null && _e !== void 0 ? _e : null;
-    this._postUpdate = (_f = options.postUpdate) !== null && _f !== void 0 ? _f : null;
-    this._preUse = (_g = options.preUse) !== null && _g !== void 0 ? _g : null;
-    this._postUse = (_h = options.postUse) !== null && _h !== void 0 ? _h : null;
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUpdate = options.preUpdate ?? null;
+    this._postUpdate = options.postUpdate ?? null;
+    this._preUse = options.preUse ?? null;
+    this._postUse = options.postUse ?? null;
     Object.entries(options.sharedVar || {}).forEach((entry) => {
       this.setSharedVar(entry[0], entry[1]);
     });
@@ -473,26 +542,20 @@ var InteractionService = class {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      this._on.update.forEach((command) => {
-        var _a, _b, _c;
-        return command.execute({
-          self: this,
-          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
-          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-        });
-      });
+      this._on.update.forEach((command) => command.execute({
+        self: this,
+        layer: options?.layer ?? null,
+        instrument: options?.instrument ?? null,
+        interactor: options?.interactor ?? null
+      }));
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].forEach((command) => {
-        var _a, _b, _c;
-        return command.execute({
-          self: this,
-          layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : null,
-          instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-          interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-        });
-      });
+      this._on[`update:${sharedName}`].forEach((command) => command.execute({
+        self: this,
+        layer: options?.layer ?? null,
+        instrument: options?.instrument ?? null,
+        interactor: options?.interactor ?? null
+      }));
     }
     this.postUpdate();
   }
@@ -523,10 +586,9 @@ var InteractionService = class {
     return true;
   }
   static initialize(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const mergedOptions = Object.assign({}, (_a = registeredServices[baseName2]) !== null && _a !== void 0 ? _a : { constructor: InteractionService }, options !== null && options !== void 0 ? options : {}, {
-      on: Object.assign({}, (_c = ((_b = registeredServices[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {}),
-      sharedVar: Object.assign({}, (_f = ((_e = registeredServices[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
+    const mergedOptions = Object.assign({}, registeredServices[baseName2] ?? { constructor: InteractionService }, options ?? {}, {
+      on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
@@ -551,8 +613,8 @@ var SelectionManager = class extends InteractionService {
   setSharedVar(sharedName, value, options) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (((options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances.length == 1) && this._userOptions.query) {
-      const layer = (options === null || options === void 0 ? void 0 : options.layer) || this._layerInstances[0];
+    if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
+      const layer = options?.layer || this._layerInstances[0];
       if (this._nextTick) {
         cancelAnimationFrame(this._nextTick);
       }
@@ -593,51 +655,39 @@ var SelectionManager = class extends InteractionService {
         }
         this._nextTick = 0;
         if (this._on.update) {
-          this._on.update.forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
+          this._on.update.forEach((command) => command.execute({
+            self: this,
+            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          }));
         }
         if (this._on[`update:${sharedName}`]) {
-          this._on[`update:${sharedName}`].forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
+          this._on[`update:${sharedName}`].forEach((command) => command.execute({
+            self: this,
+            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          }));
         }
         this.postUpdate();
       });
     } else {
       if (this._on.update) {
-        this._on.update.forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
+        this._on.update.forEach((command) => command.execute({
+          self: this,
+          layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null
+        }));
       }
       if (this._on[`update:${sharedName}`]) {
-        this._on[`update:${sharedName}`].forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
+        this._on[`update:${sharedName}`].forEach((command) => command.execute({
+          self: this,
+          layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null
+        }));
       }
       this.postUpdate();
     }
@@ -646,9 +696,23 @@ var SelectionManager = class extends InteractionService {
     return name === "SelectionManager" || this._baseName === name || this._name === name;
   }
   get results() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._result);
+        });
+      });
+    }
     return this._result;
   }
   get oldResults() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._oldResult);
+        });
+      });
+    }
     return this._oldResult;
   }
 };
@@ -729,51 +793,39 @@ var AlgorithmManager = class extends InteractionService {
         });
         this._nextTick = 0;
         if (this._on.update) {
-          this._on.update.forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
+          this._on.update.forEach((command) => command.execute({
+            self: this,
+            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          }));
         }
         if (this._on[`update:${sharedName}`]) {
-          this._on[`update:${sharedName}`].forEach((command) => {
-            var _a, _b, _c;
-            return command.execute({
-              self: this,
-              layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-              instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-              interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-            });
-          });
+          this._on[`update:${sharedName}`].forEach((command) => command.execute({
+            self: this,
+            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          }));
         }
         this.postUpdate();
       });
     } else {
       if (this._on.update) {
-        this._on.update.forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
+        this._on.update.forEach((command) => command.execute({
+          self: this,
+          layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null
+        }));
       }
       if (this._on[`update:${sharedName}`]) {
-        this._on[`update:${sharedName}`].forEach((command) => {
-          var _a, _b, _c;
-          return command.execute({
-            self: this,
-            layer: (_a = options === null || options === void 0 ? void 0 : options.layer) !== null && _a !== void 0 ? _a : this._layerInstances.length == 1 ? this._layerInstances[0] : null,
-            instrument: (_b = options === null || options === void 0 ? void 0 : options.instrument) !== null && _b !== void 0 ? _b : null,
-            interactor: (_c = options === null || options === void 0 ? void 0 : options.interactor) !== null && _c !== void 0 ? _c : null
-          });
-        });
+        this._on[`update:${sharedName}`].forEach((command) => command.execute({
+          self: this,
+          layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+          instrument: options?.instrument ?? null,
+          interactor: options?.interactor ?? null
+        }));
       }
       this.postUpdate();
     }
@@ -803,23 +855,22 @@ var instanceLayers = [];
 var siblingLayers = new Map();
 var Layer = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
-    this._name = (_a = options.name) !== null && _a !== void 0 ? _a : baseName2;
-    this._transformation = (_b = options.transformation) !== null && _b !== void 0 ? _b : {};
-    this._services = (_c = options.services) !== null && _c !== void 0 ? _c : [];
+    this._name = options.name ?? baseName2;
+    this._transformation = options.transformation ?? {};
+    this._services = options.services ?? [];
     this._container = options.container;
-    this._sharedVar = (_d = options.sharedVar) !== null && _d !== void 0 ? _d : {};
+    this._sharedVar = options.sharedVar ?? {};
     this._sharedVarWatcher = {};
     this._transformationWatcher = {};
     this._serviceInstances = [];
     this._redraw = options.redraw;
-    this._preInitialize = (_e = options.preInitialize) !== null && _e !== void 0 ? _e : null;
-    this._postInitialize = (_f = options.postInitialize) !== null && _f !== void 0 ? _f : null;
-    this._preUpdate = (_g = options.preUpdate) !== null && _g !== void 0 ? _g : null;
-    this._postUpdate = (_h = options.postUpdate) !== null && _h !== void 0 ? _h : null;
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUpdate = options.preUpdate ?? null;
+    this._postUpdate = options.postUpdate ?? null;
     this._services.forEach((service) => {
       if (typeof service === "string" || !("options" in service)) {
         this.use(service);
@@ -977,10 +1028,9 @@ function register5(baseName2, options) {
   registeredLayers[baseName2] = options;
 }
 function initialize5(baseName2, options) {
-  var _a, _b, _c, _d, _e, _f, _g;
-  const mergedOptions = Object.assign({}, (_a = registeredLayers[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Layer }, options !== null && options !== void 0 ? options : {}, {
-    transformation: Object.assign({}, (_c = ((_b = registeredLayers[baseName2]) !== null && _b !== void 0 ? _b : {}).transformation) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.transformation) !== null && _d !== void 0 ? _d : {}),
-    sharedVar: Object.assign({}, (_f = ((_e = registeredLayers[baseName2]) !== null && _e !== void 0 ? _e : {}).sharedVar) !== null && _f !== void 0 ? _f : {}, (_g = options === null || options === void 0 ? void 0 : options.sharedVar) !== null && _g !== void 0 ? _g : {})
+  const mergedOptions = Object.assign({}, registeredLayers[baseName2] ?? { constructor: Layer }, options ?? {}, {
+    transformation: Object.assign({}, (registeredLayers[baseName2] ?? {}).transformation ?? {}, options?.transformation ?? {}),
+    sharedVar: Object.assign({}, (registeredLayers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
   });
   const layer = new mergedOptions.constructor(baseName2, mergedOptions);
   return layer;
@@ -3614,19 +3664,18 @@ var registeredInstruments = {};
 var instanceInstruments = [];
 var Instrument = class {
   constructor(baseName2, options) {
-    var _a, _b, _c, _d, _e, _f, _g;
     options.preInitialize && options.preInitialize.call(this, this);
-    this._preInitialize = (_a = options.preInitialize) !== null && _a !== void 0 ? _a : null;
-    this._postInitialize = (_b = options.postInitialize) !== null && _b !== void 0 ? _b : null;
-    this._preUse = (_c = options.preUse) !== null && _c !== void 0 ? _c : null;
-    this._postUse = (_d = options.postUse) !== null && _d !== void 0 ? _d : null;
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUse = options.preUse ?? null;
+    this._postUse = options.postUse ?? null;
     this._baseName = baseName2;
     this._userOptions = options;
-    this._name = (_e = options.name) !== null && _e !== void 0 ? _e : baseName2;
-    this._on = (_f = options.on) !== null && _f !== void 0 ? _f : {};
+    this._name = options.name ?? baseName2;
+    this._on = options.on ?? {};
     this._interactors = [];
     this._layers = [];
-    this._sharedVar = (_g = options.sharedVar) !== null && _g !== void 0 ? _g : {};
+    this._sharedVar = options.sharedVar ?? {};
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
         if (typeof interactor === "string") {
@@ -3791,9 +3840,8 @@ var Instrument = class {
     return true;
   }
   static initialize(baseName2, options) {
-    var _a, _b, _c, _d;
-    const mergedOptions = Object.assign({}, (_a = registeredInstruments[baseName2]) !== null && _a !== void 0 ? _a : { constructor: Instrument }, options !== null && options !== void 0 ? options : {}, {
-      on: Object.assign({}, (_c = ((_b = registeredInstruments[baseName2]) !== null && _b !== void 0 ? _b : {}).on) !== null && _c !== void 0 ? _c : {}, (_d = options === null || options === void 0 ? void 0 : options.on) !== null && _d !== void 0 ? _d : {})
+    const mergedOptions = Object.assign({}, registeredInstruments[baseName2] ?? { constructor: Instrument }, options ?? {}, {
+      on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
@@ -4297,6 +4345,10 @@ Instrument.register("DragInstrument", {
   preUse: (instrument, layer) => {
     layer.services.find("SelectionManager", "SurfacePointSelectionManager");
   }
+});
+Instrument.register("SpeechInstrument", {
+  constructor: Instrument,
+  interactors: ["SpeechControlInteractor"]
 });
 
 // dist/esm/instrument/index.js
