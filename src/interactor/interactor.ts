@@ -13,12 +13,9 @@ type OriginInteractorInnerAction = {
   sideEffect?: SideEffect;
 };
 
-type InteractorInnerAction = {
-  action: string;
-  eventStreams: helpers.EventStream[];
-  transition?: [string, string][];
-  sideEffect?: SideEffect;
-};
+type EventFilterFunc = (event: Event) => boolean;
+type LibraEventStream = helpers.EventStream & { filterFuncs?: EventFilterFunc[] }
+type InteractorInnerAction = OriginInteractorInnerAction & { eventStreams: LibraEventStream[] };
 
 type InteractorInitOption = {
   name?: string;
@@ -50,7 +47,6 @@ export default class Interactor {
   _userOptions: InteractorInitOption;
   _state: string;
   _actions: InteractorInnerAction[];
-  _events: string[];
   _preInitialize?: (interactor: Interactor) => void;
   _postInitialize?: (interactor: Interactor) => void;
   _preUse?: (interactor: Interactor, instrument: Instrument) => void;
@@ -143,14 +139,16 @@ export default class Interactor {
     const moveAction = this._actions.find(
       (action) => {
         const events = action.eventStreams.map(es => es.type);
-        return (events.includes("*")
-          ? true
-          : event instanceof Event
-            ? events.includes(event.type) && 
-              action.eventStreams // filter events
-                .map(es => new Function("event", `return ${es.filter}`))
-                .every(filterFunc => filterFunc(event))
-            : events.includes(event)) &&
+        let inculdeEvent = false;
+        if (events.includes("*")) inculdeEvent = true;
+        if (event instanceof Event) {
+          inculdeEvent = action.eventStreams
+            .filter(es => es.type === event.type)
+            .some(es => es.filterFuncs ? es.filterFuncs.every(f => f(event)) : true)
+        } else {
+          if (events.includes(event)) inculdeEvent = true;
+        }
+        return inculdeEvent &&
           (!action.transition ||
             action.transition.find(
               (transition) =>
@@ -246,8 +244,17 @@ function transferInteractorInnerAction(originAction: OriginInteractorInnerAction
   const eventStreams: helpers.EventStream[] = originAction.events.map(evtSelector => helpers.parseEventSelector(evtSelector)[0] as helpers.EventStream);  // do not accept combinator
   return {
     ...originAction,
-    eventStreams
+    eventStreams: eventStreams.map(es => transferEventStream(es))
   };
+}
+
+function transferEventStream(es: helpers.EventStream): LibraEventStream {
+  return es.filter
+    ? { ...es }
+    : {
+      ...es,
+      filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`) as EventFilterFunc) : []
+    }
 }
 
 export const register = Interactor.register;

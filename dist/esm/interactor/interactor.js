@@ -11,7 +11,7 @@ export default class Interactor {
         this._userOptions = options;
         this._name = options.name ?? baseName;
         this._state = options.state;
-        this._actions = options.actions ?? [];
+        this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
         this._modalities = {};
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -65,16 +65,27 @@ export default class Interactor {
         return helpers.parseEventSelector(event).flatMap(flatStream);
     }
     getAcceptEvents() {
-        return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
+        return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
     }
     dispatch(event, layer) {
-        const moveAction = this._actions.find((action) => (action.events.includes("*")
-            ? true
-            : event instanceof Event
-                ? action.events.includes(event.type)
-                : action.events.includes(event)) &&
-            (!action.transition ||
-                action.transition.find((transition) => transition[0] === this._state || transition[0] === "*")));
+        const moveAction = this._actions.find((action) => {
+            const events = action.eventStreams.map(es => es.type);
+            let inculdeEvent = false;
+            if (events.includes("*"))
+                inculdeEvent = true;
+            if (event instanceof Event) {
+                inculdeEvent = action.eventStreams
+                    .filter(es => es.type === event.type)
+                    .some(es => es.filterFuncs ? es.filterFuncs.every(f => f(event)) : true);
+            }
+            else {
+                if (events.includes(event))
+                    inculdeEvent = true;
+            }
+            return inculdeEvent &&
+                (!action.transition ||
+                    action.transition.find((transition) => transition[0] === this._state || transition[0] === "*"));
+        });
         if (moveAction) {
             if (event instanceof Event) {
                 event.preventDefault();
@@ -97,16 +108,8 @@ export default class Interactor {
                     const result = e.results[e.resultIndex][0];
                     this.dispatch(result.transcript, layer);
                 };
-                this._modalities.speech.onend = () => {
-                    if (layer &&
-                        layer.getGraphic() &&
-                        document.body.contains(layer.getGraphic()) // Avoid memory leak
-                    ) {
-                        this._modalities.speech.start();
-                    }
-                    else {
-                        this.disableModality("speech");
-                    }
+                this._modalities.speech.onend = (e) => {
+                    this._modalities.speech.start();
                 };
             }
             else {
@@ -147,6 +150,21 @@ export default class Interactor {
     static findInteractor(baseNameOrRealName) {
         return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
     }
+}
+function transferInteractorInnerAction(originAction) {
+    const eventStreams = originAction.events.map(evtSelector => helpers.parseEventSelector(evtSelector)[0]); // do not accept combinator
+    return {
+        ...originAction,
+        eventStreams: eventStreams.map(es => transferEventStream(es))
+    };
+}
+function transferEventStream(es) {
+    return es.filter
+        ? { ...es }
+        : {
+            ...es,
+            filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`)) : []
+        };
 }
 export const register = Interactor.register;
 export const unregister = Interactor.unregister;

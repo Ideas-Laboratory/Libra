@@ -23,6 +23,30 @@ Interactor.register("MousePositionInteractor", {
         },
     ],
 });
+Interactor.register("TouchPositionInteractor", {
+    constructor: Interactor,
+    state: "start",
+    actions: [
+        {
+            action: "enter",
+            events: ["touchstart"],
+            transition: [["start", "running"]],
+        },
+        {
+            action: "hover",
+            events: ["touchmove"],
+            transition: [["running", "running"]],
+        },
+        {
+            action: "leave",
+            events: ["touchend"],
+            transition: [
+                ["running", "start"],
+                ["start", "start"],
+            ],
+        },
+    ],
+});
 Interactor.register("MouseTraceInteractor", {
     constructor: Interactor,
     state: "start",
@@ -44,7 +68,36 @@ Interactor.register("MouseTraceInteractor", {
         },
         {
             action: "dragabort",
-            events: ["contextmenu"],
+            events: ["contextmenu", "touchcancel"],
+            transition: [
+                ["drag", "start"],
+                ["start", "start"],
+            ],
+        },
+    ],
+});
+Interactor.register("TouchTraceInteractor", {
+    constructor: Interactor,
+    state: "start",
+    actions: [
+        {
+            action: "dragstart",
+            events: ["touchstart"],
+            transition: [["start", "drag"]],
+        },
+        {
+            action: "drag",
+            events: ["touchmove"],
+            transition: [["drag", "drag"]],
+        },
+        {
+            action: "dragend",
+            events: ["touchend"],
+            transition: [["drag", "start"]],
+        },
+        {
+            action: "dragabort",
+            events: ["contextmenu", "touchcancel"],
             transition: [
                 ["drag", "start"],
                 ["start", "start"],

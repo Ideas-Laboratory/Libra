@@ -6,17 +6,42 @@ Interactor.register("MousePositionInteractor", {
   actions: [
     {
       action: "enter",
-      events: ["mouseenter, touchstart"],
+      events: ["mouseenter"],
       transition: [["start", "running"]],
     },
     {
       action: "hover",
-      events: ["mousemove", "touchmove"],
+      events: ["mousemove"],
       transition: [["running", "running"]],
     },
     {
       action: "leave",
-      events: ["mouseleave", "touchend"],
+      events: ["mouseleave"] ,
+      transition: [
+        ["running", "start"],
+        ["start", "start"],
+      ],
+    },
+  ],
+});
+
+Interactor.register("TouchPositionInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "enter",
+      events: ["touchstart"],
+      transition: [["start", "running"]],
+    },
+    {
+      action: "hover",
+      events: ["touchmove"],
+      transition: [["running", "running"]],
+    },
+    {
+      action: "leave",
+      events: ["touchend"],
       transition: [
         ["running", "start"],
         ["start", "start"],
@@ -31,17 +56,47 @@ Interactor.register("MouseTraceInteractor", {
   actions: [
     {
       action: "dragstart",
-      events: ["mousedown", "touchstart"],
+      events: ["mousedown"],
       transition: [["start", "drag"]],
     },
     {
       action: "drag",
-      events: ["mousemove", "touchmove"],
+      events: ["mousemove"],
       transition: [["drag", "drag"]],
     },
     {
       action: "dragend",
-      events: ["mouseup", "touchend"],
+      events: ["mouseup"],
+      transition: [["drag", "start"]],
+    },
+    {
+      action: "dragabort",
+      events: ["contextmenu", "touchcancel"],
+      transition: [
+        ["drag", "start"],
+        ["start", "start"],
+      ],
+    },
+  ],
+});
+
+Interactor.register("TouchTraceInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "dragstart",
+      events: ["touchstart"],
+      transition: [["start", "drag"]],
+    },
+    {
+      action: "drag",
+      events: ["touchmove"],
+      transition: [["drag", "drag"]],
+    },
+    {
+      action: "dragend",
+      events: ["touchend"],
       transition: [["drag", "start"]],
     },
     {

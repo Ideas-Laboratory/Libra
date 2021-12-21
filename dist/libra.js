@@ -303,7 +303,7 @@ var Interactor = class {
     this._userOptions = options;
     this._name = options.name ?? baseName2;
     this._state = options.state;
-    this._actions = options.actions ?? [];
+    this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
     this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -350,10 +350,22 @@ var Interactor = class {
     return parseEventSelector(event).flatMap(flatStream);
   }
   getAcceptEvents() {
-    return this._actions.flatMap((action) => action.events.flatMap((event) => this._parseEvent(event)));
+    return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
   }
   dispatch(event, layer) {
-    const moveAction = this._actions.find((action) => (action.events.includes("*") ? true : event instanceof Event ? action.events.includes(event.type) : action.events.includes(event)) && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*")));
+    const moveAction = this._actions.find((action) => {
+      const events = action.eventStreams.map((es) => es.type);
+      let inculdeEvent = false;
+      if (events.includes("*"))
+        inculdeEvent = true;
+      if (event instanceof Event) {
+        inculdeEvent = action.eventStreams.filter((es) => es.type === event.type).some((es) => es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true);
+      } else {
+        if (events.includes(event))
+          inculdeEvent = true;
+      }
+      return inculdeEvent && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*"));
+    });
     if (moveAction) {
       if (event instanceof Event) {
         event.preventDefault();
@@ -373,12 +385,8 @@ var Interactor = class {
           const result = e.results[e.resultIndex][0];
           this.dispatch(result.transcript, layer);
         };
-        this._modalities.speech.onend = () => {
-          if (layer && layer.getGraphic() && document.body.contains(layer.getGraphic())) {
-            this._modalities.speech.start();
-          } else {
-            this.disableModality("speech");
-          }
+        this._modalities.speech.onend = (e) => {
+          this._modalities.speech.start();
         };
       } else {
         this.disableModality("speech");
@@ -419,6 +427,19 @@ var Interactor = class {
     return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
   }
 };
+function transferInteractorInnerAction(originAction) {
+  const eventStreams = originAction.events.map((evtSelector) => parseEventSelector(evtSelector)[0]);
+  return {
+    ...originAction,
+    eventStreams: eventStreams.map((es) => transferEventStream(es))
+  };
+}
+function transferEventStream(es) {
+  return es.filter ? { ...es } : {
+    ...es,
+    filterFuncs: es.filter ? es.filter.map((f) => new Function("event", `return ${f}`)) : []
+  };
+}
 var register2 = Interactor.register;
 var unregister2 = Interactor.unregister;
 var initialize2 = Interactor.initialize;
@@ -449,6 +470,30 @@ Interactor.register("MousePositionInteractor", {
     }
   ]
 });
+Interactor.register("TouchPositionInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "enter",
+      events: ["touchstart"],
+      transition: [["start", "running"]]
+    },
+    {
+      action: "hover",
+      events: ["touchmove"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "leave",
+      events: ["touchend"],
+      transition: [
+        ["running", "start"],
+        ["start", "start"]
+      ]
+    }
+  ]
+});
 Interactor.register("MouseTraceInteractor", {
   constructor: Interactor,
   state: "start",
@@ -470,7 +515,36 @@ Interactor.register("MouseTraceInteractor", {
     },
     {
       action: "dragabort",
-      events: ["contextmenu"],
+      events: ["contextmenu", "touchcancel"],
+      transition: [
+        ["drag", "start"],
+        ["start", "start"]
+      ]
+    }
+  ]
+});
+Interactor.register("TouchTraceInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "dragstart",
+      events: ["touchstart"],
+      transition: [["start", "drag"]]
+    },
+    {
+      action: "drag",
+      events: ["touchmove"],
+      transition: [["drag", "drag"]]
+    },
+    {
+      action: "dragend",
+      events: ["touchend"],
+      transition: [["drag", "start"]]
+    },
+    {
+      action: "dragabort",
+      events: ["contextmenu", "touchcancel"],
       transition: [
         ["drag", "start"],
         ["start", "start"]
