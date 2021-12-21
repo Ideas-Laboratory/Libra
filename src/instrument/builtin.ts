@@ -1,9 +1,8 @@
-import Interactor from "../interactor";
 import Instrument from "./instrument";
 
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
-  interactors: ["MousePositionInteractor"],
+  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
       ({ event, layer }) => {
@@ -22,10 +21,10 @@ Instrument.register("HoverInstrument", {
 
 Instrument.register("BrushInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
-      ({ event, layer }) => {
+      ({ event, layer}) => {
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", event.clientX);
           service.setSharedVar("y", event.clientY);
@@ -102,7 +101,7 @@ Instrument.register("BrushInstrument", {
 
 Instrument.register("BrushXInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
       ({ event, layer }) => {
@@ -172,7 +171,7 @@ Instrument.register("BrushXInstrument", {
 
 Instrument.register("BrushYInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
       ({ event, layer }) => {
@@ -244,7 +243,7 @@ Instrument.register("BrushYInstrument", {
 
 Instrument.register("HelperBarInstrument", {
   constructor: Instrument,
-  interactors: ["MousePositionInteractor"],
+  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
       ({ event, layer, instrument }) => {
@@ -280,7 +279,7 @@ Instrument.register("HelperBarInstrument", {
 
 Instrument.register("DataBrushInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
       ({ event, layer }) => {
@@ -467,7 +466,7 @@ Instrument.register("DataBrushXInstrument", {
 
 Instrument.register("ClickInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragend: [
       (options) => {
@@ -502,7 +501,7 @@ Instrument.register("ClickInstrument", {
 
 Instrument.register("DragInstrument", {
   constructor: Instrument,
-  interactors: ["MouseTraceInteractor"],
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
       ({ layer, event }) => {
