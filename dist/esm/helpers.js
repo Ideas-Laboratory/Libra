@@ -44,6 +44,20 @@ export function makeFindableList(list, typing, addFunc) {
         },
     });
 }
+export function getTransform(elem) {
+    try {
+        const transform = elem
+            .getAttribute("transform")
+            .split("(")[1]
+            .split(")")[0]
+            .split(",")
+            .map((i) => parseFloat(i));
+        return transform;
+    }
+    catch (e) {
+        return [0, 0];
+    }
+}
 /**
  * Parse an event selector string.
  * Returns an array of event stream definitions.

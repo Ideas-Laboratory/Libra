@@ -107,6 +107,14 @@ function makeFindableList(list, typing, addFunc) {
     }
   });
 }
+function getTransform(elem) {
+  try {
+    const transform2 = elem.getAttribute("transform").split("(")[1].split(")")[0].split(",").map((i) => parseFloat(i));
+    return transform2;
+  } catch (e) {
+    return [0, 0];
+  }
+}
 function parseEventSelector(selector) {
   return parseMerge(selector.trim()).map(parseSelector);
 }
@@ -304,6 +312,7 @@ var Interactor = class {
     this._name = options.name ?? baseName2;
     this._state = options.state;
     this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
+    console.log(this._actions);
     this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -359,6 +368,8 @@ var Interactor = class {
       if (events.includes("*"))
         inculdeEvent = true;
       if (event instanceof Event) {
+        console.log(event);
+        console.log(event.key === "ArrowRight");
         inculdeEvent = action.eventStreams.filter((es) => es.type === event.type).some((es) => es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true);
       } else {
         if (events.includes(event))
@@ -435,10 +446,10 @@ function transferInteractorInnerAction(originAction) {
   };
 }
 function transferEventStream(es) {
-  return es.filter ? { ...es } : {
+  return es.filter ? {
     ...es,
     filterFuncs: es.filter ? es.filter.map((f) => new Function("event", `return ${f}`)) : []
-  };
+  } : { ...es };
 }
 var register2 = Interactor.register;
 var unregister2 = Interactor.unregister;
@@ -515,7 +526,7 @@ Interactor.register("MouseTraceInteractor", {
     },
     {
       action: "dragabort",
-      events: ["contextmenu", "touchcancel"],
+      events: ["contextmenu"],
       transition: [
         ["drag", "start"],
         ["start", "start"]
@@ -544,7 +555,7 @@ Interactor.register("TouchTraceInteractor", {
     },
     {
       action: "dragabort",
-      events: ["contextmenu", "touchcancel"],
+      events: ["contextmenu"],
       transition: [
         ["drag", "start"],
         ["start", "start"]
@@ -570,6 +581,37 @@ Interactor.register("SpeechControlInteractor", {
       action: "speech",
       events: ["*"],
       transition: [["*", "speech:ready"]]
+    }
+  ]
+});
+Interactor.register("KeyboardPositionInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "begin",
+      events: ["keydown[event.key===' ']"],
+      transition: [["start", "running"]]
+    },
+    {
+      action: "up",
+      events: ["keypress[event.key==='w' || event.key==='W']", "keydown[event.key==='ArrowUp']{100}"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "left",
+      events: ["keypress[event.key==='a' || event.key==='A']", "keydown[event.key==='ArrowLeft']{100}"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "down",
+      events: ["keypress[event.key==='s' || event.key==='S']", "keydown[event.key==='ArrowDown']{100}"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "right",
+      events: ["keypress[event.key==='d' || event.key==='D']", "keydown[event.key==='ArrowRight']{100}"],
+      transition: [["running", "running"]]
     }
   ]
 });
@@ -4191,8 +4233,6 @@ Instrument.register("HelperBarInstrument", {
   on: {
     hover: [
       ({ event, layer, instrument }) => {
-        console.log("hover");
-        const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         helperBar.setAttribute("transform", `translate(${event.offsetX - 50}, 0)`);
@@ -4201,7 +4241,6 @@ Instrument.register("HelperBarInstrument", {
     ]
   },
   preAttach: function(instrument, layer) {
-    console.log("preuse");
     const height = layer.getSharedVar("height", 100);
     const transientLayer = layer.getSiblingLayer("transientLayer");
     const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -4460,6 +4499,54 @@ Instrument.register("DragInstrument", {
 Instrument.register("SpeechInstrument", {
   constructor: Instrument,
   interactors: ["SpeechControlInteractor"]
+});
+Instrument.register("KeyboardHelperBarInstrument", {
+  constructor: Instrument,
+  interactors: ["KeyboardPositionInteractor"],
+  on: {
+    begin: [() => console.log("begin")],
+    left: [
+      ({ event, layer, instrument }) => {
+        console.log("left");
+        const speed = layer.getSharedVar("speed", 1);
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const helperBar = transientLayer.getGraphic().querySelector("line");
+        const transform2 = getTransform(helperBar);
+        const newX = transform2[0] - speed;
+        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+        instrument.setSharedVar("barX", newX, {});
+      }
+    ],
+    right: [
+      ({ event, layer, instrument }) => {
+        console.log("right");
+        const speed = layer.getSharedVar("speed", 1);
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const helperBar = transientLayer.getGraphic().querySelector("line");
+        const transform2 = getTransform(helperBar);
+        const newX = transform2[0] + speed;
+        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+        instrument.setSharedVar("barX", newX, {});
+      }
+    ]
+  },
+  preAttach: function(instrument, layer) {
+    console.log("preAttach");
+    console.log(layer.getContainerGraphic());
+    layer.getGraphic().setAttribute("tabindex", 0);
+    layer.getGraphic().focus();
+    const height = layer.getSharedVar("height", 100);
+    const startX = layer.getSharedVar("startX", 0);
+    const transientLayer = layer.getSiblingLayer("transientLayer");
+    const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    helperBar.setAttribute("x1", `${startX}`);
+    helperBar.setAttribute("y1", `${startX}`);
+    helperBar.setAttribute("x2", `${startX}`);
+    helperBar.setAttribute("y2", `${height}`);
+    helperBar.setAttribute("stroke", `black`);
+    helperBar.setAttribute("stroke-width", `1px`);
+    transientLayer.getGraphic().append(helperBar);
+  }
 });
 
 // dist/esm/instrument/index.js

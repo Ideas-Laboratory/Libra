@@ -68,7 +68,7 @@ Interactor.register("MouseTraceInteractor", {
         },
         {
             action: "dragabort",
-            events: ["contextmenu", "touchcancel"],
+            events: ["contextmenu"],
             transition: [
                 ["drag", "start"],
                 ["start", "start"],
@@ -97,7 +97,7 @@ Interactor.register("TouchTraceInteractor", {
         },
         {
             action: "dragabort",
-            events: ["contextmenu", "touchcancel"],
+            events: ["contextmenu"],
             transition: [
                 ["drag", "start"],
                 ["start", "start"],
@@ -124,5 +124,44 @@ Interactor.register("SpeechControlInteractor", {
             events: ["*"],
             transition: [["*", "speech:ready"]],
         },
+    ],
+});
+Interactor.register("KeyboardPositionInteractor", {
+    constructor: Interactor,
+    state: "start",
+    actions: [
+        {
+            action: "begin",
+            events: ["keydown[event.key===' ']"],
+            transition: [["start", "running"]],
+        },
+        {
+            action: "up",
+            events: ["keypress[event.key==='w' || event.key==='W']", "keydown[event.key==='ArrowUp']{100}"],
+            transition: [["running", "running"]],
+        },
+        {
+            action: "left",
+            events: ["keypress[event.key==='a' || event.key==='A']", "keydown[event.key==='ArrowLeft']{100}"],
+            transition: [["running", "running"]],
+        },
+        {
+            action: "down",
+            events: ["keypress[event.key==='s' || event.key==='S']", "keydown[event.key==='ArrowDown']{100}"],
+            transition: [["running", "running"]],
+        },
+        {
+            action: "right",
+            events: ["keypress[event.key==='d' || event.key==='D']", "keydown[event.key==='ArrowRight']{100}"],
+            transition: [["running", "running"]],
+        },
+        // {
+        //   action: "end",
+        //   events: ["keydown[event.key===' ']"] ,
+        //   transition: [
+        //     ["running", "start"],
+        //     ["start", "start"],
+        //   ],
+        // },
     ],
 });

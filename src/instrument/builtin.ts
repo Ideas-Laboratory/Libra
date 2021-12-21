@@ -1,4 +1,5 @@
 import Instrument from "./instrument";
+import { getTransform } from "../helpers";
 
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
@@ -247,8 +248,6 @@ Instrument.register("HelperBarInstrument", {
   on: {
     hover: [
       ({ event, layer, instrument }) => {
-        console.log("hover");
-        const height = layer.getSharedVar("height", 100);
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         helperBar.setAttribute(
@@ -260,7 +259,6 @@ Instrument.register("HelperBarInstrument", {
     ],
   },
   preAttach: function (instrument, layer) {
-    console.log("preuse");
     const height = layer.getSharedVar("height", 100);
     const transientLayer = layer.getSiblingLayer("transientLayer");
     const helperBar = document.createElementNS(
@@ -572,4 +570,63 @@ Instrument.register("DragInstrument", {
 Instrument.register("SpeechInstrument", {
   constructor: Instrument,
   interactors: ["SpeechControlInteractor"],
+});
+
+Instrument.register("KeyboardHelperBarInstrument", {
+  constructor: Instrument,
+  interactors: ["KeyboardPositionInteractor"],
+  on: {
+    begin: [() => console.log("begin")],
+    left: [
+      ({ event, layer, instrument }) => {
+        console.log("left");
+        const speed = layer.getSharedVar("speed", 1) as number;
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const helperBar = transientLayer.getGraphic().querySelector("line") as SVGElement;
+        const transform = getTransform(helperBar);
+        const newX = transform[0] - speed;
+        helperBar.setAttribute(
+          "transform",
+          `translate(${newX}, 0)`
+        );
+        instrument.setSharedVar("barX", newX, {});
+      },
+    ],
+    right: [
+      ({ event, layer, instrument }) => {
+        console.log("right");
+        const speed = layer.getSharedVar("speed", 1) as number;
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const helperBar = transientLayer.getGraphic().querySelector("line") as SVGElement;
+        const transform = getTransform(helperBar);
+        const newX = transform[0] + speed;
+        helperBar.setAttribute(
+          "transform",
+          `translate(${newX}, 0)`
+        );
+        instrument.setSharedVar("barX", newX, {});
+      },
+    ],
+  },
+  preAttach: function (instrument, layer) {
+    console.log("preAttach");
+    console.log(layer.getContainerGraphic());
+    layer.getGraphic().setAttribute('tabindex', 0);
+    layer.getGraphic().focus();
+    const height = layer.getSharedVar("height", 100);
+    const startX = layer.getSharedVar("startX", 0);
+    const transientLayer = layer.getSiblingLayer("transientLayer");
+    const helperBar = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+    
+    helperBar.setAttribute("x1", `${startX}`);
+    helperBar.setAttribute("y1", `${startX}`);
+    helperBar.setAttribute("x2", `${startX}`);
+    helperBar.setAttribute("y2", `${height}`);
+    helperBar.setAttribute("stroke", `black`);
+    helperBar.setAttribute("stroke-width", `1px`);
+    (transientLayer.getGraphic() as SVGGElement).append(helperBar);
+  },
 });

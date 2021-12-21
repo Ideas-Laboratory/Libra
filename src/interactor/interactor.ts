@@ -250,11 +250,11 @@ function transferInteractorInnerAction(originAction: OriginInteractorInnerAction
 
 function transferEventStream(es: helpers.EventStream): LibraEventStream {
   return es.filter
-    ? { ...es }
-    : {
+    ? {
       ...es,
       filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`) as EventFilterFunc) : []
     }
+    : { ...es }
 }
 
 export const register = Interactor.register;

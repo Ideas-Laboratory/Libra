@@ -12,6 +12,7 @@ export default class Interactor {
         this._name = options.name ?? baseName;
         this._state = options.state;
         this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
+        console.log(this._actions);
         this._modalities = {};
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -74,6 +75,8 @@ export default class Interactor {
             if (events.includes("*"))
                 inculdeEvent = true;
             if (event instanceof Event) {
+                console.log(event);
+                console.log(event.key === "ArrowRight");
                 inculdeEvent = action.eventStreams
                     .filter(es => es.type === event.type)
                     .some(es => es.filterFuncs ? es.filterFuncs.every(f => f(event)) : true);
@@ -160,11 +163,11 @@ function transferInteractorInnerAction(originAction) {
 }
 function transferEventStream(es) {
     return es.filter
-        ? { ...es }
-        : {
+        ? {
             ...es,
             filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`)) : []
-        };
+        }
+        : { ...es };
 }
 export const register = Interactor.register;
 export const unregister = Interactor.unregister;
