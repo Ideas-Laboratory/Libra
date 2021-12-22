@@ -7,7 +7,7 @@ Instrument.register("HoverInstrument", {
   on: {
     hover: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", event.clientX);
           service.setSharedVar("y", event.clientY);
@@ -27,7 +27,7 @@ Instrument.register("BrushInstrument", {
   on: {
     dragstart: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", event.clientX);
           service.setSharedVar("y", event.clientY);
@@ -44,7 +44,7 @@ Instrument.register("BrushInstrument", {
     ],
     drag: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           const starty = service.getSharedVar("starty");
@@ -68,7 +68,7 @@ Instrument.register("BrushInstrument", {
     ],
     dragend: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("currenty", event.clientY);
@@ -83,7 +83,7 @@ Instrument.register("BrushInstrument", {
     ],
     dragabort: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -111,7 +111,7 @@ Instrument.register("BrushXInstrument", {
   on: {
     dragstart: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const baseBBox = layer.getGraphic().getBoundingClientRect();
           service.setSharedVar("x", event.clientX);
@@ -127,7 +127,7 @@ Instrument.register("BrushXInstrument", {
     ],
     drag: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           service.setSharedVar("x", Math.min(event.clientX, startx));
@@ -146,7 +146,7 @@ Instrument.register("BrushXInstrument", {
     ],
     dragend: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
@@ -159,7 +159,7 @@ Instrument.register("BrushXInstrument", {
     ],
     dragabort: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -185,7 +185,7 @@ Instrument.register("BrushYInstrument", {
   on: {
     dragstart: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const baseBBox = layer.getGraphic().getBoundingClientRect();
           service.setSharedVar("x", baseBBox.x);
@@ -201,7 +201,7 @@ Instrument.register("BrushYInstrument", {
     ],
     drag: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           const starty = service.getSharedVar("starty");
@@ -220,7 +220,7 @@ Instrument.register("BrushYInstrument", {
     ],
     dragend: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currenty", event.clientY);
           service.setSharedVar("endy", event.clientY);
@@ -233,7 +233,7 @@ Instrument.register("BrushYInstrument", {
     ],
     dragabort: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -261,7 +261,7 @@ Instrument.register("HelperBarInstrument", {
   on: {
     hover: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         const transientLayer = layer.getSiblingLayer("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         helperBar.setAttribute(
@@ -295,7 +295,7 @@ Instrument.register("DataBrushInstrument", {
   on: {
     dragstart: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", event.clientX);
           service.setSharedVar("y", event.clientY);
@@ -322,7 +322,7 @@ Instrument.register("DataBrushInstrument", {
     ],
     drag: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const baseBBox = layer.getGraphic().getBoundingClientRect();
           const startx = service.getSharedVar("startx");
@@ -358,7 +358,7 @@ Instrument.register("DataBrushInstrument", {
     ],
     dragend: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           // service.setSharedVar("x", 0);
           // service.setSharedVar("y", 0);
@@ -377,7 +377,7 @@ Instrument.register("DataBrushInstrument", {
     ],
     dragabort: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -405,7 +405,7 @@ Instrument.register("DataBrushXInstrument", {
   on: {
     dragstart: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const baseBBox = layer.getGraphic().getBoundingClientRect();
           service.setSharedVar("x", event.clientX);
@@ -426,7 +426,7 @@ Instrument.register("DataBrushXInstrument", {
     ],
     drag: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           const baseBBox = layer.getGraphic().getBoundingClientRect();
@@ -451,7 +451,7 @@ Instrument.register("DataBrushXInstrument", {
     ],
     dragend: [
       ({ event, layer, instrument }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("currentx", event.clientX);
           service.setSharedVar("endx", event.clientX);
@@ -464,7 +464,7 @@ Instrument.register("DataBrushXInstrument", {
     ],
     dragabort: [
       ({ event, layer }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -490,7 +490,7 @@ Instrument.register("ClickInstrument", {
   on: {
     dragend: [
       (options) => {
-        if (options.event.touches) options.event = options.event.touches[0];
+        if (options.event.changedTouches) options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", options.event.clientX);
           service.setSharedVar("y", options.event.clientY);
@@ -503,7 +503,7 @@ Instrument.register("ClickInstrument", {
     ],
     dragabort: [
       (options) => {
-        if (options.event.touches) options.event = options.event.touches[0];
+        if (options.event.changedTouches) options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);
@@ -527,7 +527,7 @@ Instrument.register("DragInstrument", {
   on: {
     dragstart: [
       ({ layer, event }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", event.clientX);
           service.setSharedVar("y", event.clientY);
@@ -538,7 +538,7 @@ Instrument.register("DragInstrument", {
     ],
     drag: [
       ({ layer, event }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
@@ -556,7 +556,7 @@ Instrument.register("DragInstrument", {
     ],
     dragend: [
       ({ layer, event }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
@@ -573,7 +573,7 @@ Instrument.register("DragInstrument", {
     ],
     dragabort: [
       ({ layer, event }) => {
-        if (event.touches) event = event.touches[0];
+        if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
