@@ -3807,7 +3807,7 @@ var Layer2 = Layer;
 // dist/esm/instrument/instrument.js
 var registeredInstruments = {};
 var instanceInstruments = [];
-var lastEvent = null;
+var EventDispatcher = new Map();
 var Instrument = class {
   constructor(baseName2, options) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -3915,11 +3915,27 @@ var Instrument = class {
       } else {
         layr = layer.layer;
       }
-      interactor.getAcceptEvents().forEach((event) => layr.getContainerGraphic().addEventListener(event, (e) => {
-        console.log(e == lastEvent);
-        lastEvent = e;
-        interactor.dispatch(e, layr);
-      }));
+      interactor.getAcceptEvents().forEach((event) => {
+        if (!EventDispatcher.has(layr.getContainerGraphic())) {
+          EventDispatcher.set(layr.getContainerGraphic(), new Map());
+        }
+        if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
+          layr.getContainerGraphic().addEventListener(event, (e) => {
+            EventDispatcher.get(layr.getContainerGraphic()).get(event).forEach(([interactor2, layr2]) => {
+              e.handled = false;
+              interactor2.dispatch(e, layr2);
+              if (!("handledLayers" in e)) {
+                e.handledLayers = [];
+              }
+              if (e.handled = true) {
+                e.handledLayers.push(layr2._name);
+              }
+            });
+          });
+          EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
+        }
+        EventDispatcher.get(layr.getContainerGraphic()).get(event).push([interactor, layr]);
+      });
     });
     interactor.postUse(this);
   }
@@ -3973,7 +3989,27 @@ var Instrument = class {
       } else {
         inter = interactor.interactor;
       }
-      inter.getAcceptEvents().forEach((event) => layer.getContainerGraphic().addEventListener(event, (e) => inter.dispatch(e, layer)));
+      inter.getAcceptEvents().forEach((event) => {
+        if (!EventDispatcher.has(layer.getContainerGraphic())) {
+          EventDispatcher.set(layer.getContainerGraphic(), new Map());
+        }
+        if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
+          layer.getContainerGraphic().addEventListener(event, (e) => {
+            EventDispatcher.get(layer.getContainerGraphic()).get(event).forEach(([inter2, layr]) => {
+              e.handled = false;
+              inter2.dispatch(e, layr);
+              if (!("handledLayers" in e)) {
+                e.handledLayers = [];
+              }
+              if (e.handled = true) {
+                e.handledLayers.push(layr._name);
+              }
+            });
+          });
+          EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
+        }
+        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([inter, layer]);
+      });
     });
   }
   postUse(layer) {
