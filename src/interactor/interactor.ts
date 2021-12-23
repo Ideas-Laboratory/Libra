@@ -4,7 +4,7 @@ import { Layer } from "../layer";
 import Actions from "./actions.jsgf";
 import actionsJsgf from "./actions.jsgf";
 
-type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
+type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
 
 type OriginInteractorInnerAction = {
   action: string;
@@ -14,8 +14,12 @@ type OriginInteractorInnerAction = {
 };
 
 type EventFilterFunc = (event: Event) => boolean;
-type LibraEventStream = helpers.EventStream & { filterFuncs?: EventFilterFunc[] }
-type InteractorInnerAction = OriginInteractorInnerAction & { eventStreams: LibraEventStream[] };
+type LibraEventStream = helpers.EventStream & {
+  filterFuncs?: EventFilterFunc[];
+};
+type InteractorInnerAction = OriginInteractorInnerAction & {
+  eventStreams: LibraEventStream[];
+};
 
 type InteractorInitOption = {
   name?: string;
@@ -114,17 +118,17 @@ export default class Interactor {
       stream:
         | helpers.EventStream
         | {
-          between: (helpers.EventStream | helpers.BetweenEventStream)[];
-          stream: helpers.BetweenEventStream[];
-        }
+            between: (helpers.EventStream | helpers.BetweenEventStream)[];
+            stream: helpers.BetweenEventStream[];
+          }
     ) =>
       "stream" in stream
         ? stream.between.concat(stream.stream).flatMap(flatStream)
         : "between" in stream
-          ? (stream as any).between
+        ? (stream as any).between
             .concat([{ type: (stream as any).type }])
             .flatMap(flatStream)
-          : stream.type;
+        : stream.type;
 
     return helpers.parseEventSelector(event).flatMap(flatStream);
   }
@@ -135,27 +139,29 @@ export default class Interactor {
     );
   }
 
-  dispatch(event: string | Event, layer?: Layer<any>): void {
-    const moveAction = this._actions.find(
-      (action) => {
-        const events = action.eventStreams.map(es => es.type);
-        let inculdeEvent = false;
-        if (events.includes("*")) inculdeEvent = true;
-        if (event instanceof Event) {
-          inculdeEvent = action.eventStreams
-            .filter(es => es.type === event.type)
-            .some(es => es.filterFuncs ? es.filterFuncs.every(f => f(event)) : true)
-        } else {
-          if (events.includes(event)) inculdeEvent = true;
-        }
-        return inculdeEvent &&
-          (!action.transition ||
-            action.transition.find(
-              (transition) =>
-                transition[0] === this._state || transition[0] === "*"
-            ))
+  async dispatch(event: string | Event, layer?: Layer<any>): Promise<void> {
+    const moveAction = this._actions.find((action) => {
+      const events = action.eventStreams.map((es) => es.type);
+      let inculdeEvent = false;
+      if (events.includes("*")) inculdeEvent = true;
+      if (event instanceof Event) {
+        inculdeEvent = action.eventStreams
+          .filter((es) => es.type === event.type)
+          .some((es) =>
+            es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true
+          );
+      } else {
+        if (events.includes(event)) inculdeEvent = true;
       }
-    );
+      return (
+        inculdeEvent &&
+        (!action.transition ||
+          action.transition.find(
+            (transition) =>
+              transition[0] === this._state || transition[0] === "*"
+          ))
+      );
+    });
     if (moveAction) {
       if (event instanceof Event) {
         event.preventDefault();
@@ -187,7 +193,7 @@ export default class Interactor {
         this.disableModality("speech");
       }
       if (moveAction.sideEffect) {
-        moveAction.sideEffect({
+        await moveAction.sideEffect({
           self: this,
           layer,
           instrument: null,
@@ -240,21 +246,30 @@ export default class Interactor {
   }
 }
 
-function transferInteractorInnerAction(originAction: OriginInteractorInnerAction): InteractorInnerAction {
-  const eventStreams: helpers.EventStream[] = originAction.events.map(evtSelector => helpers.parseEventSelector(evtSelector)[0] as helpers.EventStream);  // do not accept combinator
+function transferInteractorInnerAction(
+  originAction: OriginInteractorInnerAction
+): InteractorInnerAction {
+  const eventStreams: helpers.EventStream[] = originAction.events.map(
+    (evtSelector) =>
+      helpers.parseEventSelector(evtSelector)[0] as helpers.EventStream
+  ); // do not accept combinator
   return {
     ...originAction,
-    eventStreams: eventStreams.map(es => transferEventStream(es))
+    eventStreams: eventStreams.map((es) => transferEventStream(es)),
   };
 }
 
 function transferEventStream(es: helpers.EventStream): LibraEventStream {
   return es.filter
     ? {
-      ...es,
-      filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`) as EventFilterFunc) : []
-    }
-    : { ...es }
+        ...es,
+        filterFuncs: es.filter
+          ? es.filter.map(
+              (f) => new Function("event", `return ${f}`) as EventFilterFunc
+            )
+          : [],
+      }
+    : { ...es };
 }
 
 export const register = Interactor.register;

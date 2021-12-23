@@ -22,11 +22,13 @@ export default class Command {
     redo() {
         this._redo && this._redo.call(this);
     }
-    execute(options) {
+    async execute(options) {
         this.preExecute();
-        this._execute && this._execute.call(this, options);
+        this._execute && (await this._execute.call(this, options));
         this.postExecute();
-        this._feedbacks.forEach((feedback) => feedback.call(this, options));
+        for (let feedback of this._feedbacks) {
+            await feedback.call(this, options);
+        }
     }
     preExecute() {
         this._preExecute && this._preExecute.call(this, this);

@@ -75,28 +75,26 @@ export default class InteractionService {
     return this._sharedVar[sharedName];
   }
 
-  setSharedVar(sharedName: string, value: any, options?: any) {
+  async setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      this._on.update.forEach((command) =>
-        command.execute({
+      for (let command of this._on.update)
+        await command.execute({
           self: this,
           layer: options?.layer ?? null,
           instrument: options?.instrument ?? null,
           interactor: options?.interactor ?? null,
-        })
-      );
+        });
     }
     if (this._on[`update:${sharedName}`]) {
-      this._on[`update:${sharedName}`].forEach((command) =>
-        command.execute({
+      for (let command of this._on[`update:${sharedName}`])
+        await command.execute({
           self: this,
           layer: options?.layer ?? null,
           instrument: options?.instrument ?? null,
           interactor: options?.interactor ?? null,
-        })
-      );
+        });
     }
     this.postUpdate();
   }

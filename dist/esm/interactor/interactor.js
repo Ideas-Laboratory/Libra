@@ -67,24 +67,24 @@ export default class Interactor {
     getAcceptEvents() {
         return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
     }
-    dispatch(event, layer) {
+    async dispatch(event, layer) {
         const moveAction = this._actions.find((action) => {
-            const events = action.eventStreams.map(es => es.type);
+            const events = action.eventStreams.map((es) => es.type);
             let inculdeEvent = false;
             if (events.includes("*"))
                 inculdeEvent = true;
             if (event instanceof Event) {
                 inculdeEvent = action.eventStreams
-                    .filter(es => es.type === event.type)
-                    .some(es => es.filterFuncs ? es.filterFuncs.every(f => f(event)) : true);
+                    .filter((es) => es.type === event.type)
+                    .some((es) => es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true);
             }
             else {
                 if (events.includes(event))
                     inculdeEvent = true;
             }
-            return inculdeEvent &&
+            return (inculdeEvent &&
                 (!action.transition ||
-                    action.transition.find((transition) => transition[0] === this._state || transition[0] === "*"));
+                    action.transition.find((transition) => transition[0] === this._state || transition[0] === "*")));
         });
         if (moveAction) {
             if (event instanceof Event) {
@@ -116,7 +116,7 @@ export default class Interactor {
                 this.disableModality("speech");
             }
             if (moveAction.sideEffect) {
-                moveAction.sideEffect({
+                await moveAction.sideEffect({
                     self: this,
                     layer,
                     instrument: null,
@@ -152,17 +152,19 @@ export default class Interactor {
     }
 }
 function transferInteractorInnerAction(originAction) {
-    const eventStreams = originAction.events.map(evtSelector => helpers.parseEventSelector(evtSelector)[0]); // do not accept combinator
+    const eventStreams = originAction.events.map((evtSelector) => helpers.parseEventSelector(evtSelector)[0]); // do not accept combinator
     return {
         ...originAction,
-        eventStreams: eventStreams.map(es => transferEventStream(es))
+        eventStreams: eventStreams.map((es) => transferEventStream(es)),
     };
 }
 function transferEventStream(es) {
     return es.filter
         ? {
             ...es,
-            filterFuncs: es.filter ? es.filter.map(f => new Function("event", `return ${f}`)) : []
+            filterFuncs: es.filter
+                ? es.filter.map((f) => new Function("event", `return ${f}`))
+                : [],
         }
         : { ...es };
 }

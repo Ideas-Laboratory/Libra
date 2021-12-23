@@ -1,7 +1,7 @@
 import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 import { Layer } from "../layer";
-declare type SideEffect = (options: helpers.CommonHandlerInput<any>) => void;
+declare type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
 declare type OriginInteractorInnerAction = {
     action: string;
     events: string[];
@@ -49,7 +49,7 @@ export default class Interactor {
     setActions(actions: InteractorInnerAction[]): void;
     _parseEvent(event: string): any[];
     getAcceptEvents(): string[];
-    dispatch(event: string | Event, layer?: Layer<any>): void;
+    dispatch(event: string | Event, layer?: Layer<any>): Promise<void>;
     preUse(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;

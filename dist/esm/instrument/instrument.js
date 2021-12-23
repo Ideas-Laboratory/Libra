@@ -3,7 +3,6 @@ import { Command } from "../command";
 import { Layer } from "../layer";
 const registeredInstruments = {};
 const instanceInstruments = [];
-let lastEvent = null;
 const EventDispatcher = new Map();
 export default class Instrument {
     constructor(baseName, options) {
@@ -93,25 +92,26 @@ export default class Instrument {
         }
         interactor.setActions(interactor.getActions().map((action) => ({
             ...action,
-            sideEffect: (options) => {
+            sideEffect: async (options) => {
                 action.sideEffect && action.sideEffect(options);
-                this._on[action.action] &&
-                    this._on[action.action].forEach((command) => {
+                if (this._on[action.action]) {
+                    for (let command of this._on[action.action]) {
                         if (command instanceof Command) {
-                            command.execute({
+                            await command.execute({
                                 ...options,
                                 self: this,
                                 instrument: this,
                             });
                         }
                         else {
-                            command({
+                            await command({
                                 ...options,
                                 self: this,
                                 instrument: this,
                             });
                         }
-                    });
+                    }
+                }
             },
         })));
         this._layers.forEach((layer) => {
@@ -210,19 +210,19 @@ export default class Instrument {
                     EventDispatcher.set(layer.getContainerGraphic(), new Map());
                 }
                 if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-                    layer.getContainerGraphic().addEventListener(event, (e) => {
-                        EventDispatcher.get(layer.getContainerGraphic())
+                    layer.getContainerGraphic().addEventListener(event, async (e) => {
+                        const layers = EventDispatcher.get(layer.getContainerGraphic())
                             .get(event)
-                            .forEach(([inter, layr]) => {
+                            .slice();
+                        layers.sort((a, b) => b[1]._order - a[1]._order);
+                        e.handledLayers = [];
+                        for (let [inter, layr] of layers) {
                             e.handled = false;
-                            inter.dispatch(e, layr);
-                            if (!("handledLayers" in e)) {
-                                e.handledLayers = [];
-                            }
-                            if ((e.handled = true)) {
+                            await inter.dispatch(e, layr);
+                            if (e.handled == true) {
                                 e.handledLayers.push(layr._name);
                             }
-                        });
+                        }
                     });
                     EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
                 }

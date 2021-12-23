@@ -30,7 +30,7 @@ export default class Command {
     constructor(baseName: string, options: CommandInitOption);
     undo(): void;
     redo(): void;
-    execute<T>(options: helpers.CommonHandlerInput<T>): void;
+    execute<T>(options: helpers.CommonHandlerInput<T>): Promise<void>;
     preExecute(): void;
     postExecute(): void;
     isInstanceOf(name: string): boolean;

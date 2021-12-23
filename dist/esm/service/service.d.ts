@@ -41,7 +41,7 @@ export default class InteractionService {
     constructor(baseName: string, options: ServiceInitOption);
     on(action: string, command: Command): void;
     getSharedVar(sharedName: string, options?: any): any;
-    setSharedVar(sharedName: string, value: any, options?: any): void;
+    setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
     watchSharedVar(sharedName: string, handler: Command): void;
     preUpdate(): void;
     postUpdate(): void;

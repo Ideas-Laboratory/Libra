@@ -66,6 +66,7 @@ export default class Layer<T> {
   _container: HTMLElement;
   _sharedVar: { [varName: string]: any };
   _sharedVarWatcher: { [varName: string]: (Function | Command)[] };
+  _order: number;
   _redraw?: <T>(
     data: any,
     scale: helpers.Transformation,
@@ -88,6 +89,7 @@ export default class Layer<T> {
     this._sharedVarWatcher = {};
     this._transformationWatcher = {};
     this._serviceInstances = [];
+    this._order = 0;
     this._redraw = options.redraw;
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -274,6 +276,7 @@ export default class Layer<T> {
         graphic && graphic.style && (graphic.style.pointerEvents = "none");
         graphic && graphic.style && (graphic.style.display = "none");
       }
+      this.getSiblingLayer(layerName)._order = order;
     });
   }
   isInstanceOf(name: string): boolean {

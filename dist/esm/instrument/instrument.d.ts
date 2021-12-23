@@ -5,7 +5,7 @@ import { Layer } from "../layer";
 declare type InstrumentInitOption = {
     name?: string;
     on?: {
-        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => void) | Command)[];
+        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
     interactors?: (string | Interactor | {
         interactor: string | Interactor;
@@ -33,7 +33,7 @@ export default class Instrument {
     _name: string;
     _userOptions: InstrumentInitOption;
     _on: {
-        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => void) | Command)[];
+        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
     _interactors: (Interactor | {
         interactor: Interactor;
@@ -52,8 +52,8 @@ export default class Instrument {
     _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     constructor(baseName: string, options: InstrumentInitOption);
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
-    on(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
-    off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => void) | Command): void;
+    on(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
+    off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
     use(interactor: Interactor, options?: any): void;
     attach(layer: Layer<any>, options?: any): void;
     getSharedVar(sharedName: string, options?: any): any;

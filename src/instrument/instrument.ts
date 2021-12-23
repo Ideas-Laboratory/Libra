@@ -7,7 +7,7 @@ type InstrumentInitOption = {
   name?: string;
   on?: {
     [action: string]: (
-      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
       | Command
     )[];
   };
@@ -32,7 +32,6 @@ type InstrumentInitTemplate = InstrumentInitOption & {
 
 const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
 const instanceInstruments: Instrument[] = [];
-let lastEvent = null;
 const EventDispatcher: Map<
   HTMLElement,
   Map<string, [Interactor, Layer<any>][]>
@@ -44,7 +43,7 @@ export default class Instrument {
   _userOptions: InstrumentInitOption;
   _on: {
     [action: string]: (
-      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
       | Command
     )[];
   };
@@ -131,7 +130,7 @@ export default class Instrument {
   on(
     action: string,
     feedforwardOrCommand:
-      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>)
       | Command
   ) {
     if (!this._on[action]) {
@@ -143,7 +142,7 @@ export default class Instrument {
   off(
     action: string,
     feedforwardOrCommand:
-      | (<T>(options: helpers.CommonHandlerInput<T>) => void)
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>)
       | Command
   ) {
     if (!this._on[action]) return;
@@ -166,24 +165,25 @@ export default class Instrument {
     interactor.setActions(
       interactor.getActions().map((action) => ({
         ...action,
-        sideEffect: (options) => {
+        sideEffect: async (options) => {
           action.sideEffect && action.sideEffect(options);
-          this._on[action.action] &&
-            this._on[action.action].forEach((command) => {
+          if (this._on[action.action]) {
+            for (let command of this._on[action.action]) {
               if (command instanceof Command) {
-                command.execute({
+                await command.execute({
                   ...options,
                   self: this,
                   instrument: this,
                 });
               } else {
-                command({
+                await command({
                   ...options,
                   self: this,
                   instrument: this,
                 });
               }
-            });
+            }
+          }
         },
       }))
     );
@@ -286,19 +286,19 @@ export default class Instrument {
           EventDispatcher.set(layer.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-          layer.getContainerGraphic().addEventListener(event, (e) => {
-            EventDispatcher.get(layer.getContainerGraphic())
+          layer.getContainerGraphic().addEventListener(event, async (e) => {
+            const layers = EventDispatcher.get(layer.getContainerGraphic())
               .get(event)
-              .forEach(([inter, layr]) => {
-                (e as any).handled = false;
-                inter.dispatch(e, layr);
-                if (!("handledLayers" in e)) {
-                  (e as any).handledLayers = [];
-                }
-                if (((e as any).handled = true)) {
-                  (e as any).handledLayers.push(layr._name);
-                }
-              });
+              .slice();
+            layers.sort((a, b) => b[1]._order - a[1]._order);
+            (e as any).handledLayers = [];
+            for (let [inter, layr] of layers) {
+              (e as any).handled = false;
+              await inter.dispatch(e, layr);
+              if ((e as any).handled == true) {
+                (e as any).handledLayers.push(layr._name);
+              }
+            }
           });
           EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
         }

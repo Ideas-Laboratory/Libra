@@ -490,7 +490,8 @@ Instrument.register("ClickInstrument", {
   on: {
     dragend: [
       (options) => {
-        if (options.event.changedTouches) options.event = options.event.changedTouches[0];
+        if (options.event.changedTouches)
+          options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", options.event.clientX);
           service.setSharedVar("y", options.event.clientY);
@@ -503,7 +504,8 @@ Instrument.register("ClickInstrument", {
     ],
     dragabort: [
       (options) => {
-        if (options.event.changedTouches) options.event = options.event.changedTouches[0];
+        if (options.event.changedTouches)
+          options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
           service.setSharedVar("x", 0);
           service.setSharedVar("y", 0);

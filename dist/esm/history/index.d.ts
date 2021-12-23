@@ -1,5 +1,5 @@
 export declare const HistoryManager: {
     commit(): void;
-    undo(): void;
-    redo(): void;
+    undo(): Promise<void>;
+    redo(): Promise<void>;
 };

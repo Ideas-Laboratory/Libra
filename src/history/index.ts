@@ -18,7 +18,7 @@ export const HistoryManager = {
     historyRecords.splice(historyPointer + 1, historyRecords.length, record);
     historyPointer++;
   },
-  undo() {
+  async undo() {
     historyPointer--;
     if (historyPointer < 0) {
       historyPointer = 0;
@@ -29,8 +29,8 @@ export const HistoryManager = {
     for (let [service, results] of record.entries()) {
       service._result = results;
       if (service._on.update) {
-        service._on.update.forEach((command) =>
-          command.execute({
+        for (let command of service._on.update)
+          await command.execute({
             self: service,
             layer:
               service._layerInstances.length == 1
@@ -38,13 +38,12 @@ export const HistoryManager = {
                 : null,
             instrument: null,
             interactor: null,
-          })
-        );
+          });
       }
     }
     commitLock = false;
   },
-  redo() {
+  async redo() {
     historyPointer++;
     if (historyPointer >= historyRecords.length) {
       historyPointer = historyRecords.length - 1;
@@ -55,8 +54,8 @@ export const HistoryManager = {
     for (let [service, results] of record.entries()) {
       service._result = results;
       if (service._on.update) {
-        service._on.update.forEach((command) =>
-          command.execute({
+        for (let command of service._on.update)
+          await command.execute({
             self: service,
             layer:
               service._layerInstances.length == 1
@@ -64,8 +63,7 @@ export const HistoryManager = {
                 : null,
             instrument: null,
             interactor: null,
-          })
-        );
+          });
       }
     }
     commitLock = false;

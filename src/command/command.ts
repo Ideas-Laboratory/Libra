@@ -58,11 +58,13 @@ export default class Command {
     this._redo && this._redo.call(this);
   }
 
-  execute<T>(options: helpers.CommonHandlerInput<T>) {
+  async execute<T>(options: helpers.CommonHandlerInput<T>) {
     this.preExecute();
-    this._execute && this._execute.call(this, options);
+    this._execute && (await this._execute.call(this, options));
     this.postExecute();
-    this._feedbacks.forEach((feedback) => feedback.call(this, options));
+    for (let feedback of this._feedbacks) {
+      await feedback.call(this, options);
+    }
   }
 
   preExecute() {

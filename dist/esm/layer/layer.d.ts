@@ -54,6 +54,7 @@ export default class Layer<T> {
     _sharedVarWatcher: {
         [varName: string]: (Function | Command)[];
     };
+    _order: number;
     _redraw?: <T>(data: any, scale: helpers.Transformation, selection: T[]) => void;
     _preInitialize?: <T>(layer: Layer<T>) => void;
     _postInitialize?: <T>(layer: Layer<T>) => void;

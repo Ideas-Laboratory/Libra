@@ -18,6 +18,7 @@ export default class Layer {
         this._sharedVarWatcher = {};
         this._transformationWatcher = {};
         this._serviceInstances = [];
+        this._order = 0;
         this._redraw = options.redraw;
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -206,6 +207,7 @@ export default class Layer {
                 graphic && graphic.style && (graphic.style.pointerEvents = "none");
                 graphic && graphic.style && (graphic.style.display = "none");
             }
+            this.getSiblingLayer(layerName)._order = order;
         });
     }
     isInstanceOf(name) {

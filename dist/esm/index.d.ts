@@ -6,8 +6,8 @@ declare const _default: {
     InteractionService: typeof import("./service").default;
     HistoryManager: {
         commit(): void;
-        undo(): void;
-        redo(): void;
+        undo(): Promise<void>;
+        redo(): Promise<void>;
     };
 };
 export default _default;
