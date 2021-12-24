@@ -1147,10 +1147,10 @@ var Layer = class {
         name: siblingLayerName
       });
       siblings[siblingLayerName] = layer;
-      layer.getGraphic() && layer.getGraphic().style && (layer.getGraphic().style.pointerEvents = "none");
+      siblingLayers.set(layer, siblings);
     }
     if (!(siblingLayerName in orderLayers.get(this))) {
-      orderLayers.get(this)[siblingLayerName] = -1;
+      orderLayers.get(this)[siblingLayerName] = 0;
     }
     return siblings[siblingLayerName];
   }
@@ -1162,19 +1162,24 @@ var Layer = class {
       orderLayers.set(this, { [this._name]: 0 });
     }
     const orders = orderLayers.get(this);
+    const frag = document.createDocumentFragment();
     Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
       orders[layerName] = order;
+    });
+    Object.entries(orders).sort((a, b) => a[1] - b[1]).forEach(([layerName, order]) => {
+      orders[layerName] = order;
+      orderLayers.set(this.getSiblingLayer(layerName), orders);
       if (order >= 0) {
         const graphic = this.getSiblingLayer(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.pointerEvents = "auto");
         graphic && graphic.style && (graphic.style.display = "initial");
       } else {
         const graphic = this.getSiblingLayer(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.pointerEvents = "none");
         graphic && graphic.style && (graphic.style.display = "none");
       }
       this.getSiblingLayer(layerName)._order = order;
+      frag.append(this.getSiblingLayer(layerName).getGraphic());
     });
+    this.getContainerGraphic().appendChild(frag);
   }
   isInstanceOf(name) {
     return this._baseName === name || this._name === name;
@@ -3936,17 +3941,17 @@ var Instrument = class {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-          layr.getContainerGraphic().addEventListener(event, (e) => {
-            EventDispatcher.get(layr.getContainerGraphic()).get(event).forEach(([interactor2, layr2]) => {
+          layr.getContainerGraphic().addEventListener(event, async (e) => {
+            const layers = EventDispatcher.get(layr.getContainerGraphic()).get(event).filter(([interactor2, layr2]) => layr2._order >= 0);
+            layers.sort((a, b) => b[1]._order - a[1]._order);
+            e.handledLayers = [];
+            for (let [inter, layr2] of layers) {
               e.handled = false;
-              interactor2.dispatch(e, layr2);
-              if (!("handledLayers" in e)) {
-                e.handledLayers = [];
-              }
-              if (e.handled = true) {
+              await inter.dispatch(e, layr2);
+              if (e.handled == true) {
                 e.handledLayers.push(layr2._name);
               }
-            });
+            }
           });
           EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
         }
@@ -4011,7 +4016,7 @@ var Instrument = class {
         }
         if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
           layer.getContainerGraphic().addEventListener(event, async (e) => {
-            const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).slice();
+            const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([interactor2, layr]) => layr._order >= 0);
             layers.sort((a, b) => b[1]._order - a[1]._order);
             e.handledLayers = [];
             for (let [inter2, layr] of layers) {

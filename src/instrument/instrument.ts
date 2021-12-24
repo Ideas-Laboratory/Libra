@@ -199,19 +199,19 @@ export default class Instrument {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-          layr.getContainerGraphic().addEventListener(event, (e) => {
-            EventDispatcher.get(layr.getContainerGraphic())
+          layr.getContainerGraphic().addEventListener(event, async (e) => {
+            const layers = EventDispatcher.get(layr.getContainerGraphic())
               .get(event)
-              .forEach(([interactor, layr]) => {
-                (e as any).handled = false;
-                interactor.dispatch(e, layr);
-                if (!("handledLayers" in e)) {
-                  (e as any).handledLayers = [];
-                }
-                if (((e as any).handled = true)) {
-                  (e as any).handledLayers.push(layr._name);
-                }
-              });
+              .filter(([interactor, layr]) => layr._order >= 0);
+            layers.sort((a, b) => b[1]._order - a[1]._order);
+            (e as any).handledLayers = [];
+            for (let [inter, layr] of layers) {
+              (e as any).handled = false;
+              await inter.dispatch(e, layr);
+              if ((e as any).handled == true) {
+                (e as any).handledLayers.push(layr._name);
+              }
+            }
           });
           EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
         }
@@ -289,7 +289,7 @@ export default class Instrument {
           layer.getContainerGraphic().addEventListener(event, async (e) => {
             const layers = EventDispatcher.get(layer.getContainerGraphic())
               .get(event)
-              .slice();
+              .filter(([interactor, layr]) => layr._order >= 0);
             layers.sort((a, b) => b[1]._order - a[1]._order);
             (e as any).handledLayers = [];
             for (let [inter, layr] of layers) {

@@ -177,13 +177,10 @@ export default class Layer {
                 name: siblingLayerName,
             });
             siblings[siblingLayerName] = layer;
-            layer.getGraphic() &&
-                layer.getGraphic().style &&
-                (layer.getGraphic().style.pointerEvents = "none");
-            // only receive events by main layer
+            siblingLayers.set(layer, siblings);
         }
         if (!(siblingLayerName in orderLayers.get(this))) {
-            orderLayers.get(this)[siblingLayerName] = -1;
+            orderLayers.get(this)[siblingLayerName] = 0;
         }
         return siblings[siblingLayerName];
     }
@@ -195,20 +192,29 @@ export default class Layer {
             orderLayers.set(this, { [this._name]: 0 });
         }
         const orders = orderLayers.get(this);
+        const frag = document.createDocumentFragment();
         Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
             orders[layerName] = order;
+        });
+        Object.entries(orders)
+            .sort((a, b) => a[1] - b[1])
+            .forEach(([layerName, order]) => {
+            orders[layerName] = order;
+            orderLayers.set(this.getSiblingLayer(layerName), orders);
             if (order >= 0) {
                 const graphic = this.getSiblingLayer(layerName).getGraphic();
-                graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+                // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
                 graphic && graphic.style && (graphic.style.display = "initial");
             }
             else {
                 const graphic = this.getSiblingLayer(layerName).getGraphic();
-                graphic && graphic.style && (graphic.style.pointerEvents = "none");
+                // graphic && graphic.style && (graphic.style.pointerEvents = "none");
                 graphic && graphic.style && (graphic.style.display = "none");
             }
             this.getSiblingLayer(layerName)._order = order;
+            frag.append(this.getSiblingLayer(layerName).getGraphic());
         });
+        this.getContainerGraphic().appendChild(frag);
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

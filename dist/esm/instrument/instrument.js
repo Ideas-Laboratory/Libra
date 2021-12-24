@@ -127,19 +127,19 @@ export default class Instrument {
                     EventDispatcher.set(layr.getContainerGraphic(), new Map());
                 }
                 if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-                    layr.getContainerGraphic().addEventListener(event, (e) => {
-                        EventDispatcher.get(layr.getContainerGraphic())
+                    layr.getContainerGraphic().addEventListener(event, async (e) => {
+                        const layers = EventDispatcher.get(layr.getContainerGraphic())
                             .get(event)
-                            .forEach(([interactor, layr]) => {
+                            .filter(([interactor, layr]) => layr._order >= 0);
+                        layers.sort((a, b) => b[1]._order - a[1]._order);
+                        e.handledLayers = [];
+                        for (let [inter, layr] of layers) {
                             e.handled = false;
-                            interactor.dispatch(e, layr);
-                            if (!("handledLayers" in e)) {
-                                e.handledLayers = [];
-                            }
-                            if ((e.handled = true)) {
+                            await inter.dispatch(e, layr);
+                            if (e.handled == true) {
                                 e.handledLayers.push(layr._name);
                             }
-                        });
+                        }
                     });
                     EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
                 }
@@ -213,7 +213,7 @@ export default class Instrument {
                     layer.getContainerGraphic().addEventListener(event, async (e) => {
                         const layers = EventDispatcher.get(layer.getContainerGraphic())
                             .get(event)
-                            .slice();
+                            .filter(([interactor, layr]) => layr._order >= 0);
                         layers.sort((a, b) => b[1]._order - a[1]._order);
                         e.handledLayers = [];
                         for (let [inter, layr] of layers) {

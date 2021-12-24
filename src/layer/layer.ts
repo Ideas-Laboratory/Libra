@@ -247,13 +247,10 @@ export default class Layer<T> {
         name: siblingLayerName,
       });
       siblings[siblingLayerName] = layer;
-      layer.getGraphic() &&
-        (layer.getGraphic() as any).style &&
-        ((layer.getGraphic() as any).style.pointerEvents = "none");
-      // only receive events by main layer
+      siblingLayers.set(layer, siblings);
     }
     if (!(siblingLayerName in orderLayers.get(this))) {
-      orderLayers.get(this)[siblingLayerName] = -1;
+      orderLayers.get(this)[siblingLayerName] = 0;
     }
     return siblings[siblingLayerName];
   }
@@ -265,19 +262,30 @@ export default class Layer<T> {
       orderLayers.set(this, { [this._name]: 0 });
     }
     const orders = orderLayers.get(this);
+    const frag = document.createDocumentFragment();
     Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
       orders[layerName] = order;
-      if (order >= 0) {
-        const graphic: any = this.getSiblingLayer(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.pointerEvents = "auto");
-        graphic && graphic.style && (graphic.style.display = "initial");
-      } else {
-        const graphic: any = this.getSiblingLayer(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.pointerEvents = "none");
-        graphic && graphic.style && (graphic.style.display = "none");
-      }
-      this.getSiblingLayer(layerName)._order = order;
     });
+    Object.entries(orders)
+      .sort((a, b) => a[1] - b[1])
+      .forEach(([layerName, order]) => {
+        orders[layerName] = order;
+        orderLayers.set(this.getSiblingLayer(layerName), orders);
+        if (order >= 0) {
+          const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+          // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+          graphic && graphic.style && (graphic.style.display = "initial");
+        } else {
+          const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+          // graphic && graphic.style && (graphic.style.pointerEvents = "none");
+          graphic && graphic.style && (graphic.style.display = "none");
+        }
+        this.getSiblingLayer(layerName)._order = order;
+        frag.append(
+          this.getSiblingLayer(layerName).getGraphic() as unknown as Node
+        );
+      });
+    this.getContainerGraphic().appendChild(frag);
   }
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
