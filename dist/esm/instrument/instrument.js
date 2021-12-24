@@ -4,6 +4,8 @@ import { Layer } from "../layer";
 const registeredInstruments = {};
 const instanceInstruments = [];
 const EventDispatcher = new Map();
+const EventQueue = [];
+let eventHandling = false;
 export default class Instrument {
     constructor(baseName, options) {
         options.preInitialize && options.preInitialize.call(this, this);
@@ -127,20 +129,9 @@ export default class Instrument {
                     EventDispatcher.set(layr.getContainerGraphic(), new Map());
                 }
                 if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-                    layr.getContainerGraphic().addEventListener(event, async (e) => {
-                        const layers = EventDispatcher.get(layr.getContainerGraphic())
-                            .get(event)
-                            .filter(([interactor, layr]) => layr._order >= 0);
-                        layers.sort((a, b) => b[1]._order - a[1]._order);
-                        e.handledLayers = [];
-                        for (let [inter, layr] of layers) {
-                            e.handled = false;
-                            await inter.dispatch(e, layr);
-                            if (e.handled == true) {
-                                e.handledLayers.push(layr._name);
-                            }
-                        }
-                    });
+                    layr
+                        .getContainerGraphic()
+                        .addEventListener(event, this._dispatch.bind(this, layr, event));
                     EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
                 }
                 EventDispatcher.get(layr.getContainerGraphic())
@@ -210,20 +201,9 @@ export default class Instrument {
                     EventDispatcher.set(layer.getContainerGraphic(), new Map());
                 }
                 if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-                    layer.getContainerGraphic().addEventListener(event, async (e) => {
-                        const layers = EventDispatcher.get(layer.getContainerGraphic())
-                            .get(event)
-                            .filter(([interactor, layr]) => layr._order >= 0);
-                        layers.sort((a, b) => b[1]._order - a[1]._order);
-                        e.handledLayers = [];
-                        for (let [inter, layr] of layers) {
-                            e.handled = false;
-                            await inter.dispatch(e, layr);
-                            if (e.handled == true) {
-                                e.handledLayers.push(layr._name);
-                            }
-                        }
-                    });
+                    layer
+                        .getContainerGraphic()
+                        .addEventListener(event, this._dispatch.bind(this, layer, event));
                     EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
                 }
                 EventDispatcher.get(layer.getContainerGraphic())
@@ -231,6 +211,30 @@ export default class Instrument {
                     .push([inter, layer]);
             });
         });
+    }
+    async _dispatch(layer, event, e) {
+        if (eventHandling) {
+            EventQueue.push({ instrument: this, layer, eventType: event, event: e });
+            return;
+        }
+        eventHandling = true;
+        const layers = EventDispatcher.get(layer.getContainerGraphic())
+            .get(event)
+            .filter(([interactor, layr]) => layr._order >= 0);
+        layers.sort((a, b) => b[1]._order - a[1]._order);
+        e.handledLayers = [];
+        for (let [inter, layr] of layers) {
+            e.handled = false;
+            await inter.dispatch(e, layr);
+            if (e.handled == true) {
+                e.handledLayers.push(layr._name);
+            }
+        }
+        eventHandling = false;
+        if (EventQueue.length) {
+            const eventDescription = EventQueue.shift();
+            eventDescription.instrument._dispatch(eventDescription.layer, eventDescription.eventType, eventDescription.event);
+        }
     }
     postUse(layer) {
         this._postUse && this._postUse.call(this, this, layer);

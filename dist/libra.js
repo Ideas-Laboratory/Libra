@@ -3827,6 +3827,8 @@ var Layer2 = Layer;
 var registeredInstruments = {};
 var instanceInstruments = [];
 var EventDispatcher = new Map();
+var EventQueue = [];
+var eventHandling = false;
 var Instrument = class {
   constructor(baseName2, options) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -3941,18 +3943,7 @@ var Instrument = class {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-          layr.getContainerGraphic().addEventListener(event, async (e) => {
-            const layers = EventDispatcher.get(layr.getContainerGraphic()).get(event).filter(([interactor2, layr2]) => layr2._order >= 0);
-            layers.sort((a, b) => b[1]._order - a[1]._order);
-            e.handledLayers = [];
-            for (let [inter, layr2] of layers) {
-              e.handled = false;
-              await inter.dispatch(e, layr2);
-              if (e.handled == true) {
-                e.handledLayers.push(layr2._name);
-              }
-            }
-          });
+          layr.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layr, event));
           EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
         }
         EventDispatcher.get(layr.getContainerGraphic()).get(event).push([interactor, layr]);
@@ -4015,23 +4006,34 @@ var Instrument = class {
           EventDispatcher.set(layer.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-          layer.getContainerGraphic().addEventListener(event, async (e) => {
-            const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([interactor2, layr]) => layr._order >= 0);
-            layers.sort((a, b) => b[1]._order - a[1]._order);
-            e.handledLayers = [];
-            for (let [inter2, layr] of layers) {
-              e.handled = false;
-              await inter2.dispatch(e, layr);
-              if (e.handled == true) {
-                e.handledLayers.push(layr._name);
-              }
-            }
-          });
+          layer.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layer, event));
           EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
         }
         EventDispatcher.get(layer.getContainerGraphic()).get(event).push([inter, layer]);
       });
     });
+  }
+  async _dispatch(layer, event, e) {
+    if (eventHandling) {
+      EventQueue.push({ instrument: this, layer, eventType: event, event: e });
+      return;
+    }
+    eventHandling = true;
+    const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([interactor, layr]) => layr._order >= 0);
+    layers.sort((a, b) => b[1]._order - a[1]._order);
+    e.handledLayers = [];
+    for (let [inter, layr] of layers) {
+      e.handled = false;
+      await inter.dispatch(e, layr);
+      if (e.handled == true) {
+        e.handledLayers.push(layr._name);
+      }
+    }
+    eventHandling = false;
+    if (EventQueue.length) {
+      const eventDescription = EventQueue.shift();
+      eventDescription.instrument._dispatch(eventDescription.layer, eventDescription.eventType, eventDescription.event);
+    }
   }
   postUse(layer) {
     this._postUse && this._postUse.call(this, this, layer);

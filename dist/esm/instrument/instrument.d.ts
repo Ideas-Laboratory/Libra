@@ -60,6 +60,7 @@ export default class Instrument {
     setSharedVar(sharedName: string, value: any, options?: any): void;
     watchSharedVar(sharedName: string, handler: Command): void;
     preAttach(layer: Layer<any>): void;
+    _dispatch(layer: Layer<any>, event: string, e: Event): Promise<void>;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: InstrumentInitTemplate): void;

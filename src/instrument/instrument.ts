@@ -36,6 +36,13 @@ const EventDispatcher: Map<
   HTMLElement,
   Map<string, [Interactor, Layer<any>][]>
 > = new Map();
+const EventQueue: {
+  instrument: Instrument;
+  eventType: string;
+  layer: Layer<any>;
+  event: Event;
+}[] = [];
+let eventHandling = false;
 
 export default class Instrument {
   _baseName: string;
@@ -199,20 +206,9 @@ export default class Instrument {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-          layr.getContainerGraphic().addEventListener(event, async (e) => {
-            const layers = EventDispatcher.get(layr.getContainerGraphic())
-              .get(event)
-              .filter(([interactor, layr]) => layr._order >= 0);
-            layers.sort((a, b) => b[1]._order - a[1]._order);
-            (e as any).handledLayers = [];
-            for (let [inter, layr] of layers) {
-              (e as any).handled = false;
-              await inter.dispatch(e, layr);
-              if ((e as any).handled == true) {
-                (e as any).handledLayers.push(layr._name);
-              }
-            }
-          });
+          layr
+            .getContainerGraphic()
+            .addEventListener(event, this._dispatch.bind(this, layr, event));
           EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
         }
         EventDispatcher.get(layr.getContainerGraphic())
@@ -286,20 +282,9 @@ export default class Instrument {
           EventDispatcher.set(layer.getContainerGraphic(), new Map());
         }
         if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-          layer.getContainerGraphic().addEventListener(event, async (e) => {
-            const layers = EventDispatcher.get(layer.getContainerGraphic())
-              .get(event)
-              .filter(([interactor, layr]) => layr._order >= 0);
-            layers.sort((a, b) => b[1]._order - a[1]._order);
-            (e as any).handledLayers = [];
-            for (let [inter, layr] of layers) {
-              (e as any).handled = false;
-              await inter.dispatch(e, layr);
-              if ((e as any).handled == true) {
-                (e as any).handledLayers.push(layr._name);
-              }
-            }
-          });
+          layer
+            .getContainerGraphic()
+            .addEventListener(event, this._dispatch.bind(this, layer, event));
           EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
         }
         EventDispatcher.get(layer.getContainerGraphic())
@@ -307,6 +292,35 @@ export default class Instrument {
           .push([inter, layer]);
       });
     });
+  }
+
+  async _dispatch(layer: Layer<any>, event: string, e: Event) {
+    if (eventHandling) {
+      EventQueue.push({ instrument: this, layer, eventType: event, event: e });
+      return;
+    }
+    eventHandling = true;
+    const layers = EventDispatcher.get(layer.getContainerGraphic())
+      .get(event)
+      .filter(([interactor, layr]) => layr._order >= 0);
+    layers.sort((a, b) => b[1]._order - a[1]._order);
+    (e as any).handledLayers = [];
+    for (let [inter, layr] of layers) {
+      (e as any).handled = false;
+      await inter.dispatch(e, layr);
+      if ((e as any).handled == true) {
+        (e as any).handledLayers.push(layr._name);
+      }
+    }
+    eventHandling = false;
+    if (EventQueue.length) {
+      const eventDescription = EventQueue.shift();
+      eventDescription.instrument._dispatch(
+        eventDescription.layer,
+        eventDescription.eventType,
+        eventDescription.event
+      );
+    }
   }
 
   postUse(layer: Layer<any>) {
