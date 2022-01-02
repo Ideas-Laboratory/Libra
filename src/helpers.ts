@@ -30,7 +30,7 @@ export enum DataQueryType {
 // We assume the transformation in Libra are all affined
 export type Transformation = {
   (domain: any): number;
-  inverse(range: number): any;
+  invert(range: number): any;
 };
 
 export type ShapeBasedQuery =

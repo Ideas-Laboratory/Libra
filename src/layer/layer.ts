@@ -23,7 +23,11 @@ type LayerPartialOption = Partial<{
     | { service: string | InteractionService; options: any }
   )[];
   sharedVar: { [varName: string]: any };
-  redraw: <T>(data: any, scale: helpers.Transformation, selection: T[]) => void;
+  redraw: (
+    sharedVars: { [name: string]: any },
+    scales: { [name: string]: helpers.Transformation },
+    services: InteractionService[]
+  ) => void;
   preInitialize: <T>(layer: Layer<T>) => void;
   postInitialize: <T>(layer: Layer<T>) => void;
   preUpdate: <T>(layer: Layer<T>) => void;
@@ -67,10 +71,10 @@ export default class Layer<T> {
   _sharedVar: { [varName: string]: any };
   _sharedVarWatcher: { [varName: string]: (Function | Command)[] };
   _order: number;
-  _redraw?: <T>(
-    data: any,
-    scale: helpers.Transformation,
-    selection: T[]
+  _redraw?: (
+    sharedVars: { [name: string]: any },
+    scales: { [name: string]: helpers.Transformation },
+    services: InteractionService[]
   ) => void;
   _preInitialize?: <T>(layer: Layer<T>) => void;
   _postInitialize?: <T>(layer: Layer<T>) => void;
@@ -102,6 +106,7 @@ export default class Layer<T> {
         this.use(service.service, service.options);
       }
     });
+    this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
     instanceLayers.push(this);
     this._postInitialize && this._postInitialize.call(this, this);
   }
@@ -168,10 +173,10 @@ export default class Layer<T> {
     scaleName: string,
     transformation: helpers.Transformation
   ): void {
-    // TODO: implement responsive viewport
     this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
+    this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
     if (scaleName in this._transformationWatcher) {
       this._transformationWatcher[scaleName].forEach((callback) => {
         if (callback instanceof Command) {
@@ -196,10 +201,14 @@ export default class Layer<T> {
     }
     this._transformationWatcher[scaleName].push(handler);
   }
-  redraw(data: any, scale: helpers.Transformation, selection: T[]): void {
+  redraw(
+    sharedVars: { [name: string]: any },
+    scales: { [name: string]: helpers.Transformation },
+    services: InteractionService[]
+  ): void {
     this.preUpdate();
     if (this._redraw && this._redraw instanceof Function) {
-      this._redraw(data, scale, selection);
+      this._redraw(sharedVars, scales, services);
     }
     this.postUpdate();
   }
@@ -218,7 +227,10 @@ export default class Layer<T> {
     service.postUse(this);
   }
   use(service: string | InteractionService, options?: any) {
-    if (this._services.includes(service)) {
+    if (
+      typeof service !== "string" &&
+      this._serviceInstances.includes(service)
+    ) {
       return;
     }
     if (arguments.length >= 2) {

@@ -16,7 +16,7 @@ Interactor.register("MousePositionInteractor", {
     },
     {
       action: "leave",
-      events: ["mouseleave"] ,
+      events: ["mouseleave"],
       transition: [
         ["running", "start"],
         ["start", "start"],
@@ -143,22 +143,34 @@ Interactor.register("KeyboardPositionInteractor", {
     },
     {
       action: "up",
-      events: ["keypress[event.key==='w' || event.key==='W']", "keydown[event.key==='ArrowUp']{100}"],
+      events: [
+        "keypress[event.key==='w' || event.key==='W']",
+        "keydown[event.key==='ArrowUp']{100}",
+      ],
       transition: [["running", "running"]],
     },
     {
       action: "left",
-      events: ["keypress[event.key==='a' || event.key==='A']", "keydown[event.key==='ArrowLeft']{100}"],
+      events: [
+        "keypress[event.key==='a' || event.key==='A']",
+        "keydown[event.key==='ArrowLeft']{100}",
+      ],
       transition: [["running", "running"]],
     },
     {
       action: "down",
-      events: ["keypress[event.key==='s' || event.key==='S']", "keydown[event.key==='ArrowDown']{100}"],
+      events: [
+        "keypress[event.key==='s' || event.key==='S']",
+        "keydown[event.key==='ArrowDown']{100}",
+      ],
       transition: [["running", "running"]],
     },
     {
       action: "right",
-      events: ["keypress[event.key==='d' || event.key==='D']", "keydown[event.key==='ArrowRight']{100}"],
+      events: [
+        "keypress[event.key==='d' || event.key==='D']",
+        "keydown[event.key==='ArrowRight']{100}",
+      ],
       transition: [["running", "running"]],
     },
     // {
@@ -169,5 +181,38 @@ Interactor.register("KeyboardPositionInteractor", {
     //     ["start", "start"],
     //   ],
     // },
+  ],
+});
+
+Interactor.register("MouseWheelInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "enter",
+      events: ["mouseenter"],
+      transition: [["start", "running"]],
+    },
+    {
+      action: "wheel",
+      events: ["wheel", "mousewheel"],
+      transition: [["running", "running"]],
+    },
+    {
+      action: "leave",
+      events: ["mouseleave"],
+      transition: [
+        ["running", "start"],
+        ["start", "start"],
+      ],
+    },
+    {
+      action: "abort",
+      events: ["contextmenu"],
+      transition: [
+        ["running", "running"],
+        ["start", "start"],
+      ],
+    },
   ],
 });

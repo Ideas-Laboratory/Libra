@@ -21,7 +21,7 @@ export declare enum DataQueryType {
 }
 export declare type Transformation = {
     (domain: any): number;
-    inverse(range: number): any;
+    invert(range: number): any;
 };
 export declare type ShapeBasedQuery = SurfacePointQuery | PointQuery | CircleQuery | RectQuery | PolygonQuery;
 export declare type SurfacePointQuery = {

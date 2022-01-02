@@ -19,7 +19,11 @@ declare type LayerPartialOption = Partial<{
     sharedVar: {
         [varName: string]: any;
     };
-    redraw: <T>(data: any, scale: helpers.Transformation, selection: T[]) => void;
+    redraw: (sharedVars: {
+        [name: string]: any;
+    }, scales: {
+        [name: string]: helpers.Transformation;
+    }, services: InteractionService[]) => void;
     preInitialize: <T>(layer: Layer<T>) => void;
     postInitialize: <T>(layer: Layer<T>) => void;
     preUpdate: <T>(layer: Layer<T>) => void;
@@ -55,7 +59,11 @@ export default class Layer<T> {
         [varName: string]: (Function | Command)[];
     };
     _order: number;
-    _redraw?: <T>(data: any, scale: helpers.Transformation, selection: T[]) => void;
+    _redraw?: (sharedVars: {
+        [name: string]: any;
+    }, scales: {
+        [name: string]: helpers.Transformation;
+    }, services: InteractionService[]) => void;
     _preInitialize?: <T>(layer: Layer<T>) => void;
     _postInitialize?: <T>(layer: Layer<T>) => void;
     _preUpdate?: <T>(layer: Layer<T>) => void;
@@ -71,7 +79,11 @@ export default class Layer<T> {
     getTransformation(scaleName: string, defaultValue?: helpers.Transformation): helpers.Transformation;
     setTransformation(scaleName: string, transformation: helpers.Transformation): void;
     watchTransformation(scaleName: string, handler: Function | Command): void;
-    redraw(data: any, scale: helpers.Transformation, selection: T[]): void;
+    redraw(sharedVars: {
+        [name: string]: any;
+    }, scales: {
+        [name: string]: helpers.Transformation;
+    }, services: InteractionService[]): void;
     preUpdate(): void;
     postUpdate(): void;
     query(options: helpers.ArbitraryQuery): T[];

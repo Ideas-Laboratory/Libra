@@ -594,23 +594,67 @@ Interactor.register("KeyboardPositionInteractor", {
     },
     {
       action: "up",
-      events: ["keypress[event.key==='w' || event.key==='W']", "keydown[event.key==='ArrowUp']{100}"],
+      events: [
+        "keypress[event.key==='w' || event.key==='W']",
+        "keydown[event.key==='ArrowUp']{100}"
+      ],
       transition: [["running", "running"]]
     },
     {
       action: "left",
-      events: ["keypress[event.key==='a' || event.key==='A']", "keydown[event.key==='ArrowLeft']{100}"],
+      events: [
+        "keypress[event.key==='a' || event.key==='A']",
+        "keydown[event.key==='ArrowLeft']{100}"
+      ],
       transition: [["running", "running"]]
     },
     {
       action: "down",
-      events: ["keypress[event.key==='s' || event.key==='S']", "keydown[event.key==='ArrowDown']{100}"],
+      events: [
+        "keypress[event.key==='s' || event.key==='S']",
+        "keydown[event.key==='ArrowDown']{100}"
+      ],
       transition: [["running", "running"]]
     },
     {
       action: "right",
-      events: ["keypress[event.key==='d' || event.key==='D']", "keydown[event.key==='ArrowRight']{100}"],
+      events: [
+        "keypress[event.key==='d' || event.key==='D']",
+        "keydown[event.key==='ArrowRight']{100}"
+      ],
       transition: [["running", "running"]]
+    }
+  ]
+});
+Interactor.register("MouseWheelInteractor", {
+  constructor: Interactor,
+  state: "start",
+  actions: [
+    {
+      action: "enter",
+      events: ["mouseenter"],
+      transition: [["start", "running"]]
+    },
+    {
+      action: "wheel",
+      events: ["wheel", "mousewheel"],
+      transition: [["running", "running"]]
+    },
+    {
+      action: "leave",
+      events: ["mouseleave"],
+      transition: [
+        ["running", "start"],
+        ["start", "start"]
+      ]
+    },
+    {
+      action: "abort",
+      events: ["contextmenu"],
+      transition: [
+        ["running", "running"],
+        ["start", "start"]
+      ]
     }
   ]
 });
@@ -1009,6 +1053,7 @@ var Layer = class {
         this.use(service.service, service.options);
       }
     });
+    this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
     instanceLayers.push(this);
     this._postInitialize && this._postInitialize.call(this, this);
   }
@@ -1072,6 +1117,7 @@ var Layer = class {
     this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
+    this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
     if (scaleName in this._transformationWatcher) {
       this._transformationWatcher[scaleName].forEach((callback) => {
         if (callback instanceof Command2) {
@@ -1096,10 +1142,10 @@ var Layer = class {
     }
     this._transformationWatcher[scaleName].push(handler);
   }
-  redraw(data, scale, selection2) {
+  redraw(sharedVars, scales, services) {
     this.preUpdate();
     if (this._redraw && this._redraw instanceof Function) {
-      this._redraw(data, scale, selection2);
+      this._redraw(sharedVars, scales, services);
     }
     this.postUpdate();
   }
@@ -1118,7 +1164,7 @@ var Layer = class {
     service.postUse(this);
   }
   use(service, options) {
-    if (this._services.includes(service)) {
+    if (typeof service !== "string" && this._serviceInstances.includes(service)) {
       return;
     }
     if (arguments.length >= 2) {
@@ -3665,6 +3711,7 @@ var D3Layer = class extends Layer {
     if (tempElem.tagName !== "svg")
       throw Error("Container must be wrapped in SVGSVGElement");
     this._svg = tempElem;
+    this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
     this._postInitialize && this._postInitialize.call(this, this);
   }
   getVisualElements() {
@@ -4658,6 +4705,168 @@ Instrument.register("KeyboardHelperBarInstrument", {
     helperBar.setAttribute("stroke", `black`);
     helperBar.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBar);
+  }
+});
+Instrument.register("PanInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ layer, event, instrument }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const sx = layer.getTransformation("scaleX");
+        const sy = layer.getTransformation("scaleY");
+        layer.setTransformation("$scaleX", sx);
+        layer.setTransformation("$scaleY", sy);
+        layer.getTransformation("$$scaleX", sx);
+        layer.getTransformation("$$scaleY", sy);
+        instrument.setSharedVar("startx", event.clientX);
+        instrument.setSharedVar("starty", event.clientY);
+        instrument.setSharedVar("currentx", event.clientX);
+        instrument.setSharedVar("currenty", event.clientY);
+      }
+    ],
+    drag: [
+      ({ layer, event, instrument }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        let offsetX = event.clientX - instrument.getSharedVar("startx");
+        let offsetY = event.clientY - instrument.getSharedVar("starty");
+        instrument.setSharedVar("currentx", event.clientX);
+        instrument.setSharedVar("currenty", event.clientY);
+        const sx = layer.getTransformation("$scaleX");
+        const sy = layer.getTransformation("$scaleY");
+        if (sx) {
+          const scaleXRaw = (domain) => sx(domain) + offsetX;
+          scaleXRaw.invert = (range) => sx.invert(range - offsetX);
+          scaleXRaw.$origin = sx;
+          const scaleX = new Proxy(scaleXRaw, {
+            get(target, path) {
+              if (path in target)
+                return target[path];
+              if (path === "range")
+                return (...args) => target.$origin.range(...args).map((x) => x + offsetX);
+              return target.$origin[path];
+            },
+            apply(target, thisArg, argArray) {
+              return target.apply(thisArg, argArray);
+            }
+          });
+          layer.setTransformation("scaleX", scaleX);
+        }
+        if (sy) {
+          const scaleYRaw = (domain) => sy(domain) + offsetY;
+          scaleYRaw.invert = (range) => sy.invert(range - offsetY);
+          scaleYRaw.$origin = sy;
+          const scaleY = new Proxy(scaleYRaw, {
+            get(target, path) {
+              if (path in target)
+                return target[path];
+              if (path === "range")
+                return (...args) => target.$origin.range(...args).map((y) => y + offsetY);
+              return target.$origin[path];
+            },
+            apply(target, thisArg, argArray) {
+              return target.apply(thisArg, argArray);
+            }
+          });
+          layer.setTransformation("scaleY", scaleY);
+        }
+      }
+    ],
+    dragabort: [
+      ({ layer, event, instrument }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const sx = layer.getTransformation("$$scaleX");
+        const sy = layer.getTransformation("$$scaleY");
+        instrument.setSharedVar("startx", event.clientX);
+        instrument.setSharedVar("starty", event.clientY);
+        instrument.setSharedVar("currentx", event.clientX);
+        instrument.setSharedVar("currenty", event.clientY);
+        if (sx) {
+          layer.setTransformation("scaleX", sx);
+          layer.setTransformation("$scaleX", sx);
+        }
+        if (sy) {
+          layer.setTransformation("scaleY", sy);
+          layer.setTransformation("$scaleY", sy);
+        }
+      }
+    ]
+  }
+});
+Instrument.register("ZoomInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseWheelInteractor"],
+  on: {
+    wheel: [
+      ({ layer, event, instrument }) => {
+        let sx = layer.getTransformation("scaleX");
+        let sy = layer.getTransformation("scaleY");
+        layer.getTransformation("$$scaleX", sx);
+        layer.getTransformation("$$scaleY", sy);
+        instrument.setSharedVar("currentx", event.offsetX);
+        instrument.setSharedVar("currenty", event.offsetY);
+        let delta = event.deltaY;
+        instrument.setSharedVar("delta", delta);
+        delta /= 1e3;
+        const offsetX = event.offsetX;
+        const offsetY = event.offsetY;
+        if (sx) {
+          const scaleXRaw = (domain) => (sx(domain) - offsetX) * Math.exp(delta) + offsetX;
+          scaleXRaw.invert = (range) => sx.invert((range - offsetX) / Math.exp(delta) + offsetX);
+          scaleXRaw.$origin = sx;
+          const scaleX = new Proxy(scaleXRaw, {
+            get(target, path) {
+              if (path in target)
+                return target[path];
+              if (path === "range")
+                return (...args) => target.$origin.range(...args).map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+              return target.$origin[path];
+            },
+            apply(target, thisArg, argArray) {
+              return target.apply(thisArg, argArray);
+            }
+          });
+          layer.setTransformation("scaleX", scaleX);
+        }
+        if (sy) {
+          const scaleYRaw = (domain) => (sy(domain) - offsetY) * Math.exp(delta) + offsetY;
+          scaleYRaw.invert = (range) => sy.invert((range - offsetY) / Math.exp(delta) + offsetY);
+          scaleYRaw.$origin = sy;
+          const scaleY = new Proxy(scaleYRaw, {
+            get(target, path) {
+              if (path in target)
+                return target[path];
+              if (path === "range")
+                return (...args) => target.$origin.range(...args).map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+              return target.$origin[path];
+            },
+            apply(target, thisArg, argArray) {
+              return target.apply(thisArg, argArray);
+            }
+          });
+          layer.setTransformation("scaleY", scaleY);
+        }
+      }
+    ],
+    abort: [
+      ({ layer, event, instrument }) => {
+        const sx = layer.getTransformation("$$scaleX");
+        const sy = layer.getTransformation("$$scaleY");
+        instrument.setSharedVar("delta", 0);
+        instrument.setSharedVar("currentx", event.offsetX);
+        instrument.setSharedVar("currenty", event.offsetY);
+        if (sx) {
+          layer.setTransformation("scaleX", sx);
+        }
+        if (sy) {
+          layer.setTransformation("scaleY", sy);
+        }
+      }
+    ]
   }
 });
 

@@ -32,6 +32,7 @@ export default class Layer {
                 this.use(service.service, service.options);
             }
         });
+        this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
         instanceLayers.push(this);
         this._postInitialize && this._postInitialize.call(this, this);
     }
@@ -95,10 +96,10 @@ export default class Layer {
         }
     }
     setTransformation(scaleName, transformation) {
-        // TODO: implement responsive viewport
         this.preUpdate();
         const oldValue = this._transformation[scaleName];
         this._transformation[scaleName] = transformation;
+        this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
         if (scaleName in this._transformationWatcher) {
             this._transformationWatcher[scaleName].forEach((callback) => {
                 if (callback instanceof Command) {
@@ -124,10 +125,10 @@ export default class Layer {
         }
         this._transformationWatcher[scaleName].push(handler);
     }
-    redraw(data, scale, selection) {
+    redraw(sharedVars, scales, services) {
         this.preUpdate();
         if (this._redraw && this._redraw instanceof Function) {
-            this._redraw(data, scale, selection);
+            this._redraw(sharedVars, scales, services);
         }
         this.postUpdate();
     }
@@ -146,7 +147,8 @@ export default class Layer {
         service.postUse(this);
     }
     use(service, options) {
-        if (this._services.includes(service)) {
+        if (typeof service !== "string" &&
+            this._serviceInstances.includes(service)) {
             return;
         }
         if (arguments.length >= 2) {

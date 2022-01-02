@@ -619,3 +619,173 @@ Instrument.register("KeyboardHelperBarInstrument", {
         transientLayer.getGraphic().append(helperBar);
     },
 });
+Instrument.register("PanInstrument", {
+    constructor: Instrument,
+    interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+    on: {
+        dragstart: [
+            ({ layer, event, instrument }) => {
+                if (event.changedTouches)
+                    event = event.changedTouches[0];
+                const sx = layer.getTransformation("scaleX");
+                const sy = layer.getTransformation("scaleY");
+                layer.setTransformation("$scaleX", sx);
+                layer.setTransformation("$scaleY", sy);
+                layer.getTransformation("$$scaleX", sx);
+                layer.getTransformation("$$scaleY", sy);
+                instrument.setSharedVar("startx", event.clientX);
+                instrument.setSharedVar("starty", event.clientY);
+                instrument.setSharedVar("currentx", event.clientX);
+                instrument.setSharedVar("currenty", event.clientY);
+            },
+        ],
+        drag: [
+            ({ layer, event, instrument }) => {
+                if (event.changedTouches)
+                    event = event.changedTouches[0];
+                let offsetX = event.clientX - instrument.getSharedVar("startx");
+                let offsetY = event.clientY - instrument.getSharedVar("starty");
+                instrument.setSharedVar("currentx", event.clientX);
+                instrument.setSharedVar("currenty", event.clientY);
+                const sx = layer.getTransformation("$scaleX");
+                const sy = layer.getTransformation("$scaleY");
+                if (sx) {
+                    const scaleXRaw = (domain) => sx(domain) + offsetX;
+                    scaleXRaw.invert = (range) => sx.invert(range - offsetX);
+                    scaleXRaw.$origin = sx;
+                    const scaleX = new Proxy(scaleXRaw, {
+                        get(target, path) {
+                            if (path in target)
+                                return target[path];
+                            if (path === "range")
+                                return (...args) => target.$origin
+                                    .range(...args)
+                                    .map((x) => x + offsetX);
+                            return target.$origin[path];
+                        },
+                        apply(target, thisArg, argArray) {
+                            return target.apply(thisArg, argArray);
+                        },
+                    });
+                    layer.setTransformation("scaleX", scaleX);
+                }
+                if (sy) {
+                    const scaleYRaw = (domain) => sy(domain) + offsetY;
+                    scaleYRaw.invert = (range) => sy.invert(range - offsetY);
+                    scaleYRaw.$origin = sy;
+                    const scaleY = new Proxy(scaleYRaw, {
+                        get(target, path) {
+                            if (path in target)
+                                return target[path];
+                            if (path === "range")
+                                return (...args) => target.$origin
+                                    .range(...args)
+                                    .map((y) => y + offsetY);
+                            return target.$origin[path];
+                        },
+                        apply(target, thisArg, argArray) {
+                            return target.apply(thisArg, argArray);
+                        },
+                    });
+                    layer.setTransformation("scaleY", scaleY);
+                }
+            },
+        ],
+        dragabort: [
+            ({ layer, event, instrument }) => {
+                if (event.changedTouches)
+                    event = event.changedTouches[0];
+                const sx = layer.getTransformation("$$scaleX");
+                const sy = layer.getTransformation("$$scaleY");
+                instrument.setSharedVar("startx", event.clientX);
+                instrument.setSharedVar("starty", event.clientY);
+                instrument.setSharedVar("currentx", event.clientX);
+                instrument.setSharedVar("currenty", event.clientY);
+                if (sx) {
+                    layer.setTransformation("scaleX", sx);
+                    layer.setTransformation("$scaleX", sx);
+                }
+                if (sy) {
+                    layer.setTransformation("scaleY", sy);
+                    layer.setTransformation("$scaleY", sy);
+                }
+            },
+        ],
+    },
+});
+Instrument.register("ZoomInstrument", {
+    constructor: Instrument,
+    interactors: ["MouseWheelInteractor"],
+    on: {
+        wheel: [
+            ({ layer, event, instrument }) => {
+                let sx = layer.getTransformation("scaleX");
+                let sy = layer.getTransformation("scaleY");
+                layer.getTransformation("$$scaleX", sx);
+                layer.getTransformation("$$scaleY", sy);
+                instrument.setSharedVar("currentx", event.offsetX);
+                instrument.setSharedVar("currenty", event.offsetY);
+                let delta = event.deltaY;
+                instrument.setSharedVar("delta", delta);
+                delta /= 1000;
+                const offsetX = event.offsetX;
+                const offsetY = event.offsetY;
+                if (sx) {
+                    const scaleXRaw = (domain) => (sx(domain) - offsetX) * Math.exp(delta) + offsetX;
+                    scaleXRaw.invert = (range) => sx.invert((range - offsetX) / Math.exp(delta) + offsetX);
+                    scaleXRaw.$origin = sx;
+                    const scaleX = new Proxy(scaleXRaw, {
+                        get(target, path) {
+                            if (path in target)
+                                return target[path];
+                            if (path === "range")
+                                return (...args) => target.$origin
+                                    .range(...args)
+                                    .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                            return target.$origin[path];
+                        },
+                        apply(target, thisArg, argArray) {
+                            return target.apply(thisArg, argArray);
+                        },
+                    });
+                    layer.setTransformation("scaleX", scaleX);
+                }
+                if (sy) {
+                    const scaleYRaw = (domain) => (sy(domain) - offsetY) * Math.exp(delta) + offsetY;
+                    scaleYRaw.invert = (range) => sy.invert((range - offsetY) / Math.exp(delta) + offsetY);
+                    scaleYRaw.$origin = sy;
+                    const scaleY = new Proxy(scaleYRaw, {
+                        get(target, path) {
+                            if (path in target)
+                                return target[path];
+                            if (path === "range")
+                                return (...args) => target.$origin
+                                    .range(...args)
+                                    .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                            return target.$origin[path];
+                        },
+                        apply(target, thisArg, argArray) {
+                            return target.apply(thisArg, argArray);
+                        },
+                    });
+                    layer.setTransformation("scaleY", scaleY);
+                }
+            },
+        ],
+        abort: [
+            ({ layer, event, instrument }) => {
+                const sx = layer.getTransformation("$$scaleX");
+                const sy = layer.getTransformation("$$scaleY");
+                instrument.setSharedVar("delta", 0);
+                instrument.setSharedVar("currentx", event.offsetX);
+                instrument.setSharedVar("currenty", event.offsetY);
+                if (sx) {
+                    layer.setTransformation("scaleX", sx);
+                }
+                if (sy) {
+                    layer.setTransformation("scaleY", sy);
+                }
+            },
+        ],
+    },
+});
