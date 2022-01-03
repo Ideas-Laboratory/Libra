@@ -4824,8 +4824,8 @@ Instrument.register("ZoomInstrument", {
         let delta = event.deltaY;
         instrument.setSharedVar("delta", delta);
         delta /= 1e3;
-        const offsetX = event.offsetX;
-        const offsetY = event.offsetY;
+        const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
+        const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
         if (sx) {
           const scaleXRaw = (domain) => (sx(domain) - offsetX) * Math.exp(delta) + offsetX;
           scaleXRaw.invert = (range) => sx.invert((range - offsetX) / Math.exp(delta) + offsetX);
