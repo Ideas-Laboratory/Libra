@@ -777,6 +777,11 @@ Instrument.register("ZoomInstrument", {
         instrument.setSharedVar("currenty", event.offsetY);
         let delta = event.deltaY;
         instrument.setSharedVar("delta", delta);
+        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+          defaultValue: 0,
+        });
+        cumulativeDelta += delta;
+        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
         delta /= 1000;
         const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
         const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
