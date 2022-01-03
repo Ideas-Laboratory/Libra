@@ -669,6 +669,9 @@ Instrument.register("PanInstrument", {
                         apply(target, thisArg, argArray) {
                             return target.apply(thisArg, argArray);
                         },
+                        has(target, path) {
+                            return path in target || path in target.$origin;
+                        },
                     });
                     layer.setTransformation("scaleX", scaleX);
                 }
@@ -691,6 +694,9 @@ Instrument.register("PanInstrument", {
                         },
                         apply(target, thisArg, argArray) {
                             return target.apply(thisArg, argArray);
+                        },
+                        has(target, path) {
+                            return path in target || path in target.$origin;
                         },
                     });
                     layer.setTransformation("scaleY", scaleY);
@@ -751,13 +757,16 @@ Instrument.register("ZoomInstrument", {
                             if (path === "copy") {
                                 return () => scaleX;
                             }
-                            if (path === "bandwidth") {
+                            if (path === "bandwidth" && "bandwidth" in target.$origin) {
                                 return () => target.$origin.bandwidth() * Math.exp(delta);
                             }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
                             return target.apply(thisArg, argArray);
+                        },
+                        has(target, path) {
+                            return path in target || path in target.$origin;
                         },
                     });
                     layer.setTransformation("scaleX", scaleX);
@@ -777,13 +786,16 @@ Instrument.register("ZoomInstrument", {
                             if (path === "copy") {
                                 return () => scaleY;
                             }
-                            if (path === "bandwidth") {
+                            if (path === "bandwidth" && "bandwidth" in target.$origin) {
                                 return () => target.$origin.bandwidth() * Math.exp(delta);
                             }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
                             return target.apply(thisArg, argArray);
+                        },
+                        has(target, path) {
+                            return path in target || path in target.$origin;
                         },
                     });
                     layer.setTransformation("scaleY", scaleY);

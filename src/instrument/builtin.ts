@@ -707,6 +707,9 @@ Instrument.register("PanInstrument", {
             apply(target, thisArg, argArray) {
               return target.apply(thisArg, argArray);
             },
+            has(target, path) {
+              return path in target || path in target.$origin;
+            },
           }) as Transformation;
           layer.setTransformation("scaleX", scaleX);
         }
@@ -729,6 +732,9 @@ Instrument.register("PanInstrument", {
             },
             apply(target, thisArg, argArray) {
               return target.apply(thisArg, argArray);
+            },
+            has(target, path) {
+              return path in target || path in target.$origin;
             },
           }) as Transformation;
           layer.setTransformation("scaleY", scaleY);
@@ -791,7 +797,7 @@ Instrument.register("ZoomInstrument", {
               if (path === "copy") {
                 return () => scaleX;
               }
-              if (path === "bandwidth") {
+              if (path === "bandwidth" && "bandwidth" in target.$origin) {
                 return () =>
                   (target.$origin as any).bandwidth() * Math.exp(delta);
               }
@@ -799,6 +805,9 @@ Instrument.register("ZoomInstrument", {
             },
             apply(target, thisArg, argArray) {
               return target.apply(thisArg, argArray);
+            },
+            has(target, path) {
+              return path in target || path in target.$origin;
             },
           }) as Transformation;
           layer.setTransformation("scaleX", scaleX);
@@ -820,7 +829,7 @@ Instrument.register("ZoomInstrument", {
               if (path === "copy") {
                 return () => scaleY;
               }
-              if (path === "bandwidth") {
+              if (path === "bandwidth" && "bandwidth" in target.$origin) {
                 return () =>
                   (target.$origin as any).bandwidth() * Math.exp(delta);
               }
@@ -828,6 +837,9 @@ Instrument.register("ZoomInstrument", {
             },
             apply(target, thisArg, argArray) {
               return target.apply(thisArg, argArray);
+            },
+            has(target, path) {
+              return path in target || path in target.$origin;
             },
           }) as Transformation;
           layer.setTransformation("scaleY", scaleY);
