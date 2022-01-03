@@ -4748,7 +4748,7 @@ Instrument.register("PanInstrument", {
               if (path === "range")
                 return (...args) => target.$origin.range(...args).map((x) => x + offsetX);
               if (path === "copy") {
-                return () => target;
+                return () => scaleX;
               }
               return target.$origin[path];
             },
@@ -4769,7 +4769,7 @@ Instrument.register("PanInstrument", {
               if (path === "range")
                 return (...args) => target.$origin.range(...args).map((y) => y + offsetY);
               if (path === "copy") {
-                return () => target;
+                return () => scaleY;
               }
               return target.$origin[path];
             },
@@ -4831,7 +4831,10 @@ Instrument.register("ZoomInstrument", {
               if (path === "range")
                 return (...args) => target.$origin.range(...args).map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
               if (path === "copy") {
-                return () => target;
+                return () => scaleX;
+              }
+              if (path === "bandwidth") {
+                return () => target.$origin.bandwidth() * Math.exp(delta);
               }
               return target.$origin[path];
             },
@@ -4852,7 +4855,10 @@ Instrument.register("ZoomInstrument", {
               if (path === "range")
                 return (...args) => target.$origin.range(...args).map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
               if (path === "copy") {
-                return () => target;
+                return () => scaleY;
+              }
+              if (path === "bandwidth") {
+                return () => target.$origin.bandwidth() * Math.exp(delta);
               }
               return target.$origin[path];
             },
