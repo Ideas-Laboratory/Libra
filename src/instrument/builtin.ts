@@ -687,57 +687,101 @@ Instrument.register("PanInstrument", {
         instrument.setSharedVar("currenty", event.clientY);
         const sx = layer.getTransformation("$scaleX");
         const sy = layer.getTransformation("$scaleY");
-        if (sx) {
-          const scaleXRaw = (domain) => sx(domain) + offsetX;
-          scaleXRaw.invert = (range) => sx.invert(range - offsetX);
-          scaleXRaw.$origin = sx;
-          const scaleX = new Proxy(scaleXRaw, {
-            get(target, path) {
-              if (path in target) return target[path];
-              if (path === "range")
-                return (...args) =>
-                  (target.$origin as any)
-                    .range(...args)
-                    .map((x) => x + offsetX);
-              if (path === "copy") {
-                return () => scaleX;
-              }
-              return target.$origin[path];
-            },
-            apply(target, thisArg, argArray) {
-              return target.apply(thisArg, argArray);
-            },
-            has(target, path) {
-              return path in target || path in target.$origin;
-            },
-          }) as Transformation;
-          layer.setTransformation("scaleX", scaleX);
-        }
-        if (sy) {
-          const scaleYRaw = (domain) => sy(domain) + offsetY;
-          scaleYRaw.invert = (range) => sy.invert(range - offsetY);
-          scaleYRaw.$origin = sy;
-          const scaleY = new Proxy(scaleYRaw, {
-            get(target, path) {
-              if (path in target) return target[path];
-              if (path === "range")
-                return (...args) =>
-                  (target.$origin as any)
-                    .range(...args)
-                    .map((y) => y + offsetY);
-              if (path === "copy") {
-                return () => scaleY;
-              }
-              return target.$origin[path];
-            },
-            apply(target, thisArg, argArray) {
-              return target.apply(thisArg, argArray);
-            },
-            has(target, path) {
-              return path in target || path in target.$origin;
-            },
-          }) as Transformation;
-          layer.setTransformation("scaleY", scaleY);
+        const fixRange = instrument.getSharedVar("fixRange");
+        if (fixRange) {
+          if (sx) {
+            const scaleX = sx
+              .copy()
+              .domain(sx.range().map((x) => x + offsetX))
+              .range(sx.domain());
+            if (scaleX.clamp) scaleX.clamp(false);
+            scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
+            layer.setTransformation("scaleX", scaleX);
+          }
+          if (sy) {
+            const scaleY = sy
+              .copy()
+              .domain(sy.range().map((y) => y + offsetY))
+              .range(sy.domain());
+            if (scaleY.clamp) scaleY.clamp(false);
+            scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
+            layer.setTransformation("scaleY", scaleY);
+          }
+        } else {
+          if (sx) {
+            const proxyRaw = (
+              raw: Transformation & { $origin: Transformation }
+            ) =>
+              new Proxy(raw, {
+                get(target, path) {
+                  if (path in target) return target[path];
+                  if (path === "range")
+                    return (...args) =>
+                      (target.$origin as any)
+                        .range(...args)
+                        .map((x) => x + offsetX);
+                  return target.$origin[path];
+                },
+                apply(target, thisArg, argArray) {
+                  return target.apply(thisArg, argArray);
+                },
+                has(target, path) {
+                  return path in target || path in target.$origin;
+                },
+              });
+            const scaleXRaw = (domain) => sx(domain) + offsetX;
+            scaleXRaw.invert = (range) => sx.invert(range - offsetX);
+            scaleXRaw.copy = () => {
+              const anotherScaleXRaw = (domain) =>
+                anotherScaleXRaw.$origin(domain) + offsetX;
+              Object.assign(anotherScaleXRaw, scaleXRaw);
+              anotherScaleXRaw.invert = (range) =>
+                anotherScaleXRaw.$origin.invert(range - offsetX);
+              anotherScaleXRaw.$origin = sx.copy();
+              return proxyRaw(anotherScaleXRaw as any);
+            };
+            scaleXRaw.$origin = sx;
+            const scaleX = proxyRaw(scaleXRaw);
+            layer.setTransformation("scaleX", scaleX);
+          }
+          if (sy) {
+            const proxyRaw = (
+              raw: Transformation & { $origin: Transformation }
+            ) =>
+              new Proxy(raw, {
+                get(target, path) {
+                  if (path in target) return target[path];
+                  if (path === "range")
+                    return (...args) =>
+                      (target.$origin as any)
+                        .range(...args)
+                        .map((y) => y + offsetY);
+                  return target.$origin[path];
+                },
+                apply(target, thisArg, argArray) {
+                  return target.apply(thisArg, argArray);
+                },
+                has(target, path) {
+                  return path in target || path in target.$origin;
+                },
+              });
+            const scaleYRaw = (domain) => scaleYRaw.$origin(domain) + offsetY;
+            scaleYRaw.invert = (range) =>
+              scaleYRaw.$origin.invert(range - offsetY);
+            scaleYRaw.$origin = sy;
+            scaleYRaw.copy = () => {
+              const anotherScaleYRaw = (domain) =>
+                anotherScaleYRaw.$origin(domain) + offsetY;
+              Object.assign(anotherScaleYRaw, scaleYRaw);
+              anotherScaleYRaw.invert = (range) =>
+                anotherScaleYRaw.$origin.invert(range - offsetY);
+              anotherScaleYRaw.$origin = sy.copy();
+              return proxyRaw(anotherScaleYRaw as any);
+            };
+
+            const scaleY = proxyRaw(scaleYRaw);
+            layer.setTransformation("scaleY", scaleY);
+          }
         }
       },
     ],
@@ -785,69 +829,129 @@ Instrument.register("ZoomInstrument", {
         delta /= 1000;
         const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
         const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
-        if (sx) {
-          const scaleXRaw = (domain) =>
-            (sx(domain) - offsetX) * Math.exp(delta) + offsetX;
-          scaleXRaw.invert = (range) =>
-            sx.invert((range - offsetX) / Math.exp(delta) + offsetX);
-          scaleXRaw.$origin = sx;
-          const scaleX = new Proxy(scaleXRaw, {
-            get(target, path) {
-              if (path in target) return target[path];
-              if (path === "range")
-                return (...args) =>
-                  (target.$origin as any)
-                    .range(...args)
-                    .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
-              if (path === "copy") {
-                return () => scaleX;
-              }
-              if (path === "bandwidth" && "bandwidth" in target.$origin) {
-                return () =>
-                  (target.$origin as any).bandwidth() * Math.exp(delta);
-              }
-              return target.$origin[path];
-            },
-            apply(target, thisArg, argArray) {
-              return target.apply(thisArg, argArray);
-            },
-            has(target, path) {
-              return path in target || path in target.$origin;
-            },
-          }) as Transformation;
-          layer.setTransformation("scaleX", scaleX);
-        }
-        if (sy) {
-          const scaleYRaw = (domain) =>
-            (sy(domain) - offsetY) * Math.exp(delta) + offsetY;
-          scaleYRaw.invert = (range) =>
-            sy.invert((range - offsetY) / Math.exp(delta) + offsetY);
-          scaleYRaw.$origin = sy;
-          const scaleY = new Proxy(scaleYRaw, {
-            get(target, path) {
-              if (path in target) return target[path];
-              if (path === "range")
-                return (...args) =>
-                  (target.$origin as any)
-                    .range(...args)
-                    .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
-              if (path === "copy") {
-                return () => scaleY;
-              }
-              if (path === "bandwidth" && "bandwidth" in target.$origin) {
-                return () =>
-                  (target.$origin as any).bandwidth() * Math.exp(delta);
-              }
-              return target.$origin[path];
-            },
-            apply(target, thisArg, argArray) {
-              return target.apply(thisArg, argArray);
-            },
-            has(target, path) {
-              return path in target || path in target.$origin;
-            },
-          }) as Transformation;
-          layer.setTransformation("scaleY", scaleY);
+        const fixRange = instrument.getSharedVar("fixRange");
+        if (fixRange) {
+          if (sx) {
+            const scaleX = sx
+              .copy()
+              .domain(
+                sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX)
+              )
+              .range(sx.domain());
+            if (scaleX.clamp) scaleX.clamp(false);
+            scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
+            layer.setTransformation("scaleX", scaleX);
+          }
+          if (sy) {
+            const scaleY = sy
+              .copy()
+              .domain(
+                sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY)
+              )
+              .range(sy.domain());
+            if (scaleY.clamp) scaleY.clamp(false);
+            scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
+            layer.setTransformation("scaleY", scaleY);
+          }
+        } else {
+          if (sx) {
+            const proxyRaw = (
+              raw: Transformation & { $origin: Transformation }
+            ) =>
+              new Proxy(raw, {
+                get(target, path) {
+                  if (path in target) return target[path];
+                  if (path === "range")
+                    return (...args) =>
+                      (target.$origin as any)
+                        .range(
+                          ...args.map(
+                            (x) => (x - offsetX) / Math.exp(delta) + offsetX
+                          )
+                        )
+                        .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                  if (path === "bandwidth" && "bandwidth" in target.$origin) {
+                    return () =>
+                      (target.$origin as any).bandwidth() * Math.exp(delta);
+                  }
+                  return target.$origin[path];
+                },
+                apply(target, thisArg, argArray) {
+                  return target.apply(thisArg, argArray);
+                },
+                has(target, path) {
+                  return path in target || path in target.$origin;
+                },
+              });
+            const scaleXRaw = (domain) =>
+              (scaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) + offsetX;
+            scaleXRaw.invert = (range) =>
+              scaleXRaw.$origin.invert(
+                (range - offsetX) / Math.exp(delta) + offsetX
+              );
+            scaleXRaw.$origin = sx;
+            scaleXRaw.copy = () => {
+              const anotherScaleXRaw = (domain) =>
+                (anotherScaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) +
+                offsetX;
+              Object.assign(anotherScaleXRaw, scaleXRaw);
+              anotherScaleXRaw.$origin = sx.copy();
+              anotherScaleXRaw.invert = (range) =>
+                anotherScaleXRaw.$origin.invert(
+                  (range - offsetX) / Math.exp(delta) + offsetX
+                );
+              return proxyRaw(anotherScaleXRaw as any);
+            };
+            const scaleX = proxyRaw(scaleXRaw);
+            layer.setTransformation("scaleX", scaleX);
+          }
+          if (sy) {
+            const proxyRaw = (
+              raw: Transformation & { $origin: Transformation }
+            ) =>
+              new Proxy(raw, {
+                get(target, path) {
+                  if (path in target) return target[path];
+                  if (path === "range")
+                    return (...args) =>
+                      (target.$origin as any)
+                        .range(...args)
+                        .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                  if (path === "bandwidth" && "bandwidth" in target.$origin) {
+                    return () =>
+                      (target.$origin as any).bandwidth() * Math.exp(delta);
+                  }
+                  return target.$origin[path];
+                },
+                apply(target, thisArg, argArray) {
+                  return target.apply(thisArg, argArray);
+                },
+                has(target, path) {
+                  return path in target || path in target.$origin;
+                },
+              });
+            const scaleYRaw = (domain) =>
+              (scaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) + offsetY;
+            scaleYRaw.invert = (range) =>
+              scaleYRaw.$origin.invert(
+                (range - offsetY) / Math.exp(delta) + offsetY
+              );
+            scaleYRaw.$origin = sy;
+            scaleYRaw.copy = () => {
+              const anotherScaleYRaw = (domain) =>
+                (anotherScaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) +
+                offsetY;
+              Object.assign(anotherScaleYRaw, scaleYRaw);
+              anotherScaleYRaw.invert = (range) =>
+                anotherScaleYRaw.$origin.invert(
+                  (range - offsetY) / Math.exp(delta) + offsetY
+                );
+              anotherScaleYRaw.$origin = sy.copy();
+              return proxyRaw(anotherScaleYRaw as any);
+            };
+            const scaleY = proxyRaw(scaleYRaw);
+            layer.setTransformation("scaleY", scaleY);
+          }
         }
       },
     ],

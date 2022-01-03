@@ -28,9 +28,20 @@ export enum DataQueryType {
 // }
 
 // We assume the transformation in Libra are all affined
+type DomainInputType = any[] | void;
+type DomainOutputType<T> = T extends any[] ? void : any[];
+type RangeInputType = number[];
+type RangeOutputType<T> = T extends void ? void : number[];
+
 export type Transformation = {
   (domain: any): number;
   invert(range: number): any;
+  copy(): Transformation;
+  domain?(): any[];
+  domain?(newDomain: any[]): Transformation;
+  range?(): number[];
+  range?(newRange: number[]): Transformation;
+  clamp?(bool: boolean): Transformation;
 };
 
 export type ShapeBasedQuery =
@@ -164,7 +175,7 @@ export function makeFindableList<T>(
 
 export function getTransform(elem: SVGElement) {
   try {
-    const transform = elem 
+    const transform = elem
       .getAttribute("transform")
       .split("(")[1]
       .split(")")[0]
