@@ -661,6 +661,9 @@ Instrument.register("PanInstrument", {
                                 return (...args) => target.$origin
                                     .range(...args)
                                     .map((x) => x + offsetX);
+                            if (path === "copy") {
+                                return () => target;
+                            }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
@@ -681,6 +684,9 @@ Instrument.register("PanInstrument", {
                                 return (...args) => target.$origin
                                     .range(...args)
                                     .map((y) => y + offsetY);
+                            if (path === "copy") {
+                                return () => target;
+                            }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
@@ -742,6 +748,9 @@ Instrument.register("ZoomInstrument", {
                                 return (...args) => target.$origin
                                     .range(...args)
                                     .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                            if (path === "copy") {
+                                return () => target;
+                            }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
@@ -762,6 +771,9 @@ Instrument.register("ZoomInstrument", {
                                 return (...args) => target.$origin
                                     .range(...args)
                                     .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                            if (path === "copy") {
+                                return () => target;
+                            }
                             return target.$origin[path];
                         },
                         apply(target, thisArg, argArray) {
