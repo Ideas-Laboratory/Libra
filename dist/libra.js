@@ -4861,6 +4861,7 @@ Instrument.register("ZoomInstrument", {
           defaultValue: DEFAULT_DELTA_LEVEL_RATIO
         });
         layer.setSharedVar("zoomLevel", cumulativeDelta / deltaLevelRatio);
+        layer.setSharedVar("cumulativeDelta", cumulativeDelta);
         delta /= 1e3;
         const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
         const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
