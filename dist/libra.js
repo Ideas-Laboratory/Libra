@@ -4843,6 +4843,7 @@ Instrument.register("ZoomInstrument", {
   on: {
     wheel: [
       ({ layer, event, instrument }) => {
+        const DEFAULT_DELTA_LEVEL_RATIO = 200;
         let sx = layer.getTransformation("scaleX");
         let sy = layer.getTransformation("scaleY");
         layer.getTransformation("$$scaleX", sx);
@@ -4856,6 +4857,9 @@ Instrument.register("ZoomInstrument", {
         });
         cumulativeDelta += delta;
         instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+        const deltaLevelRatio = instrument.getSharedVar("deltaLevelRatio", {
+          defaultValue: DEFAULT_DELTA_LEVEL_RATIO
+        });
         delta /= 1e3;
         const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
         const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
