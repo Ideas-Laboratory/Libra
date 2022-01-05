@@ -705,22 +705,42 @@ var InteractionService = class {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      for (let command of this._on.update)
-        await command.execute({
-          self: this,
-          layer: options?.layer ?? null,
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null
-        });
+      for (let command of this._on.update) {
+        if (command instanceof Function) {
+          await command({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          });
+        } else {
+          await command.execute({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          });
+        }
+      }
     }
     if (this._on[`update:${sharedName}`]) {
-      for (let command of this._on[`update:${sharedName}`])
-        await command.execute({
-          self: this,
-          layer: options?.layer ?? null,
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null
-        });
+      for (let command of this._on[`update:${sharedName}`]) {
+        if (command instanceof Function) {
+          await command({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          });
+        } else {
+          await command.execute({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null
+          });
+        }
+      }
     }
     this.postUpdate();
   }
@@ -820,43 +840,83 @@ var SelectionManager = class extends InteractionService {
         }
         this._nextTick = 0;
         if (this._on.update) {
-          for (let command of this._on.update)
-            await command.execute({
-              self: this,
-              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-              instrument: options?.instrument ?? null,
-              interactor: options?.interactor ?? null
-            });
+          for (let command of this._on.update) {
+            if (command instanceof Function) {
+              await command({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            } else {
+              await command.execute({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            }
+          }
         }
         if (this._on[`update:${sharedName}`]) {
-          for (let command of this._on[`update:${sharedName}`])
-            await command.execute({
-              self: this,
-              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-              instrument: options?.instrument ?? null,
-              interactor: options?.interactor ?? null
-            });
+          for (let command of this._on[`update:${sharedName}`]) {
+            if (command instanceof Function) {
+              await command({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            } else {
+              await command.execute({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            }
+          }
         }
         this.postUpdate();
       });
     } else {
       if (this._on.update) {
-        for (let command of this._on.update)
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null
-          });
+        for (let command of this._on.update) {
+          if (command instanceof Function) {
+            await command({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          } else {
+            await command.execute({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          }
+        }
       }
       if (this._on[`update:${sharedName}`]) {
-        for (let command of this._on[`update:${sharedName}`])
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null
-          });
+        for (let command of this._on[`update:${sharedName}`]) {
+          if (command instanceof Function) {
+            await command({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          } else {
+            await command.execute({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          }
+        }
       }
       this.postUpdate();
     }
@@ -962,43 +1022,83 @@ var AlgorithmManager = class extends InteractionService {
         });
         this._nextTick = 0;
         if (this._on.update) {
-          for (let command of this._on.update)
-            await command.execute({
-              self: this,
-              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-              instrument: options?.instrument ?? null,
-              interactor: options?.interactor ?? null
-            });
+          for (let command of this._on.update) {
+            if (command instanceof Function) {
+              await command({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            } else {
+              await command.execute({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            }
+          }
         }
         if (this._on[`update:${sharedName}`]) {
-          for (let command of this._on[`update:${sharedName}`])
-            await command.execute({
-              self: this,
-              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-              instrument: options?.instrument ?? null,
-              interactor: options?.interactor ?? null
-            });
+          for (let command of this._on[`update:${sharedName}`]) {
+            if (command instanceof Function) {
+              await command({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            } else {
+              await command.execute({
+                self: this,
+                layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+                instrument: options?.instrument ?? null,
+                interactor: options?.interactor ?? null
+              });
+            }
+          }
         }
         this.postUpdate();
       });
     } else {
       if (this._on.update) {
-        for (let command of this._on.update)
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null
-          });
+        for (let command of this._on.update) {
+          if (command instanceof Function) {
+            await command({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          } else {
+            await command.execute({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          }
+        }
       }
       if (this._on[`update:${sharedName}`]) {
-        for (let command of this._on[`update:${sharedName}`])
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null
-          });
+        for (let command of this._on[`update:${sharedName}`]) {
+          if (command instanceof Function) {
+            await command({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          } else {
+            await command.execute({
+              self: this,
+              layer: options?.layer ?? (this._layerInstances.length == 1 ? this._layerInstances[0] : null),
+              instrument: options?.instrument ?? null,
+              interactor: options?.interactor ?? null
+            });
+          }
+        }
       }
       this.postUpdate();
     }

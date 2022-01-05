@@ -1,9 +1,10 @@
 import { Command } from "../command";
 import { Layer } from "../layer";
+import * as helpers from "../helpers";
 declare type ServiceInitOption = {
     name?: string;
     on?: {
-        [action: string]: Command[];
+        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
     sharedVar?: {
         [key: string]: any;
@@ -26,7 +27,7 @@ export default class InteractionService {
     _name: string;
     _userOptions: ServiceInitOption;
     _on: {
-        [action: string]: Command[];
+        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
     _sharedVar: {
         [key: string]: any;

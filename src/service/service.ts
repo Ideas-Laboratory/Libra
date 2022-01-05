@@ -1,9 +1,15 @@
 import { Command } from "../command";
 import { Layer } from "../layer";
+import * as helpers from "../helpers";
 
 type ServiceInitOption = {
   name?: string;
-  on?: { [action: string]: Command[] };
+  on?: {
+    [action: string]: (
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
+      | Command
+    )[];
+  };
   sharedVar?: { [key: string]: any };
   preInitialize?: (service: InteractionService) => void;
   postInitialize?: (service: InteractionService) => void;
@@ -26,7 +32,12 @@ export default class InteractionService {
   _baseName: string;
   _name: string;
   _userOptions: ServiceInitOption;
-  _on: { [action: string]: Command[] };
+  _on: {
+    [action: string]: (
+      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
+      | Command
+    )[];
+  };
   _sharedVar: { [key: string]: any };
   _preInitialize?: (service: InteractionService) => void;
   _postInitialize?: (service: InteractionService) => void;
@@ -79,22 +90,42 @@ export default class InteractionService {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
     if (this._on.update) {
-      for (let command of this._on.update)
-        await command.execute({
-          self: this,
-          layer: options?.layer ?? null,
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null,
-        });
+      for (let command of this._on.update) {
+        if (command instanceof Function) {
+          await command({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          });
+        } else {
+          await command.execute({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          });
+        }
+      }
     }
     if (this._on[`update:${sharedName}`]) {
-      for (let command of this._on[`update:${sharedName}`])
-        await command.execute({
-          self: this,
-          layer: options?.layer ?? null,
-          instrument: options?.instrument ?? null,
-          interactor: options?.interactor ?? null,
-        });
+      for (let command of this._on[`update:${sharedName}`]) {
+        if (command instanceof Function) {
+          await command({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          });
+        } else {
+          await command.execute({
+            self: this,
+            layer: options?.layer ?? null,
+            instrument: options?.instrument ?? null,
+            interactor: options?.interactor ?? null,
+          });
+        }
+      }
     }
     this.postUpdate();
   }
