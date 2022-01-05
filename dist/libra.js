@@ -3748,9 +3748,9 @@ var D3Layer = class extends Layer {
       if (!isFinite(x) || !isFinite(y)) {
         return [];
       }
-      result = [document.elementFromPoint(x, y)];
-      if (!this._isElementInLayer(result[0])) {
-        result = [];
+      result = [...document.elementsFromPoint(x, y)].filter(this._isElementInLayer.bind(this));
+      if (result.length >= 1) {
+        result = [result[0]];
       }
     } else if (options.type === ShapeQueryType.Point) {
       const { x, y } = options;
