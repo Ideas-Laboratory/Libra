@@ -26,9 +26,6 @@ export default class InteractionService {
     _baseName: string;
     _name: string;
     _userOptions: ServiceInitOption;
-    _on: {
-        [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
-    };
     _sharedVar: {
         [key: string]: any;
     };
@@ -40,10 +37,8 @@ export default class InteractionService {
     _postUse?: (service: InteractionService, layer: Layer<any>) => void;
     _layerInstances: Layer<any>[];
     constructor(baseName: string, options: ServiceInitOption);
-    on(action: string, command: Command): void;
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
-    watchSharedVar(sharedName: string, handler: Command): void;
     preUpdate(): void;
     postUpdate(): void;
     preAttach(layer: Layer<any>): void;

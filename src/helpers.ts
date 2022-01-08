@@ -165,9 +165,13 @@ export function makeFindableList<T>(
       } else if (p in target) {
         return target[p];
       } else {
-        return function () {
-          return target.map((t) => t[p].apply(t, arguments));
-        };
+        if (target.length && target[0][p] instanceof Function) {
+          return function () {
+            return target.map((t) => t[p].apply(t, arguments));
+          };
+        } else {
+          return target.map((t) => t[p]);
+        }
       }
     },
   });

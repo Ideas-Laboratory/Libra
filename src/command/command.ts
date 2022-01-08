@@ -2,7 +2,7 @@ import * as helpers from "../helpers";
 
 type CommandInitOption = {
   name?: string;
-  feedbacks?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
+  feedback?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
   undo?: () => void;
   redo?: () => void;
   execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
@@ -19,13 +19,13 @@ type CommandInitTemplate = CommandInitOption & {
 };
 
 const registeredCommands: { [name: string]: CommandInitTemplate } = {};
-const instanceCommands: Command[] = [];
+export const instanceCommands: Command[] = [];
 
 export default class Command {
   _baseName: string;
   _name: string;
   _userOptions: CommandInitOption;
-  _feedbacks: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
+  _feedback: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
   _undo?: () => void;
   _redo?: () => void;
   _execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
@@ -39,7 +39,7 @@ export default class Command {
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._feedbacks = options.feedbacks ?? [];
+    this._feedback = options.feedback ?? [];
     this._undo = options.undo ?? null;
     this._redo = options.redo ?? null;
     this._execute = options.execute ?? null;
@@ -47,6 +47,7 @@ export default class Command {
     this._postInitialize = options.postInitialize ?? null;
     this._preExecute = options.preExecute ?? null;
     this._postExecute = options.postExecute ?? null;
+    instanceCommands.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
@@ -62,7 +63,7 @@ export default class Command {
     this.preExecute();
     this._execute && (await this._execute.call(this, options));
     this.postExecute();
-    for (let feedback of this._feedbacks) {
+    for (let feedback of this._feedback) {
       await feedback.call(this, options);
     }
   }

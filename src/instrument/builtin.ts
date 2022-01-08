@@ -9,8 +9,8 @@ Instrument.register("HoverInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", event.clientY, { layer });
         });
       },
     ],
@@ -26,76 +26,87 @@ Instrument.register("BrushInstrument", {
   interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
-          service.setSharedVar("width", 1);
-          service.setSharedVar("height", 1);
-          service.setSharedVar("startx", event.clientX);
-          service.setSharedVar("starty", event.clientY);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", event.clientY, { layer });
+          service.setSharedVar("width", 1, { layer });
+          service.setSharedVar("height", 1, { layer });
+          service.setSharedVar("startx", event.clientX, { layer });
+          service.setSharedVar("starty", event.clientY, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
+        instrument.setSharedVar("startx", event.clientX);
+        instrument.setSharedVar("starty", event.clientY);
       },
     ],
     drag: [
-      ({ event, layer }) => {
+      ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           const starty = service.getSharedVar("starty");
-          service.setSharedVar("x", Math.min(event.clientX, startx));
-          service.setSharedVar("y", Math.min(event.clientY, starty));
-          service.setSharedVar("width", Math.abs(event.clientX - startx));
-          service.setSharedVar("height", Math.abs(event.clientY - starty));
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = `<rect x=${
-            Math.min(event.clientX, startx) - baseBBox.x
-          } y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(
-            event.clientX - startx
-          )} height=${Math.abs(
-            event.clientY - starty
-          )} class="transientRect" fill="#000" opacity="0.3" />`;
+          service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
+          service.setSharedVar("y", Math.min(event.clientY, starty), { layer });
+          service.setSharedVar("width", Math.abs(event.clientX - startx), {
+            layer,
+          });
+          service.setSharedVar("height", Math.abs(event.clientY - starty), {
+            layer,
+          });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
         });
+        const startx = instrument.getSharedVar("startx");
+        const starty = instrument.getSharedVar("starty");
+        const baseBBox = (
+          layer.getGraphic().querySelector(".ig-layer-background") ||
+          layer.getGraphic()
+        ).getBoundingClientRect();
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = `<rect x=${
+          Math.min(event.clientX, startx) - baseBBox.x
+        } y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(
+          event.clientX - startx
+        )} height=${Math.abs(
+          event.clientY - starty
+        )} class="transientRect" fill="#000" opacity="0.3" />`;
       },
     ],
     dragend: [
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endx", event.clientX);
-          service.setSharedVar("endy", event.clientY);
-          if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
-            transientLayer.getGraphic().innerHTML = "";
-          }
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
         });
+        if (!instrument.getSharedVar("persistant")) {
+          const transientLayer = layer.getSiblingLayer("transientLayer");
+          transientLayer.getGraphic().innerHTML = "";
+        }
       },
     ],
     dragabort: [
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("width", 0);
-          service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endx", event.clientX);
-          service.setSharedVar("endy", event.clientY);
-          const transientLayer = layer.getSiblingLayer("transientLayer");
-          transientLayer.getGraphic().innerHTML = "";
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("width", 0, { layer });
+          service.setSharedVar("height", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
         });
+        const transientLayer = layer.getSiblingLayer("transientLayer");
+        transientLayer.getGraphic().innerHTML = "";
       },
     ],
   },
@@ -113,13 +124,16 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", baseBBox.y);
-          service.setSharedVar("width", 1);
-          service.setSharedVar("height", baseBBox.height);
-          service.setSharedVar("startx", event.clientX);
-          service.setSharedVar("currentx", event.clientX);
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", baseBBox.y, { layer });
+          service.setSharedVar("width", 1, { layer });
+          service.setSharedVar("height", baseBBox.height, { layer });
+          service.setSharedVar("startx", event.clientX, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -130,10 +144,15 @@ Instrument.register("BrushXInstrument", {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
-          service.setSharedVar("x", Math.min(event.clientX, startx));
-          service.setSharedVar("width", Math.abs(event.clientX - startx));
-          service.setSharedVar("currentx", event.clientX);
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
+          service.setSharedVar("width", Math.abs(event.clientX - startx), {
+            layer,
+          });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
           const transientLayer = layer.getSiblingLayer("transientLayer");
           // const matrix = matrixParse.fromElement(layer.getGraphic());
           transientLayer.getGraphic().innerHTML = `<rect x="${
@@ -148,8 +167,8 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
@@ -161,12 +180,12 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("width", 0);
-          service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("width", 0, { layer });
+          service.setSharedVar("height", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -187,13 +206,16 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
-          service.setSharedVar("x", baseBBox.x);
-          service.setSharedVar("y", event.clientY);
-          service.setSharedVar("width", baseBBox.width);
-          service.setSharedVar("height", 1);
-          service.setSharedVar("starty", event.clientY);
-          service.setSharedVar("currenty", event.clientY);
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
+          service.setSharedVar("x", baseBBox.x, { layer });
+          service.setSharedVar("y", event.clientY, { layer });
+          service.setSharedVar("width", baseBBox.width, { layer });
+          service.setSharedVar("height", 1, { layer });
+          service.setSharedVar("starty", event.clientY, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -205,10 +227,15 @@ Instrument.register("BrushYInstrument", {
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
           const starty = service.getSharedVar("starty");
-          service.setSharedVar("y", Math.min(event.clientY, starty));
-          service.setSharedVar("height", Math.abs(event.clientY - starty));
-          service.setSharedVar("currenty", event.clientY);
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          service.setSharedVar("y", Math.min(event.clientY, starty), { layer });
+          service.setSharedVar("height", Math.abs(event.clientY - starty), {
+            layer,
+          });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = `<rect x=0 y=${
             Math.min(event.clientY, starty) - baseBBox.y
@@ -222,8 +249,8 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endy", event.clientY);
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
           if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
@@ -235,14 +262,14 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("width", 0);
-          service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endx", event.clientX);
-          service.setSharedVar("endy", event.clientY);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("width", 0, { layer });
+          service.setSharedVar("height", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -297,14 +324,14 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
-          service.setSharedVar("width", 1);
-          service.setSharedVar("height", 1);
-          service.setSharedVar("startx", event.clientX);
-          service.setSharedVar("starty", event.clientY);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", event.clientY, { layer });
+          service.setSharedVar("width", 1, { layer });
+          service.setSharedVar("height", 1, { layer });
+          service.setSharedVar("startx", event.clientX, { layer });
+          service.setSharedVar("starty", event.clientY, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar(
             "attrNameX",
             layer.getSharedVar("fieldX", service.getSharedVar("attrNameX"))
@@ -313,8 +340,8 @@ Instrument.register("DataBrushInstrument", {
             "attrNameY",
             layer.getSharedVar("fieldY", service.getSharedVar("attrNameY"))
           );
-          service.setSharedVar("extentX", [0, 0]);
-          service.setSharedVar("extentY", [0, 0]);
+          service.setSharedVar("extentX", [0, 0], { layer });
+          service.setSharedVar("extentY", [0, 0], { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
@@ -324,13 +351,20 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
           const startx = service.getSharedVar("startx");
           const starty = service.getSharedVar("starty");
-          service.setSharedVar("x", Math.min(event.clientX, startx));
-          service.setSharedVar("y", Math.min(event.clientY, starty));
-          service.setSharedVar("width", Math.abs(event.clientX - startx));
-          service.setSharedVar("height", Math.abs(event.clientY - starty));
+          service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
+          service.setSharedVar("y", Math.min(event.clientY, starty), { layer });
+          service.setSharedVar("width", Math.abs(event.clientX - startx), {
+            layer,
+          });
+          service.setSharedVar("height", Math.abs(event.clientY - starty), {
+            layer,
+          });
           service.setSharedVar(
             "extentX",
             [event.clientX, startx]
@@ -343,8 +377,8 @@ Instrument.register("DataBrushInstrument", {
               .map((y) => layer.getSharedVar("scaleY").invert(y - baseBBox.y))
               .sort((a, b) => a - b)
           );
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = `<rect x=${
             Math.min(event.clientX, startx) - baseBBox.x
@@ -360,14 +394,14 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          // service.setSharedVar("x", 0);
-          // service.setSharedVar("y", 0);
-          // service.setSharedVar("width", 0);
-          // service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endx", event.clientX);
-          service.setSharedVar("endy", event.clientY);
+          // service.setSharedVar("x", 0, {layer});
+          // service.setSharedVar("y", 0, {layer});
+          // service.setSharedVar("width", 0, {layer});
+          // service.setSharedVar("height", 0, {layer});
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
         });
         if (!instrument.getSharedVar("persistant")) {
           const transientLayer = layer.getSiblingLayer("transientLayer");
@@ -379,14 +413,14 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("width", 0);
-          service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("endx", event.clientX);
-          service.setSharedVar("endy", event.clientY);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("width", 0, { layer });
+          service.setSharedVar("height", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
+          service.setSharedVar("endy", event.clientY, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
@@ -407,18 +441,21 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", baseBBox.y);
-          service.setSharedVar("width", 1);
-          service.setSharedVar("height", baseBBox.height);
-          service.setSharedVar("startx", event.clientX);
-          service.setSharedVar("currentx", event.clientX);
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", baseBBox.y, { layer });
+          service.setSharedVar("width", 1, { layer });
+          service.setSharedVar("height", baseBBox.height, { layer });
+          service.setSharedVar("startx", event.clientX, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar(
             "attrName",
             layer.getSharedVar("fieldX", service.getSharedVar("attrName"))
           );
-          service.setSharedVar("extent", [0, 0]);
+          service.setSharedVar("extent", [0, 0], { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -429,16 +466,21 @@ Instrument.register("DataBrushXInstrument", {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           const startx = service.getSharedVar("startx");
-          const baseBBox = layer.getGraphic().getBoundingClientRect();
-          service.setSharedVar("x", Math.min(event.clientX, startx));
-          service.setSharedVar("width", Math.abs(event.clientX - startx));
+          const baseBBox = (
+            layer.getGraphic().querySelector(".ig-layer-background") ||
+            layer.getGraphic()
+          ).getBoundingClientRect();
+          service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
+          service.setSharedVar("width", Math.abs(event.clientX - startx), {
+            layer,
+          });
           service.setSharedVar(
             "extent",
             [event.clientX, startx]
               .map((x) => layer.getSharedVar("scaleX").invert(x - baseBBox.x))
               .sort((a, b) => a - b)
           );
-          service.setSharedVar("currentx", event.clientX);
+          service.setSharedVar("currentx", event.clientX, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           // const matrix = matrixParse.fromElement(layer.getGraphic());
           transientLayer.getGraphic().innerHTML = `<rect x="${
@@ -453,8 +495,8 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
             const transientLayer = layer.getSiblingLayer("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
@@ -466,12 +508,12 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("width", 0);
-          service.setSharedVar("height", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("endx", event.clientX);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("width", 0, { layer });
+          service.setSharedVar("height", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("endx", event.clientX, { layer });
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
@@ -493,8 +535,12 @@ Instrument.register("ClickInstrument", {
         if (options.event.changedTouches)
           options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", options.event.clientX);
-          service.setSharedVar("y", options.event.clientY);
+          service.setSharedVar("x", options.event.clientX, {
+            layer: options.layer,
+          });
+          service.setSharedVar("y", options.event.clientY, {
+            layer: options.layer,
+          });
         });
         options.instrument.emit("click", {
           ...options,
@@ -507,8 +553,8 @@ Instrument.register("ClickInstrument", {
         if (options.event.changedTouches)
           options.event = options.event.changedTouches[0];
         options.layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
+          service.setSharedVar("x", 0, { layer: options.layer });
+          service.setSharedVar("y", 0, { layer: options.layer });
         });
         options.instrument.emit("clickabort", {
           ...options,
@@ -531,8 +577,8 @@ Instrument.register("DragInstrument", {
       ({ layer, event }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          service.setSharedVar("x", event.clientX);
-          service.setSharedVar("y", event.clientY);
+          service.setSharedVar("x", event.clientX, { layer });
+          service.setSharedVar("y", event.clientY, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
@@ -544,10 +590,10 @@ Instrument.register("DragInstrument", {
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("offsetx", offsetX);
-          service.setSharedVar("offsety", offsetY);
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("offsetx", offsetX, { layer });
+          service.setSharedVar("offsety", offsetY, { layer });
           const selectionLayer = layer.getSiblingLayer("selectionLayer");
           const transientLayer = layer.getSiblingLayer("transientLayer");
           transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${
@@ -562,32 +608,37 @@ Instrument.register("DragInstrument", {
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("offsetx", offsetX);
-          service.setSharedVar("offsety", offsetY);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("offsetx", offsetX, { layer });
+          service.setSharedVar("offsety", offsetY, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
     dragabort: [
-      ({ layer, event }) => {
+      (options) => {
+        let { layer, event, instrument } = options;
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x");
           let offsetY = event.clientY - service.getSharedVar("y");
-          service.setSharedVar("x", 0);
-          service.setSharedVar("y", 0);
-          service.setSharedVar("currentx", event.clientX);
-          service.setSharedVar("currenty", event.clientY);
-          service.setSharedVar("offsetx", offsetX);
-          service.setSharedVar("offsety", offsetY);
+          service.setSharedVar("x", 0, { layer });
+          service.setSharedVar("y", 0, { layer });
+          service.setSharedVar("currentx", event.clientX, { layer });
+          service.setSharedVar("currenty", event.clientY, { layer });
+          service.setSharedVar("offsetx", offsetX, { layer });
+          service.setSharedVar("offsety", offsetY, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
+        instrument.emit("dragconfirm", {
+          ...options,
+          self: options.instrument,
+        });
       },
     ],
   },
@@ -676,6 +727,8 @@ Instrument.register("PanInstrument", {
         instrument.setSharedVar("starty", event.clientY);
         instrument.setSharedVar("currentx", event.clientX);
         instrument.setSharedVar("currenty", event.clientY);
+        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
+        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     drag: [
@@ -783,6 +836,8 @@ Instrument.register("PanInstrument", {
             layer.setTransformation("scaleY", scaleY);
           }
         }
+        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
+        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     dragabort: [
@@ -802,6 +857,8 @@ Instrument.register("PanInstrument", {
           layer.setTransformation("scaleY", sy);
           layer.setTransformation("$scaleY", sy);
         }
+        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
+        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
       },
     ],
   },
@@ -813,7 +870,7 @@ Instrument.register("ZoomInstrument", {
   on: {
     wheel: [
       ({ layer, event, instrument }) => {
-        const DEFAULT_DELTA_LEVEL_RATIO= 200;
+        const DEFAULT_DELTA_LEVEL_RATIO = 200;
         let sx = layer.getTransformation("scaleX");
         let sy = layer.getTransformation("scaleY");
         layer.getTransformation("$$scaleX", sx);
@@ -828,7 +885,7 @@ Instrument.register("ZoomInstrument", {
         cumulativeDelta += delta;
         instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
         const deltaLevelRatio = instrument.getSharedVar("deltaLevelRatio", {
-          defaultValue: DEFAULT_DELTA_LEVEL_RATIO
+          defaultValue: DEFAULT_DELTA_LEVEL_RATIO,
         });
         delta /= 1000;
         const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
@@ -957,6 +1014,8 @@ Instrument.register("ZoomInstrument", {
             layer.setTransformation("scaleY", scaleY);
           }
         }
+        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
+        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     abort: [
@@ -972,7 +1031,9 @@ Instrument.register("ZoomInstrument", {
         if (sy) {
           layer.setTransformation("scaleY", sy);
         }
+        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
+        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
       },
     ],
-  }
+  },
 });

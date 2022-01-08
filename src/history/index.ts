@@ -1,20 +1,27 @@
 import { instanceServices } from "../service";
+import { instanceCommands } from "../command";
 
 let historyRecords = [];
 let historyPointer = -1;
 let commitLock = false;
 
 export const HistoryManager = {
-  commit() {
+  commit: async (options) => {
     if (commitLock) {
       return;
     }
     const record = new Map();
-    instanceServices.forEach((service) => {
-      if ("results" in service) {
-        record.set(service, (service as any).results);
-      }
-    });
+    await Promise.all(
+      instanceServices.map(async (service) => {
+        if ("results" in service) {
+          record.set(service, [
+            await (service as any).results,
+            (options || {}).command,
+            options,
+          ]);
+        }
+      })
+    );
     historyRecords.splice(historyPointer + 1, historyRecords.length, record);
     historyPointer++;
   },
@@ -26,20 +33,9 @@ export const HistoryManager = {
     }
     const record = historyRecords[historyPointer];
     commitLock = true;
-    for (let [service, results] of record.entries()) {
+    for (let [service, [results, command, options]] of record.entries()) {
       service._result = results;
-      if (service._on.update) {
-        for (let command of service._on.update)
-          await command.execute({
-            self: service,
-            layer:
-              service._layerInstances.length == 1
-                ? service._layerInstances[0]
-                : null,
-            instrument: null,
-            interactor: null,
-          });
-      }
+      if (command && options) await command.execute(options);
     }
     commitLock = false;
   },
@@ -51,20 +47,9 @@ export const HistoryManager = {
     }
     const record = historyRecords[historyPointer];
     commitLock = true;
-    for (let [service, results] of record.entries()) {
+    for (let [service, [results, command, options]] of record.entries()) {
       service._result = results;
-      if (service._on.update) {
-        for (let command of service._on.update)
-          await command.execute({
-            self: service,
-            layer:
-              service._layerInstances.length == 1
-                ? service._layerInstances[0]
-                : null,
-            instrument: null,
-            interactor: null,
-          });
-      }
+      if (command && options) await command.execute(options);
     }
     commitLock = false;
   },

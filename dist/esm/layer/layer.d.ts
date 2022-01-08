@@ -1,6 +1,5 @@
 import { InteractionService } from "../service";
 import * as helpers from "../helpers";
-import { Command } from "../command";
 declare type LayerInitRequiredOption = Required<{
     container: HTMLElement;
 }>;
@@ -42,9 +41,6 @@ export default class Layer<T> {
     _transformation: {
         [scaleName: string]: helpers.Transformation;
     };
-    _transformationWatcher: {
-        [scaleName: string]: (Function | Command)[];
-    };
     _services: (string | InteractionService | {
         service: string | InteractionService;
         options: any;
@@ -54,9 +50,6 @@ export default class Layer<T> {
     _container: HTMLElement;
     _sharedVar: {
         [varName: string]: any;
-    };
-    _sharedVarWatcher: {
-        [varName: string]: (Function | Command)[];
     };
     _order: number;
     _redraw?: (sharedVars: {
@@ -75,15 +68,9 @@ export default class Layer<T> {
     cloneVisualElements(element: Element, deep?: boolean): Node;
     getSharedVar(sharedName: string, defaultValue?: any): any;
     setSharedVar(sharedName: string, value: any): void;
-    watchSharedVar(sharedName: string, handler: Function | Command): void;
     getTransformation(scaleName: string, defaultValue?: helpers.Transformation): helpers.Transformation;
     setTransformation(scaleName: string, transformation: helpers.Transformation): void;
-    watchTransformation(scaleName: string, handler: Function | Command): void;
-    redraw(sharedVars: {
-        [name: string]: any;
-    }, scales: {
-        [name: string]: helpers.Transformation;
-    }, services: InteractionService[]): void;
+    redraw(): void;
     preUpdate(): void;
     postUpdate(): void;
     query(options: helpers.ArbitraryQuery): T[];

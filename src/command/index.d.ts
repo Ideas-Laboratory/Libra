@@ -2,7 +2,7 @@ import * as helpers from "../helpers";
 
 type CommandInitOption = {
   name?: string;
-  feedbacks?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
+  feedback?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
   undo?: () => void;
   redo?: () => void;
   execute: <T>(options: helpers.CommonHandlerInput<T>) => void;

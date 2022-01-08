@@ -1,6 +1,5 @@
 import { InteractionService, findService } from "../service";
 import * as helpers from "../helpers";
-import { Command } from "../command";
 const registeredLayers = {};
 const instanceLayers = [];
 const siblingLayers = new Map();
@@ -15,8 +14,8 @@ export default class Layer {
         this._services = options.services ?? [];
         this._container = options.container;
         this._sharedVar = options.sharedVar ?? {};
-        this._sharedVarWatcher = {};
-        this._transformationWatcher = {};
+        // this._sharedVarWatcher = {};
+        // this._transformationWatcher = {};
         this._serviceInstances = [];
         this._order = 0;
         this._redraw = options.redraw;
@@ -32,7 +31,7 @@ export default class Layer {
                 this.use(service.service, service.options);
             }
         });
-        this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
+        this.redraw();
         instanceLayers.push(this);
         this._postInitialize && this._postInitialize.call(this, this);
     }
@@ -61,31 +60,30 @@ export default class Layer {
         this.preUpdate();
         const oldValue = this._sharedVar[sharedName];
         this._sharedVar[sharedName] = value;
-        if (sharedName in this._sharedVarWatcher) {
-            this._sharedVarWatcher[sharedName].forEach((callback) => {
-                if (callback instanceof Command) {
-                    callback.execute({
-                        self: this,
-                        layer: this,
-                        instrument: null,
-                        interactor: null,
-                        value,
-                        oldValue,
-                    });
-                }
-                else {
-                    callback({ value, oldValue });
-                }
-            });
-        }
+        // if (sharedName in this._sharedVarWatcher) {
+        //   this._sharedVarWatcher[sharedName].forEach((callback) => {
+        //     if (callback instanceof Command) {
+        //       callback.execute({
+        //         self: this,
+        //         layer: this,
+        //         instrument: null,
+        //         interactor: null,
+        //         value,
+        //         oldValue,
+        //       });
+        //     } else {
+        //       callback({ value, oldValue });
+        //     }
+        //   });
+        // }
         this.postUpdate();
     }
-    watchSharedVar(sharedName, handler) {
-        if (!(sharedName in this._sharedVarWatcher)) {
-            this._sharedVarWatcher[sharedName] = [];
-        }
-        this._sharedVarWatcher[sharedName].push(handler);
-    }
+    // watchSharedVar(sharedName: string, handler: Function | Command): void {
+    //   if (!(sharedName in this._sharedVarWatcher)) {
+    //     this._sharedVarWatcher[sharedName] = [];
+    //   }
+    //   this._sharedVarWatcher[sharedName].push(handler);
+    // }
     getTransformation(scaleName, defaultValue) {
         if (scaleName in this._transformation) {
             return this._transformation[scaleName];
@@ -99,36 +97,35 @@ export default class Layer {
         this.preUpdate();
         const oldValue = this._transformation[scaleName];
         this._transformation[scaleName] = transformation;
-        this.redraw(this._sharedVar, this._transformation, this._serviceInstances);
-        if (scaleName in this._transformationWatcher) {
-            this._transformationWatcher[scaleName].forEach((callback) => {
-                if (callback instanceof Command) {
-                    callback.execute({
-                        self: this,
-                        layer: this,
-                        instrument: null,
-                        interactor: null,
-                        value: transformation,
-                        oldValue,
-                    });
-                }
-                else {
-                    callback({ value: transformation, oldValue });
-                }
-            });
-        }
+        this.redraw();
+        // if (scaleName in this._transformationWatcher) {
+        //   this._transformationWatcher[scaleName].forEach((callback) => {
+        //     if (callback instanceof Command) {
+        //       callback.execute({
+        //         self: this,
+        //         layer: this,
+        //         instrument: null,
+        //         interactor: null,
+        //         value: transformation,
+        //         oldValue,
+        //       });
+        //     } else {
+        //       callback({ value: transformation, oldValue });
+        //     }
+        //   });
+        // }
         this.postUpdate();
     }
-    watchTransformation(scaleName, handler) {
-        if (!(scaleName in this._transformationWatcher)) {
-            this._transformationWatcher[scaleName] = [];
-        }
-        this._transformationWatcher[scaleName].push(handler);
-    }
-    redraw(sharedVars, scales, services) {
+    // watchTransformation(scaleName: string, handler: Function | Command): void {
+    //   if (!(scaleName in this._transformationWatcher)) {
+    //     this._transformationWatcher[scaleName] = [];
+    //   }
+    //   this._transformationWatcher[scaleName].push(handler);
+    // }
+    redraw() {
         this.preUpdate();
         if (this._redraw && this._redraw instanceof Function) {
-            this._redraw(sharedVars, scales, services);
+            this._redraw(this._sharedVar, this._transformation, this._serviceInstances);
         }
         this.postUpdate();
     }

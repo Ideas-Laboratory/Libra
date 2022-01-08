@@ -32,12 +32,12 @@ export default class InteractionService {
   _baseName: string;
   _name: string;
   _userOptions: ServiceInitOption;
-  _on: {
-    [action: string]: (
-      | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
-      | Command
-    )[];
-  };
+  // _on: {
+  //   [action: string]: (
+  //     | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
+  //     | Command
+  //   )[];
+  // };
   _sharedVar: { [key: string]: any };
   _preInitialize?: (service: InteractionService) => void;
   _postInitialize?: (service: InteractionService) => void;
@@ -52,7 +52,7 @@ export default class InteractionService {
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._on = options.on ?? {};
+    // this._on = options.on ?? {};
     this._sharedVar = {};
     this._layerInstances = [];
     this._preInitialize = options.preInitialize ?? null;
@@ -68,12 +68,12 @@ export default class InteractionService {
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
-  on(action: string, command: Command): void {
-    if (!this._on[action]) {
-      this._on[action] = [];
-    }
-    this._on[action].push(command);
-  }
+  // on(action: string, command: Command): void {
+  //   if (!this._on[action]) {
+  //     this._on[action] = [];
+  //   }
+  //   this._on[action].push(command);
+  // }
 
   getSharedVar(sharedName: string, options?: any): any {
     if (
@@ -89,50 +89,50 @@ export default class InteractionService {
   async setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (this._on.update) {
-      for (let command of this._on.update) {
-        if (command instanceof Function) {
-          await command({
-            self: this,
-            layer: options?.layer ?? null,
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null,
-          });
-        } else {
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? null,
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null,
-          });
-        }
-      }
-    }
-    if (this._on[`update:${sharedName}`]) {
-      for (let command of this._on[`update:${sharedName}`]) {
-        if (command instanceof Function) {
-          await command({
-            self: this,
-            layer: options?.layer ?? null,
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null,
-          });
-        } else {
-          await command.execute({
-            self: this,
-            layer: options?.layer ?? null,
-            instrument: options?.instrument ?? null,
-            interactor: options?.interactor ?? null,
-          });
-        }
-      }
-    }
+    // if (this._on.update) {
+    //   for (let command of this._on.update) {
+    //     if (command instanceof Function) {
+    //       await command({
+    //         self: this,
+    //         layer: options?.layer ?? null,
+    //         instrument: options?.instrument ?? null,
+    //         interactor: options?.interactor ?? null,
+    //       });
+    //     } else {
+    //       await command.execute({
+    //         self: this,
+    //         layer: options?.layer ?? null,
+    //         instrument: options?.instrument ?? null,
+    //         interactor: options?.interactor ?? null,
+    //       });
+    //     }
+    //   }
+    // }
+    // if (this._on[`update:${sharedName}`]) {
+    //   for (let command of this._on[`update:${sharedName}`]) {
+    //     if (command instanceof Function) {
+    //       await command({
+    //         self: this,
+    //         layer: options?.layer ?? null,
+    //         instrument: options?.instrument ?? null,
+    //         interactor: options?.interactor ?? null,
+    //       });
+    //     } else {
+    //       await command.execute({
+    //         self: this,
+    //         layer: options?.layer ?? null,
+    //         instrument: options?.instrument ?? null,
+    //         interactor: options?.interactor ?? null,
+    //       });
+    //     }
+    //   }
+    // }
     this.postUpdate();
   }
 
-  watchSharedVar(sharedName: string, handler: Command) {
-    this.on(`update:${sharedName}`, handler);
-  }
+  // watchSharedVar(sharedName: string, handler: Command) {
+  //   this.on(`update:${sharedName}`, handler);
+  // }
 
   preUpdate() {
     this._preUpdate && this._preUpdate.call(this, this);

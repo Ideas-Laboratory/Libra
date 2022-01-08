@@ -105,45 +105,56 @@ export default class Instrument {
   }
 
   emit(action: string, options?: helpers.CommonHandlerInput<this>) {
-    this._on[action].forEach((feedforwardOrCommand) => {
-      if (feedforwardOrCommand instanceof Command) {
-        feedforwardOrCommand.execute(
-          Object.assign(
-            {
-              self: this,
-              layer: null,
-              instrument: this,
-              interactor: null,
-            },
-            options || {}
-          )
-        );
-      } else {
-        feedforwardOrCommand(
-          Object.assign(
-            {
-              self: this,
-              layer: null,
-              instrument: this,
-              interactor: null,
-            },
-            options || {}
-          )
-        );
-      }
-    });
+    if (this._on[action]) {
+      this._on[action].forEach((feedforwardOrCommand) => {
+        if (feedforwardOrCommand instanceof Command) {
+          feedforwardOrCommand.execute(
+            Object.assign(
+              {
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null,
+              },
+              options || {}
+            )
+          );
+        } else {
+          feedforwardOrCommand(
+            Object.assign(
+              {
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null,
+              },
+              options || {}
+            )
+          );
+        }
+      });
+    }
   }
 
   on(
-    action: string,
+    action: string | string[],
     feedforwardOrCommand:
       | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>)
       | Command
   ) {
-    if (!this._on[action]) {
-      this._on[action] = [];
+    if (action instanceof Array) {
+      action.forEach((action) => {
+        if (!this._on[action]) {
+          this._on[action] = [];
+        }
+        this._on[action].push(feedforwardOrCommand);
+      });
+    } else {
+      if (!this._on[action]) {
+        this._on[action] = [];
+      }
+      this._on[action].push(feedforwardOrCommand);
     }
-    this._on[action].push(feedforwardOrCommand);
   }
 
   off(
@@ -295,7 +306,16 @@ export default class Instrument {
   }
 
   async _dispatch(layer: Layer<any>, event: string, e: Event) {
+    e.preventDefault();
+    e.stopPropagation();
     if (eventHandling) {
+      let existingEventIndex = EventQueue.findIndex(
+        (e) =>
+          e.instrument === this && e.layer === layer && e.eventType === event
+      );
+      if (existingEventIndex >= 0) {
+        EventQueue.splice(existingEventIndex, 1);
+      }
       EventQueue.push({ instrument: this, layer, eventType: event, event: e });
       return;
     }
@@ -310,6 +330,9 @@ export default class Instrument {
       await inter.dispatch(e, layr);
       if ((e as any).handled == true) {
         (e as any).handledLayers.push(layr._name);
+        if ((e as any).passThrough == false) {
+          break;
+        }
       }
     }
     eventHandling = false;

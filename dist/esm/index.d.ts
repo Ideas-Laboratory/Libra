@@ -5,7 +5,7 @@ declare const _default: {
     Layer: typeof import("./layer").default;
     InteractionService: typeof import("./service").default;
     HistoryManager: {
-        commit(): void;
+        commit: (options: any) => Promise<void>;
         undo(): Promise<void>;
         redo(): Promise<void>;
     };

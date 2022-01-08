@@ -14,7 +14,7 @@ export default class SelectionManager extends InteractionService {
             this._userOptions.query) {
             const layer = options?.layer || this._layerInstances[0];
             if (this._nextTick) {
-                cancelAnimationFrame(this._nextTick);
+                return;
             }
             this._nextTick = requestAnimationFrame(async () => {
                 this._oldResult = this._result;
@@ -55,114 +55,118 @@ export default class SelectionManager extends InteractionService {
                     this._result.forEach((node) => selectionLayer.appendChild(layer.cloneVisualElements(node)));
                 }
                 this._nextTick = 0;
-                if (this._on.update) {
-                    for (let command of this._on.update) {
-                        if (command instanceof Function) {
-                            await command({
-                                self: this,
-                                layer: options?.layer ??
-                                    (this._layerInstances.length == 1
-                                        ? this._layerInstances[0]
-                                        : null),
-                                instrument: options?.instrument ?? null,
-                                interactor: options?.interactor ?? null,
-                            });
-                        }
-                        else {
-                            await command.execute({
-                                self: this,
-                                layer: options?.layer ??
-                                    (this._layerInstances.length == 1
-                                        ? this._layerInstances[0]
-                                        : null),
-                                instrument: options?.instrument ?? null,
-                                interactor: options?.interactor ?? null,
-                            });
-                        }
-                    }
-                }
-                if (this._on[`update:${sharedName}`]) {
-                    for (let command of this._on[`update:${sharedName}`]) {
-                        if (command instanceof Function) {
-                            await command({
-                                self: this,
-                                layer: options?.layer ??
-                                    (this._layerInstances.length == 1
-                                        ? this._layerInstances[0]
-                                        : null),
-                                instrument: options?.instrument ?? null,
-                                interactor: options?.interactor ?? null,
-                            });
-                        }
-                        else {
-                            await command.execute({
-                                self: this,
-                                layer: options?.layer ??
-                                    (this._layerInstances.length == 1
-                                        ? this._layerInstances[0]
-                                        : null),
-                                instrument: options?.instrument ?? null,
-                                interactor: options?.interactor ?? null,
-                            });
-                        }
-                    }
-                }
+                // if (this._on.update) {
+                //   for (let command of this._on.update) {
+                //     if (command instanceof Function) {
+                //       await command({
+                //         self: this,
+                //         layer:
+                //           options?.layer ??
+                //           (this._layerInstances.length == 1
+                //             ? this._layerInstances[0]
+                //             : null),
+                //         instrument: options?.instrument ?? null,
+                //         interactor: options?.interactor ?? null,
+                //       });
+                //     } else {
+                //       await command.execute({
+                //         self: this,
+                //         layer:
+                //           options?.layer ??
+                //           (this._layerInstances.length == 1
+                //             ? this._layerInstances[0]
+                //             : null),
+                //         instrument: options?.instrument ?? null,
+                //         interactor: options?.interactor ?? null,
+                //       });
+                //     }
+                //   }
+                // }
+                // if (this._on[`update:${sharedName}`]) {
+                //   for (let command of this._on[`update:${sharedName}`]) {
+                //     if (command instanceof Function) {
+                //       await command({
+                //         self: this,
+                //         layer:
+                //           options?.layer ??
+                //           (this._layerInstances.length == 1
+                //             ? this._layerInstances[0]
+                //             : null),
+                //         instrument: options?.instrument ?? null,
+                //         interactor: options?.interactor ?? null,
+                //       });
+                //     } else {
+                //       await command.execute({
+                //         self: this,
+                //         layer:
+                //           options?.layer ??
+                //           (this._layerInstances.length == 1
+                //             ? this._layerInstances[0]
+                //             : null),
+                //         instrument: options?.instrument ?? null,
+                //         interactor: options?.interactor ?? null,
+                //       });
+                //     }
+                //   }
+                // }
                 this.postUpdate();
             });
         }
         else {
-            if (this._on.update) {
-                for (let command of this._on.update) {
-                    if (command instanceof Function) {
-                        await command({
-                            self: this,
-                            layer: options?.layer ??
-                                (this._layerInstances.length == 1
-                                    ? this._layerInstances[0]
-                                    : null),
-                            instrument: options?.instrument ?? null,
-                            interactor: options?.interactor ?? null,
-                        });
-                    }
-                    else {
-                        await command.execute({
-                            self: this,
-                            layer: options?.layer ??
-                                (this._layerInstances.length == 1
-                                    ? this._layerInstances[0]
-                                    : null),
-                            instrument: options?.instrument ?? null,
-                            interactor: options?.interactor ?? null,
-                        });
-                    }
-                }
-            }
-            if (this._on[`update:${sharedName}`]) {
-                for (let command of this._on[`update:${sharedName}`]) {
-                    if (command instanceof Function) {
-                        await command({
-                            self: this,
-                            layer: options?.layer ??
-                                (this._layerInstances.length == 1
-                                    ? this._layerInstances[0]
-                                    : null),
-                            instrument: options?.instrument ?? null,
-                            interactor: options?.interactor ?? null,
-                        });
-                    }
-                    else {
-                        await command.execute({
-                            self: this,
-                            layer: options?.layer ??
-                                (this._layerInstances.length == 1
-                                    ? this._layerInstances[0]
-                                    : null),
-                            instrument: options?.instrument ?? null,
-                            interactor: options?.interactor ?? null,
-                        });
-                    }
-                }
-            }
+            // if (this._on.update) {
+            //   for (let command of this._on.update) {
+            //     if (command instanceof Function) {
+            //       await command({
+            //         self: this,
+            //         layer:
+            //           options?.layer ??
+            //           (this._layerInstances.length == 1
+            //             ? this._layerInstances[0]
+            //             : null),
+            //         instrument: options?.instrument ?? null,
+            //         interactor: options?.interactor ?? null,
+            //       });
+            //     } else {
+            //       await command.execute({
+            //         self: this,
+            //         layer:
+            //           options?.layer ??
+            //           (this._layerInstances.length == 1
+            //             ? this._layerInstances[0]
+            //             : null),
+            //         instrument: options?.instrument ?? null,
+            //         interactor: options?.interactor ?? null,
+            //       });
+            //     }
+            //   }
+            // }
+            // if (this._on[`update:${sharedName}`]) {
+            //   for (let command of this._on[`update:${sharedName}`]) {
+            //     if (command instanceof Function) {
+            //       await command({
+            //         self: this,
+            //         layer:
+            //           options?.layer ??
+            //           (this._layerInstances.length == 1
+            //             ? this._layerInstances[0]
+            //             : null),
+            //         instrument: options?.instrument ?? null,
+            //         interactor: options?.interactor ?? null,
+            //       });
+            //     } else {
+            //       await command.execute({
+            //         self: this,
+            //         layer:
+            //           options?.layer ??
+            //           (this._layerInstances.length == 1
+            //             ? this._layerInstances[0]
+            //             : null),
+            //         instrument: options?.instrument ?? null,
+            //         interactor: options?.interactor ?? null,
+            //       });
+            //     }
+            //   }
+            // }
             this.postUpdate();
         }
     }

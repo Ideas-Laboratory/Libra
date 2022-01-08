@@ -99,14 +99,14 @@ Interactor.register("TouchTraceInteractor", {
       events: ["touchend"],
       transition: [["drag", "start"]],
     },
-    {
-      action: "dragabort",
-      events: ["contextmenu"],
-      transition: [
-        ["drag", "start"],
-        ["start", "start"],
-      ],
-    },
+    // {
+    //   action: "dragabort",
+    //   events: ["contextmenu"],
+    //   transition: [
+    //     ["drag", "start"],
+    //     ["start", "start"],
+    //   ],
+    // },
   ],
 });
 

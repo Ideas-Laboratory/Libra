@@ -5,5 +5,6 @@ export default CommandClass;
 export const register = CommandConstructor.register;
 export const initialize = CommandConstructor.initialize;
 export const findCommand = CommandConstructor.findCommand;
+export const instanceCommands = CommandConstructor.instanceCommands;
 export const Command = CommandClass;
 export type Command = CommandClass;

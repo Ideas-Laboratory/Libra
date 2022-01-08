@@ -1,6 +1,7 @@
 import * as ServiceConstructor from "./service";
 import ServiceClass from "./service";
 import "./selectionManager";
+import "./crossSelectionManager";
 import "./algorithmManager";
 
 export default ServiceClass;

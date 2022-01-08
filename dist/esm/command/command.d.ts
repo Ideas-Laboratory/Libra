@@ -1,7 +1,7 @@
 import * as helpers from "../helpers";
 declare type CommandInitOption = {
     name?: string;
-    feedbacks?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
+    feedback?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
     undo?: () => void;
     redo?: () => void;
     execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
@@ -15,11 +15,12 @@ declare type CommandInitTemplate = CommandInitOption & {
     [param: string]: any;
     constructor?: typeof Command;
 };
+export declare const instanceCommands: Command[];
 export default class Command {
     _baseName: string;
     _name: string;
     _userOptions: CommandInitOption;
-    _feedbacks: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
+    _feedback: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
     _undo?: () => void;
     _redo?: () => void;
     _execute: <T>(options: helpers.CommonHandlerInput<T>) => void;
