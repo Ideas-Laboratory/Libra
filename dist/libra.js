@@ -525,12 +525,12 @@ Interactor.register("MouseTraceInteractor", {
     },
     {
       action: "dragend",
-      events: ["mouseup"],
+      events: ["mouseup[event.button==0]"],
       transition: [["drag", "start"]]
     },
     {
       action: "dragabort",
-      events: ["contextmenu"],
+      events: ["mouseup[event.button==2]", "contextmenu"],
       transition: [
         ["drag", "start"],
         ["start", "start"]
@@ -570,7 +570,7 @@ Interactor.register("SpeechControlInteractor", {
     },
     {
       action: "disableSpeech",
-      events: ["contextmenu"],
+      events: ["mouseup[event.button==2]", "contextmenu"],
       transition: [["*", "start"]]
     },
     {
@@ -647,7 +647,7 @@ Interactor.register("MouseWheelInteractor", {
     },
     {
       action: "abort",
-      events: ["contextmenu"],
+      events: ["mouseup[event.button==2]", "contextmenu"],
       transition: [
         ["running", "running"],
         ["start", "start"]
@@ -4674,14 +4674,12 @@ Instrument.register("DragInstrument", {
         if (event.changedTouches)
           event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
+          service.setSharedVar("offsetx", 0, { layer });
+          service.setSharedVar("offsety", 0, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";

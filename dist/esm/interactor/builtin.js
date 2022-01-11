@@ -63,12 +63,12 @@ Interactor.register("MouseTraceInteractor", {
         },
         {
             action: "dragend",
-            events: ["mouseup"],
+            events: ["mouseup[event.button==0]"],
             transition: [["drag", "start"]],
         },
         {
             action: "dragabort",
-            events: ["contextmenu"],
+            events: ["mouseup[event.button==2]", "contextmenu"],
             transition: [
                 ["drag", "start"],
                 ["start", "start"],
@@ -97,7 +97,7 @@ Interactor.register("TouchTraceInteractor", {
         },
         // {
         //   action: "dragabort",
-        //   events: ["contextmenu"],
+        //   events: ["mouseup[event.button==2]","contextmenu"],
         //   transition: [
         //     ["drag", "start"],
         //     ["start", "start"],
@@ -116,7 +116,7 @@ Interactor.register("SpeechControlInteractor", {
         },
         {
             action: "disableSpeech",
-            events: ["contextmenu"],
+            events: ["mouseup[event.button==2]", "contextmenu"],
             transition: [["*", "start"]],
         },
         {
@@ -201,7 +201,7 @@ Interactor.register("MouseWheelInteractor", {
         },
         {
             action: "abort",
-            events: ["contextmenu"],
+            events: ["mouseup[event.button==2]", "contextmenu"],
             transition: [
                 ["running", "running"],
                 ["start", "start"],

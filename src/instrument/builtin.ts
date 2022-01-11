@@ -642,14 +642,12 @@ Instrument.register("DragInstrument", {
         let { layer, event, instrument } = options;
         if (event.changedTouches) event = event.changedTouches[0];
         layer.services.find("SelectionManager").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
+          service.setSharedVar("offsetx", 0, { layer });
+          service.setSharedVar("offsety", 0, { layer });
         });
         const transientLayer = layer.getSiblingLayer("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
