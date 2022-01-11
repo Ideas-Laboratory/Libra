@@ -8,7 +8,11 @@ export default class SelectionManager extends InteractionService {
   _nextTick: number = 0;
 
   async setSharedVar(sharedName: string, value: any, options?: any) {
-    if (!this._layerInstances.includes(options?.layer)) {
+    if (
+      options &&
+      options.layer &&
+      !this._layerInstances.includes(options.layer)
+    ) {
       return;
     }
     this.preUpdate();
