@@ -1060,6 +1060,7 @@ var siblingLayers = new Map();
 var orderLayers = new Map();
 var Layer = class {
   constructor(baseName2, options) {
+    this._nextTick = 0;
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
@@ -1124,7 +1125,12 @@ var Layer = class {
     this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
-    this.redraw();
+    if (this._nextTick) {
+      cancelAnimationFrame(this._nextTick);
+    }
+    this._nextTick = requestAnimationFrame(() => {
+      this.redraw();
+    });
     this.postUpdate();
   }
   redraw() {

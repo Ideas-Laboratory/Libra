@@ -6,6 +6,7 @@ const siblingLayers = new Map();
 const orderLayers = new Map();
 export default class Layer {
     constructor(baseName, options) {
+        this._nextTick = 0;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
@@ -97,7 +98,12 @@ export default class Layer {
         this.preUpdate();
         const oldValue = this._transformation[scaleName];
         this._transformation[scaleName] = transformation;
-        this.redraw();
+        if (this._nextTick) {
+            cancelAnimationFrame(this._nextTick);
+        }
+        this._nextTick = requestAnimationFrame(() => {
+            this.redraw();
+        });
         // if (scaleName in this._transformationWatcher) {
         //   this._transformationWatcher[scaleName].forEach((callback) => {
         //     if (callback instanceof Command) {

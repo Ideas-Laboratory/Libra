@@ -52,6 +52,7 @@ export default class Layer<T> {
         [varName: string]: any;
     };
     _order: number;
+    _nextTick: number;
     _redraw?: (sharedVars: {
         [name: string]: any;
     }, scales: {

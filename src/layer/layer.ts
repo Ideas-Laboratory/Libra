@@ -71,6 +71,7 @@ export default class Layer<T> {
   _sharedVar: { [varName: string]: any };
   // _sharedVarWatcher: { [varName: string]: (Function | Command)[] };
   _order: number;
+  _nextTick: number = 0;
   _redraw?: (
     sharedVars: { [name: string]: any },
     scales: { [name: string]: helpers.Transformation },
@@ -176,7 +177,12 @@ export default class Layer<T> {
     this.preUpdate();
     const oldValue = this._transformation[scaleName];
     this._transformation[scaleName] = transformation;
-    this.redraw();
+    if (this._nextTick) {
+      cancelAnimationFrame(this._nextTick);
+    }
+    this._nextTick = requestAnimationFrame(() => {
+      this.redraw();
+    });
     // if (scaleName in this._transformationWatcher) {
     //   this._transformationWatcher[scaleName].forEach((callback) => {
     //     if (callback instanceof Command) {
