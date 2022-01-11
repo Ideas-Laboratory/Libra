@@ -28,6 +28,11 @@ export default class InteractionService {
     //   this._on[action].push(command);
     // }
     getSharedVar(sharedName, options) {
+        if (options &&
+            options.layer &&
+            !this._layerInstances.includes(options.layer)) {
+            return undefined;
+        }
         if (!(sharedName in this._sharedVar) &&
             options &&
             "defaultValue" in options) {

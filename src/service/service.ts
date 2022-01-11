@@ -77,6 +77,13 @@ export default class InteractionService {
 
   getSharedVar(sharedName: string, options?: any): any {
     if (
+      options &&
+      options.layer &&
+      !this._layerInstances.includes(options.layer)
+    ) {
+      return undefined;
+    }
+    if (
       !(sharedName in this._sharedVar) &&
       options &&
       "defaultValue" in options

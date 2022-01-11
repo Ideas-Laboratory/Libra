@@ -1,3 +1,4 @@
+import { Layer } from "..";
 import SelectionManager from "./selectionManager";
 export default class CrossSelectionManager extends SelectionManager {
     _oldResult: any;
@@ -8,4 +9,5 @@ export default class CrossSelectionManager extends SelectionManager {
     getSharedVar(sharedName: any, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
     isInstanceOf(name: string): boolean;
+    getResultOnLayer(layer: Layer<any>): Promise<any>;
 }

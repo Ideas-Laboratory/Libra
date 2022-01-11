@@ -13,6 +13,11 @@ export default class CrossSelectionManager extends SelectionManager {
     if (options && options.keepAll) {
       return this._sm.map((sm) => sm.getSharedVar(sharedName, options));
     }
+    if (options && options.layer) {
+      return this._sm
+        .map((sm) => sm.getSharedVar(sharedName, options))
+        .find((x) => x !== undefined);
+    }
     return this._sm.map((sm) => sm.getSharedVar(sharedName, options))[0];
   }
 
