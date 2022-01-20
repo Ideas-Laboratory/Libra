@@ -23,10 +23,15 @@ export default class AlgorithmManager extends InteractionService {
       }
       this._nextTick = requestAnimationFrame(async () => {
         this._oldResult = this._result;
-        this._result = await this._userOptions.algorithm({
-          ...this._userOptions.params,
-          ...this._sharedVar,
-        });
+        try {
+          this._result = await this._userOptions.algorithm({
+            ...this._userOptions.params,
+            ...this._sharedVar,
+          });
+        } catch (e) {
+          console.error(e);
+          this._result = undefined;
+        }
 
         this._nextTick = 0;
 

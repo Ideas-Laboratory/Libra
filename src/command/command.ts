@@ -60,11 +60,15 @@ export default class Command {
   }
 
   async execute<T>(options: helpers.CommonHandlerInput<T>) {
-    this.preExecute();
-    this._execute && (await this._execute.call(this, options));
-    this.postExecute();
-    for (let feedback of this._feedback) {
-      await feedback.call(this, options);
+    try {
+      this.preExecute();
+      this._execute && (await this._execute.call(this, options));
+      this.postExecute();
+      for (let feedback of this._feedback) {
+        await feedback.call(this, options);
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 

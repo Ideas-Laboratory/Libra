@@ -25,11 +25,15 @@ var Command = class {
     this._redo && this._redo.call(this);
   }
   async execute(options) {
-    this.preExecute();
-    this._execute && await this._execute.call(this, options);
-    this.postExecute();
-    for (let feedback of this._feedback) {
-      await feedback.call(this, options);
+    try {
+      this.preExecute();
+      this._execute && await this._execute.call(this, options);
+      this.postExecute();
+      for (let feedback of this._feedback) {
+        await feedback.call(this, options);
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
   preExecute() {
@@ -424,13 +428,17 @@ var Interactor = class {
         this.disableModality("speech");
       }
       if (moveAction.sideEffect) {
-        await moveAction.sideEffect({
-          self: this,
-          layer,
-          instrument: null,
-          interactor: this,
-          event
-        });
+        try {
+          await moveAction.sideEffect({
+            self: this,
+            layer,
+            instrument: null,
+            interactor: this,
+            event
+          });
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
   }
@@ -1026,10 +1034,15 @@ var AlgorithmManager = class extends InteractionService {
       }
       this._nextTick = requestAnimationFrame(async () => {
         this._oldResult = this._result;
-        this._result = await this._userOptions.algorithm({
-          ...this._userOptions.params,
-          ...this._sharedVar
-        });
+        try {
+          this._result = await this._userOptions.algorithm({
+            ...this._userOptions.params,
+            ...this._sharedVar
+          });
+        } catch (e) {
+          console.error(e);
+          this._result = void 0;
+        }
         this._nextTick = 0;
         this.postUpdate();
       });
@@ -3982,18 +3995,22 @@ var Instrument = class {
         action.sideEffect && action.sideEffect(options2);
         if (this._on[action.action]) {
           for (let command of this._on[action.action]) {
-            if (command instanceof Command2) {
-              await command.execute({
-                ...options2,
-                self: this,
-                instrument: this
-              });
-            } else {
-              await command({
-                ...options2,
-                self: this,
-                instrument: this
-              });
+            try {
+              if (command instanceof Command2) {
+                await command.execute({
+                  ...options2,
+                  self: this,
+                  instrument: this
+                });
+              } else {
+                await command({
+                  ...options2,
+                  self: this,
+                  instrument: this
+                });
+              }
+            } catch (e) {
+              console.error(e);
             }
           }
         }
@@ -4098,7 +4115,12 @@ var Instrument = class {
     e.handledLayers = [];
     for (let [inter, layr] of layers) {
       e.handled = false;
-      await inter.dispatch(e, layr);
+      try {
+        await inter.dispatch(e, layr);
+      } catch (e2) {
+        console.error(e2);
+        break;
+      }
       if (e.handled == true) {
         e.handledLayers.push(layr._name);
         if (e.passThrough == false) {

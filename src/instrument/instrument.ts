@@ -187,18 +187,22 @@ export default class Instrument {
           action.sideEffect && action.sideEffect(options);
           if (this._on[action.action]) {
             for (let command of this._on[action.action]) {
-              if (command instanceof Command) {
-                await command.execute({
-                  ...options,
-                  self: this,
-                  instrument: this,
-                });
-              } else {
-                await command({
-                  ...options,
-                  self: this,
-                  instrument: this,
-                });
+              try {
+                if (command instanceof Command) {
+                  await command.execute({
+                    ...options,
+                    self: this,
+                    instrument: this,
+                  });
+                } else {
+                  await command({
+                    ...options,
+                    self: this,
+                    instrument: this,
+                  });
+                }
+              } catch (e) {
+                console.error(e);
               }
             }
           }
@@ -327,7 +331,12 @@ export default class Instrument {
     (e as any).handledLayers = [];
     for (let [inter, layr] of layers) {
       (e as any).handled = false;
-      await inter.dispatch(e, layr);
+      try {
+        await inter.dispatch(e, layr);
+      } catch (e) {
+        console.error(e);
+        break;
+      }
       if ((e as any).handled == true) {
         (e as any).handledLayers.push(layr._name);
         if ((e as any).passThrough == false) {

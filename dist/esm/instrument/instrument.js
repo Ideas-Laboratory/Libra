@@ -111,19 +111,24 @@ export default class Instrument {
                 action.sideEffect && action.sideEffect(options);
                 if (this._on[action.action]) {
                     for (let command of this._on[action.action]) {
-                        if (command instanceof Command) {
-                            await command.execute({
-                                ...options,
-                                self: this,
-                                instrument: this,
-                            });
+                        try {
+                            if (command instanceof Command) {
+                                await command.execute({
+                                    ...options,
+                                    self: this,
+                                    instrument: this,
+                                });
+                            }
+                            else {
+                                await command({
+                                    ...options,
+                                    self: this,
+                                    instrument: this,
+                                });
+                            }
                         }
-                        else {
-                            await command({
-                                ...options,
-                                self: this,
-                                instrument: this,
-                            });
+                        catch (e) {
+                            console.error(e);
                         }
                     }
                 }
@@ -244,7 +249,13 @@ export default class Instrument {
         e.handledLayers = [];
         for (let [inter, layr] of layers) {
             e.handled = false;
-            await inter.dispatch(e, layr);
+            try {
+                await inter.dispatch(e, layr);
+            }
+            catch (e) {
+                console.error(e);
+                break;
+            }
             if (e.handled == true) {
                 e.handledLayers.push(layr._name);
                 if (e.passThrough == false) {

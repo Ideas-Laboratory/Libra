@@ -194,13 +194,17 @@ export default class Interactor {
         this.disableModality("speech");
       }
       if (moveAction.sideEffect) {
-        await moveAction.sideEffect({
-          self: this,
-          layer,
-          instrument: null,
-          interactor: this,
-          event,
-        });
+        try {
+          await moveAction.sideEffect({
+            self: this,
+            layer,
+            instrument: null,
+            interactor: this,
+            event,
+          });
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
   }

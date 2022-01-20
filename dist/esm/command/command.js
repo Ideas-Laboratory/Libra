@@ -24,11 +24,16 @@ export default class Command {
         this._redo && this._redo.call(this);
     }
     async execute(options) {
-        this.preExecute();
-        this._execute && (await this._execute.call(this, options));
-        this.postExecute();
-        for (let feedback of this._feedback) {
-            await feedback.call(this, options);
+        try {
+            this.preExecute();
+            this._execute && (await this._execute.call(this, options));
+            this.postExecute();
+            for (let feedback of this._feedback) {
+                await feedback.call(this, options);
+            }
+        }
+        catch (e) {
+            console.error(e);
         }
     }
     preExecute() {
