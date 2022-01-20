@@ -2,35 +2,71 @@ import InteractionService from "./service";
 import * as helpers from "../helpers";
 import * as d3 from "d3";
 
-export default class AlgorithmManager extends InteractionService {
-  _oldResult: any = null;
-  _result: any = null;
+export default class SelectionService extends InteractionService {
+  _oldResult: any = [];
+  _result: any = [];
   _nextTick: number = 0;
 
-  constructor(baseName: string, options: any) {
-    super(baseName, options);
-    Object.entries(options.params || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
-  }
-
   async setSharedVar(sharedName: string, value: any, options?: any) {
+    if (
+      options &&
+      options.layer &&
+      !this._layerInstances.includes(options.layer)
+    ) {
+      return;
+    }
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (this._userOptions.algorithm && this._userOptions.params) {
+    if (
+      (options?.layer || this._layerInstances.length == 1) &&
+      this._userOptions.query
+    ) {
+      const layer = options?.layer || this._layerInstances[0];
       if (this._nextTick) {
         return;
       }
       this._nextTick = requestAnimationFrame(async () => {
         this._oldResult = this._result;
-        try {
-          this._result = await this._userOptions.algorithm({
-            ...this._userOptions.params,
-            ...this._sharedVar,
+        this._result = layer.query({
+          ...this._userOptions.query,
+          ...this._sharedVar,
+        });
+        const selectionLayer = layer
+          .getSiblingLayer("selectionLayer")
+          .getGraphic();
+        while (selectionLayer.firstChild) {
+          selectionLayer.removeChild(selectionLayer.lastChild);
+        }
+        if (this._sharedVar.deepClone) {
+          let resultNodes: Element[] = [];
+          let refNodes: Element[] = [];
+          this._result.forEach((node) => {
+            if (node !== layer.getGraphic()) {
+              let k = refNodes.length;
+              for (let i = 0; i < k; i++) {
+                const refNode = refNodes[i];
+                const resultNode = resultNodes[i];
+                if (node.contains(refNode)) {
+                  refNodes.splice(i, 1);
+                  resultNodes.splice(i, 1);
+                  resultNode.remove();
+                  i--;
+                  k--;
+                }
+              }
+              resultNodes.push(
+                layer.cloneVisualElements(node, this._sharedVar.deepClone)
+              );
+              refNodes.push(node);
+            }
           });
-        } catch (e) {
-          console.error(e);
-          this._result = undefined;
+          resultNodes.forEach((resultNode) =>
+            selectionLayer.appendChild(resultNode)
+          );
+        } else {
+          this._result.forEach((node) =>
+            selectionLayer.appendChild(layer.cloneVisualElements(node))
+          );
         }
 
         this._nextTick = 0;
@@ -154,7 +190,7 @@ export default class AlgorithmManager extends InteractionService {
 
   isInstanceOf(name: string): boolean {
     return (
-      "AlgorithmManager" === name ||
+      "SelectionService" === name ||
       this._baseName === name ||
       this._name === name
     );
@@ -183,6 +219,58 @@ export default class AlgorithmManager extends InteractionService {
   }
 }
 
-InteractionService.register("AlgorithmManager", {
-  constructor: AlgorithmManager,
+InteractionService.register("SelectionService", {
+  constructor: SelectionService,
+});
+
+InteractionService.register("SurfacePointSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Shape,
+    type: helpers.ShapeQueryType.SurfacePoint,
+    x: 0,
+    y: 0,
+  },
+});
+
+InteractionService.register("PointSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Shape,
+    type: helpers.ShapeQueryType.Point,
+    x: 0,
+    y: 0,
+  },
+});
+
+InteractionService.register("RectSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Shape,
+    type: helpers.ShapeQueryType.Rect,
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+  },
+});
+
+InteractionService.register("CircleSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Shape,
+    type: helpers.ShapeQueryType.Circle,
+    x: 0,
+    y: 0,
+    r: 1,
+  },
+});
+
+InteractionService.register("PolygonSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Shape,
+    type: helpers.ShapeQueryType.Polygon,
+    points: [],
+  },
 });

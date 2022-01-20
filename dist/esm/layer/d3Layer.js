@@ -46,6 +46,20 @@ export default class D3Layer extends Layer {
     //     !element.classList.contains(backgroundClassName)
     //   );
     // }
+    join(rightTable, joinKey) {
+        const leftTable = d3.select(this._graphic).selectChildren("*").data();
+        const joinTable = leftTable.flatMap((obj) => {
+            if (typeof obj !== "object" || obj === undefined || obj === null)
+                return [];
+            return rightTable
+                .filter((rObj) => typeof obj === "object" &&
+                obj !== undefined &&
+                obj !== null &&
+                rObj[joinKey] === obj[joinKey])
+                .map((rObj) => ({ ...obj, ...rObj }));
+        });
+        return joinTable;
+    }
     select(selector) {
         return this._graphic.querySelectorAll(selector);
     }

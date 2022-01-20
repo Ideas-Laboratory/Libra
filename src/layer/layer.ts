@@ -218,6 +218,9 @@ export default class Layer<T> {
     }
     this.postUpdate();
   }
+  join(rightTable: any[], joinKey: string): any[] {
+    return [];
+  }
   preUpdate() {
     this._preUpdate && this._preUpdate.call(this, this);
   }

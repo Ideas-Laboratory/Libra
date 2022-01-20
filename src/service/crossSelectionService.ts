@@ -1,12 +1,12 @@
 import { Layer } from "..";
-import SelectionManager from "./selectionManager";
+import SelectionService from "./selectionService";
 import InteractionService from "./service";
 
-export default class CrossSelectionManager extends SelectionManager {
+export default class CrossSelectionService extends SelectionService {
   _oldResult: any = [];
   _result: any = [];
   _nextTick: number = 0;
-  _sm: SelectionManager[];
+  _sm: SelectionService[];
   _mode: "intersection" | "union" = "intersection";
 
   getSharedVar(sharedName, options?: any) {
@@ -24,7 +24,7 @@ export default class CrossSelectionManager extends SelectionManager {
   async setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (sharedName == "$SelectionManager") {
+    if (sharedName == "$SelectionService") {
       this._sm = value;
       return;
     }
@@ -78,8 +78,8 @@ export default class CrossSelectionManager extends SelectionManager {
 
   isInstanceOf(name: string): boolean {
     return (
-      "CrossSelectionManager" === name ||
-      "SelectionManager" === name ||
+      "CrossSelectionService" === name ||
+      "SelectionService" === name ||
       this._baseName === name ||
       this._name === name
     );
@@ -126,6 +126,6 @@ export default class CrossSelectionManager extends SelectionManager {
   }
 }
 
-InteractionService.register("CrossSelectionManager", {
-  constructor: CrossSelectionManager,
+InteractionService.register("CrossSelectionService", {
+  constructor: CrossSelectionService,
 });

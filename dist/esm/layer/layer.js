@@ -135,6 +135,9 @@ export default class Layer {
         }
         this.postUpdate();
     }
+    join(rightTable, joinKey) {
+        return [];
+    }
     preUpdate() {
         this._preUpdate && this._preUpdate.call(this, this);
     }

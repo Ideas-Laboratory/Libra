@@ -764,8 +764,8 @@ var unregister3 = InteractionService.unregister;
 var initialize4 = InteractionService.initialize;
 var findService = InteractionService.findService;
 
-// dist/esm/service/selectionManager.js
-var SelectionManager = class extends InteractionService {
+// dist/esm/service/selectionService.js
+var SelectionService = class extends InteractionService {
   constructor() {
     super(...arguments);
     this._oldResult = [];
@@ -826,7 +826,7 @@ var SelectionManager = class extends InteractionService {
     }
   }
   isInstanceOf(name) {
-    return name === "SelectionManager" || this._baseName === name || this._name === name;
+    return name === "SelectionService" || this._baseName === name || this._name === name;
   }
   get results() {
     if (this._nextTick) {
@@ -849,11 +849,11 @@ var SelectionManager = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.register("SelectionManager", {
-  constructor: SelectionManager
+InteractionService.register("SelectionService", {
+  constructor: SelectionService
 });
-InteractionService.register("SurfacePointSelectionManager", {
-  constructor: SelectionManager,
+InteractionService.register("SurfacePointSelectionService", {
+  constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.SurfacePoint,
@@ -861,8 +861,8 @@ InteractionService.register("SurfacePointSelectionManager", {
     y: 0
   }
 });
-InteractionService.register("PointSelectionManager", {
-  constructor: SelectionManager,
+InteractionService.register("PointSelectionService", {
+  constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.Point,
@@ -870,8 +870,8 @@ InteractionService.register("PointSelectionManager", {
     y: 0
   }
 });
-InteractionService.register("RectSelectionManager", {
-  constructor: SelectionManager,
+InteractionService.register("RectSelectionService", {
+  constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.Rect,
@@ -881,8 +881,8 @@ InteractionService.register("RectSelectionManager", {
     height: 1
   }
 });
-InteractionService.register("CircleSelectionManager", {
-  constructor: SelectionManager,
+InteractionService.register("CircleSelectionService", {
+  constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.Circle,
@@ -891,8 +891,8 @@ InteractionService.register("CircleSelectionManager", {
     r: 1
   }
 });
-InteractionService.register("PolygonSelectionManager", {
-  constructor: SelectionManager,
+InteractionService.register("PolygonSelectionService", {
+  constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.Polygon,
@@ -900,8 +900,8 @@ InteractionService.register("PolygonSelectionManager", {
   }
 });
 
-// dist/esm/service/crossSelectionManager.js
-var CrossSelectionManager = class extends SelectionManager {
+// dist/esm/service/crossSelectionService.js
+var CrossSelectionService = class extends SelectionService {
   constructor() {
     super(...arguments);
     this._oldResult = [];
@@ -921,7 +921,7 @@ var CrossSelectionManager = class extends SelectionManager {
   async setSharedVar(sharedName, value, options) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (sharedName == "$SelectionManager") {
+    if (sharedName == "$SelectionService") {
       this._sm = value;
       return;
     }
@@ -971,7 +971,7 @@ var CrossSelectionManager = class extends SelectionManager {
     }
   }
   isInstanceOf(name) {
-    return name === "CrossSelectionManager" || name === "SelectionManager" || this._baseName === name || this._name === name;
+    return name === "CrossSelectionService" || name === "SelectionService" || this._baseName === name || this._name === name;
   }
   async getResultOnLayer(layer) {
     Object.entries(this._sharedVar).filter(([key]) => !key.startsWith("$")).forEach(([key, value]) => {
@@ -1010,12 +1010,12 @@ var CrossSelectionManager = class extends SelectionManager {
     })();
   }
 };
-InteractionService.register("CrossSelectionManager", {
-  constructor: CrossSelectionManager
+InteractionService.register("CrossSelectionService", {
+  constructor: CrossSelectionService
 });
 
-// dist/esm/service/algorithmManager.js
-var AlgorithmManager = class extends InteractionService {
+// dist/esm/service/algorithmService.js
+var AlgorithmService = class extends InteractionService {
   constructor(baseName2, options) {
     super(baseName2, options);
     this._oldResult = null;
@@ -1051,7 +1051,7 @@ var AlgorithmManager = class extends InteractionService {
     }
   }
   isInstanceOf(name) {
-    return name === "AlgorithmManager" || this._baseName === name || this._name === name;
+    return name === "AlgorithmService" || this._baseName === name || this._name === name;
   }
   get results() {
     if (this._nextTick) {
@@ -1074,8 +1074,8 @@ var AlgorithmManager = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.register("AlgorithmManager", {
-  constructor: AlgorithmManager
+InteractionService.register("AlgorithmService", {
+  constructor: AlgorithmService
 });
 
 // dist/esm/service/index.js
@@ -1169,6 +1169,9 @@ var Layer = class {
       this._redraw(this._sharedVar, this._transformation, this._serviceInstances);
     }
     this.postUpdate();
+  }
+  join(rightTable, joinKey) {
+    return [];
   }
   preUpdate() {
     this._preUpdate && this._preUpdate.call(this, this);
@@ -3746,6 +3749,15 @@ var D3Layer = class extends Layer {
   cloneVisualElements(element, deep = false) {
     return select_default2(element).clone(deep).node();
   }
+  join(rightTable, joinKey) {
+    const leftTable = select_default2(this._graphic).selectChildren("*").data();
+    const joinTable = leftTable.flatMap((obj) => {
+      if (typeof obj !== "object" || obj === void 0 || obj === null)
+        return [];
+      return rightTable.filter((rObj) => typeof obj === "object" && obj !== void 0 && obj !== null && rObj[joinKey] === obj[joinKey]).map((rObj) => ({ ...obj, ...rObj }));
+    });
+    return joinTable;
+  }
   select(selector) {
     return this._graphic.querySelectorAll(selector);
   }
@@ -4172,7 +4184,7 @@ Instrument.register("HoverInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", event.clientY, { layer });
         });
@@ -4180,7 +4192,7 @@ Instrument.register("HoverInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+    layer.services.find("SelectionService", "SurfacePointSelectionService");
   }
 });
 Instrument.register("BrushInstrument", {
@@ -4191,7 +4203,7 @@ Instrument.register("BrushInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", event.clientY, { layer });
           service.setSharedVar("width", 1, { layer });
@@ -4211,7 +4223,7 @@ Instrument.register("BrushInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const startx2 = service.getSharedVar("startx", { layer });
           const starty2 = service.getSharedVar("starty", { layer });
           service.setSharedVar("x", Math.min(event.clientX, startx2), { layer });
@@ -4236,7 +4248,7 @@ Instrument.register("BrushInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
@@ -4252,7 +4264,7 @@ Instrument.register("BrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("width", 0, { layer });
@@ -4268,7 +4280,7 @@ Instrument.register("BrushInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "RectSelectionManager");
+    layer.services.find("SelectionService", "RectSelectionService");
   }
 });
 Instrument.register("BrushXInstrument", {
@@ -4279,7 +4291,7 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", baseBBox.y, { layer });
@@ -4296,7 +4308,7 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const startx = service.getSharedVar("startx", { layer });
           service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
           service.setSharedVar("width", Math.abs(event.clientX - startx), {
@@ -4313,7 +4325,7 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
@@ -4327,7 +4339,7 @@ Instrument.register("BrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("width", 0, { layer });
@@ -4341,7 +4353,7 @@ Instrument.register("BrushXInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "RectSelectionManager");
+    layer.services.find("SelectionService", "RectSelectionService");
   }
 });
 Instrument.register("BrushYInstrument", {
@@ -4352,7 +4364,7 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
           service.setSharedVar("x", baseBBox.x, { layer });
           service.setSharedVar("y", event.clientY, { layer });
@@ -4369,7 +4381,7 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const startx = service.getSharedVar("startx", { layer });
           const starty = service.getSharedVar("starty", { layer });
           service.setSharedVar("y", Math.min(event.clientY, starty), { layer });
@@ -4387,7 +4399,7 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("endy", event.clientY, { layer });
           if (!instrument.getSharedVar("persistant")) {
@@ -4401,7 +4413,7 @@ Instrument.register("BrushYInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("width", 0, { layer });
@@ -4417,7 +4429,7 @@ Instrument.register("BrushYInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "RectSelectionManager");
+    layer.services.find("SelectionService", "RectSelectionService");
   }
 });
 Instrument.register("HelperBarInstrument", {
@@ -4456,7 +4468,7 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", event.clientY, { layer });
           service.setSharedVar("width", 1, { layer });
@@ -4478,7 +4490,7 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
           const startx = service.getSharedVar("startx", { layer });
           const starty = service.getSharedVar("starty", { layer });
@@ -4503,7 +4515,7 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
@@ -4519,7 +4531,7 @@ Instrument.register("DataBrushInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("width", 0, { layer });
@@ -4537,7 +4549,7 @@ Instrument.register("DataBrushInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "RectSelectionManager");
+    layer.services.find("SelectionService", "RectSelectionService");
   }
 });
 Instrument.register("DataBrushXInstrument", {
@@ -4548,7 +4560,7 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", baseBBox.y, { layer });
@@ -4567,7 +4579,7 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           const startx = service.getSharedVar("startx", { layer });
           const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
           service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
@@ -4585,7 +4597,7 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
@@ -4599,7 +4611,7 @@ Instrument.register("DataBrushXInstrument", {
       ({ event, layer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("width", 0, { layer });
@@ -4614,7 +4626,7 @@ Instrument.register("DataBrushXInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "RectSelectionManager");
+    layer.services.find("SelectionService", "RectSelectionService");
   }
 });
 Instrument.register("ClickInstrument", {
@@ -4625,7 +4637,7 @@ Instrument.register("ClickInstrument", {
       (options) => {
         if (options.event.changedTouches)
           options.event = options.event.changedTouches[0];
-        options.layer.services.find("SelectionManager").forEach((service) => {
+        options.layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", options.event.clientX, {
             layer: options.layer
           });
@@ -4643,7 +4655,7 @@ Instrument.register("ClickInstrument", {
       (options) => {
         if (options.event.changedTouches)
           options.event = options.event.changedTouches[0];
-        options.layer.services.find("SelectionManager").forEach((service) => {
+        options.layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer: options.layer });
           service.setSharedVar("y", 0, { layer: options.layer });
         });
@@ -4655,7 +4667,7 @@ Instrument.register("ClickInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+    layer.services.find("SelectionService", "SurfacePointSelectionService");
   }
 });
 Instrument.register("DragInstrument", {
@@ -4666,7 +4678,7 @@ Instrument.register("DragInstrument", {
       ({ layer, event }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", event.clientY, { layer });
         });
@@ -4678,7 +4690,7 @@ Instrument.register("DragInstrument", {
       ({ layer, event }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x", { layer });
           let offsetY = event.clientY - service.getSharedVar("y", { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
@@ -4695,7 +4707,7 @@ Instrument.register("DragInstrument", {
       ({ layer, event }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x", { layer });
           let offsetY = event.clientY - service.getSharedVar("y", { layer });
           service.setSharedVar("x", 0, { layer });
@@ -4714,7 +4726,7 @@ Instrument.register("DragInstrument", {
         let { layer, event, instrument } = options;
         if (event.changedTouches)
           event = event.changedTouches[0];
-        layer.services.find("SelectionManager").forEach((service) => {
+        layer.services.find("SelectionService").forEach((service) => {
           service.setSharedVar("x", 0, { layer });
           service.setSharedVar("y", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
@@ -4732,7 +4744,7 @@ Instrument.register("DragInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    layer.services.find("SelectionManager", "SurfacePointSelectionManager");
+    layer.services.find("SelectionService", "SurfacePointSelectionService");
   }
 });
 Instrument.register("SpeechInstrument", {

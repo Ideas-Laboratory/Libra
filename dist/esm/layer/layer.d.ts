@@ -72,6 +72,7 @@ export default class Layer<T> {
     getTransformation(scaleName: string, defaultValue?: helpers.Transformation): helpers.Transformation;
     setTransformation(scaleName: string, transformation: helpers.Transformation): void;
     redraw(): void;
+    join(rightTable: any[], joinKey: string): any[];
     preUpdate(): void;
     postUpdate(): void;
     query(options: helpers.ArbitraryQuery): T[];
