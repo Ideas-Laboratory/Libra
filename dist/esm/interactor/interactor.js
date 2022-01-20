@@ -11,7 +11,9 @@ export default class Interactor {
         this._userOptions = options;
         this._name = options.name ?? baseName;
         this._state = options.state;
-        this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
+        this._actions = helpers
+            .deepClone(options.actions ?? [])
+            .map(transferInteractorInnerAction);
         this._modalities = {};
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;

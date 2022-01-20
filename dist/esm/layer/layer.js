@@ -180,6 +180,7 @@ export default class Layer {
             const layer = Layer.initialize(this._baseName, {
                 ...this._userOptions,
                 name: siblingLayerName,
+                redraw() { },
             });
             siblings[siblingLayerName] = layer;
             siblingLayers.set(layer, siblings);

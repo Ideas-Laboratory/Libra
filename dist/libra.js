@@ -298,6 +298,23 @@ function parseThrottle(s) {
     return x;
   });
 }
+function deepClone(obj) {
+  if (obj instanceof Array) {
+    return obj.map(deepClone);
+  }
+  if ([
+    "string",
+    "number",
+    "boolean",
+    "undefined",
+    "bigint",
+    "symbol",
+    "function"
+  ].includes(typeof obj)) {
+    return obj;
+  }
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+}
 
 // dist/esm/interactor/actions.jsgf.js
 var actions_jsgf_default = `#JSGF V1.0;
@@ -318,7 +335,7 @@ var Interactor = class {
     this._userOptions = options;
     this._name = options.name ?? baseName2;
     this._state = options.state;
-    this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
+    this._actions = deepClone(options.actions ?? []).map(transferInteractorInnerAction);
     this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -1181,7 +1198,9 @@ var Layer = class {
     if (!(siblingLayerName in siblings)) {
       const layer = Layer.initialize(this._baseName, {
         ...this._userOptions,
-        name: siblingLayerName
+        name: siblingLayerName,
+        redraw() {
+        }
       });
       siblings[siblingLayerName] = layer;
       siblingLayers.set(layer, siblings);
@@ -3877,7 +3896,7 @@ var Instrument = class {
     this._baseName = baseName2;
     this._userOptions = options;
     this._name = options.name ?? baseName2;
-    this._on = options.on ?? {};
+    this._on = deepClone(options.on ?? {});
     this._interactors = [];
     this._layers = [];
     this._sharedVar = options.sharedVar ?? {};

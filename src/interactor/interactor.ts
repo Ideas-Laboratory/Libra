@@ -2,7 +2,6 @@ import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 import { Layer } from "../layer";
 import Actions from "./actions.jsgf";
-import actionsJsgf from "./actions.jsgf";
 
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
 
@@ -63,7 +62,9 @@ export default class Interactor {
     this._userOptions = options;
     this._name = options.name ?? baseName;
     this._state = options.state;
-    this._actions = (options.actions ?? []).map(transferInteractorInnerAction);
+    this._actions = helpers
+      .deepClone(options.actions ?? [])
+      .map(transferInteractorInnerAction);
     this._modalities = {};
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;

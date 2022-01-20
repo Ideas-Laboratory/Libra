@@ -263,6 +263,7 @@ export default class Layer<T> {
       const layer = Layer.initialize(this._baseName, {
         ...this._userOptions,
         name: siblingLayerName,
+        redraw() {},
       });
       siblings[siblingLayerName] = layer;
       siblingLayers.set(layer, siblings);

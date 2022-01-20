@@ -2,7 +2,8 @@
   "include": ["src/**/*.ts"],
   "compilerOptions": {
     "target": "ES2021",
-    "moduleResolution": "Node"
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true
   },
   "exclude": ["src/**/*.jsgf"]
 }

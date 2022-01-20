@@ -133,3 +133,4 @@ export declare type BetweenEventStream = (EventStream & {
     between: (EventStream | BetweenEventStream)[];
     stream: BetweenEventStream[];
 };
+export declare function deepClone(obj: any): any;

@@ -1,4 +1,5 @@
 import { Interactor } from "../interactor";
+import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
 const registeredInstruments = {};
@@ -16,7 +17,7 @@ export default class Instrument {
         this._baseName = baseName;
         this._userOptions = options;
         this._name = options.name ?? baseName;
-        this._on = options.on ?? {};
+        this._on = helpers.deepClone(options.on ?? {});
         this._interactors = [];
         this._layers = [];
         this._sharedVar = options.sharedVar ?? {};

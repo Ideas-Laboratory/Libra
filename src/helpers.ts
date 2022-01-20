@@ -427,3 +427,25 @@ function parseThrottle(s: string) {
     return x;
   });
 }
+
+export function deepClone(obj) {
+  if (obj instanceof Array) {
+    return obj.map(deepClone);
+  }
+  if (
+    [
+      "string",
+      "number",
+      "boolean",
+      "undefined",
+      "bigint",
+      "symbol",
+      "function",
+    ].includes(typeof obj)
+  ) {
+    return obj;
+  }
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k, deepClone(v)])
+  );
+}
