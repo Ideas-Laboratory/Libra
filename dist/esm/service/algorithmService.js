@@ -1,5 +1,5 @@
 import InteractionService from "./service";
-export default class AlgorithmService extends InteractionService {
+export default class AnalysisService extends InteractionService {
     constructor(baseName, options) {
         super(baseName, options);
         this._oldResult = null;
@@ -145,7 +145,7 @@ export default class AlgorithmService extends InteractionService {
         }
     }
     isInstanceOf(name) {
-        return ("AlgorithmService" === name ||
+        return ("AnalysisService" === name ||
             this._baseName === name ||
             this._name === name);
     }
@@ -170,6 +170,6 @@ export default class AlgorithmService extends InteractionService {
         return this._oldResult;
     }
 }
-InteractionService.register("AlgorithmService", {
-    constructor: AlgorithmService,
+InteractionService.register("AnalysisService", {
+    constructor: AnalysisService,
 });

@@ -1015,7 +1015,7 @@ InteractionService.register("CrossSelectionService", {
 });
 
 // dist/esm/service/algorithmService.js
-var AlgorithmService = class extends InteractionService {
+var AnalysisService = class extends InteractionService {
   constructor(baseName2, options) {
     super(baseName2, options);
     this._oldResult = null;
@@ -1051,7 +1051,7 @@ var AlgorithmService = class extends InteractionService {
     }
   }
   isInstanceOf(name) {
-    return name === "AlgorithmService" || this._baseName === name || this._name === name;
+    return name === "AnalysisService" || this._baseName === name || this._name === name;
   }
   get results() {
     if (this._nextTick) {
@@ -1074,8 +1074,8 @@ var AlgorithmService = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.register("AlgorithmService", {
-  constructor: AlgorithmService
+InteractionService.register("AnalysisService", {
+  constructor: AnalysisService
 });
 
 // dist/esm/service/index.js

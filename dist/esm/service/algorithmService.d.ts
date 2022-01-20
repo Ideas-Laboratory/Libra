@@ -1,5 +1,5 @@
 import InteractionService from "./service";
-export default class AlgorithmService extends InteractionService {
+export default class AnalysisService extends InteractionService {
     _oldResult: any;
     _result: any;
     _nextTick: number;

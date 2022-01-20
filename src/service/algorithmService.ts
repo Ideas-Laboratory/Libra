@@ -2,7 +2,7 @@ import InteractionService from "./service";
 import * as helpers from "../helpers";
 import * as d3 from "d3";
 
-export default class AlgorithmService extends InteractionService {
+export default class AnalysisService extends InteractionService {
   _oldResult: any = null;
   _result: any = null;
   _nextTick: number = 0;
@@ -154,7 +154,7 @@ export default class AlgorithmService extends InteractionService {
 
   isInstanceOf(name: string): boolean {
     return (
-      "AlgorithmService" === name ||
+      "AnalysisService" === name ||
       this._baseName === name ||
       this._name === name
     );
@@ -183,6 +183,6 @@ export default class AlgorithmService extends InteractionService {
   }
 }
 
-InteractionService.register("AlgorithmService", {
-  constructor: AlgorithmService,
+InteractionService.register("AnalysisService", {
+  constructor: AnalysisService,
 });

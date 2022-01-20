@@ -42,7 +42,7 @@ export default class LayoutService extends InteractionService {
 
   isInstanceOf(name: string): boolean {
     return (
-      "AlgorithmService" === name ||
+      "LayoutService" === name ||
       this._baseName === name ||
       this._name === name
     );
