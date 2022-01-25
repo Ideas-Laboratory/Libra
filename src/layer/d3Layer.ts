@@ -245,7 +245,7 @@ export default class D3Layer extends Layer<SVGElement> {
     while (result.length > 0) {
       const elem = result.shift();
       resultWithSVGGElement.push(elem);
-      if (elem.parentElement.tagName === "g")
+      if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && (this._graphic !== (elem.parentElement as unknown as  SVGElement)))
         result.push(elem.parentElement as unknown as SVGElement);
     }
     return resultWithSVGGElement;

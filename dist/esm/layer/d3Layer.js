@@ -196,6 +196,8 @@ export default class D3Layer extends Layer {
             rect.width = absWidth;
             rect.height = absHeight;
             result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
+            console.log(this._graphic);
+            console.log("result", result);
         }
         else if (options.type === helpers.ShapeQueryType.Polygon) {
             // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
@@ -205,9 +207,10 @@ export default class D3Layer extends Layer {
         while (result.length > 0) {
             const elem = result.shift();
             resultWithSVGGElement.push(elem);
-            if (elem.parentElement.tagName === "g")
+            if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && (this._graphic !== elem.parentElement))
                 result.push(elem.parentElement);
         }
+        console.log("result2", resultWithSVGGElement);
         return resultWithSVGGElement;
     }
     _dataQuery(options) {

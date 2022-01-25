@@ -3861,15 +3861,18 @@ var D3Layer = class extends Layer {
       rect.width = absWidth;
       rect.height = absHeight;
       result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
+      console.log(this._graphic);
+      console.log("result", result);
     } else if (options.type === ShapeQueryType.Polygon) {
     }
     const resultWithSVGGElement = [];
     while (result.length > 0) {
       const elem = result.shift();
       resultWithSVGGElement.push(elem);
-      if (elem.parentElement.tagName === "g")
+      if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && this._graphic !== elem.parentElement)
         result.push(elem.parentElement);
     }
+    console.log("result2", resultWithSVGGElement);
     return resultWithSVGGElement;
   }
   _dataQuery(options) {
