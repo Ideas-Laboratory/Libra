@@ -33,8 +33,9 @@ export default class GraphicalTransformer {
         const mergedOptions = Object.assign({}, registeredTransformers[baseName] ?? { constructor: GraphicalTransformer }, options ?? {}, {
             sharedVar: Object.assign({}, (registeredTransformers[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
-        const service = new mergedOptions.constructor(baseName, mergedOptions);
-        return service;
+        const transformer = new mergedOptions.constructor(baseName, mergedOptions);
+        instanceTransformers.push(transformer);
+        return transformer;
     }
     static findTransformer(baseNameOrRealName) {
         return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));

@@ -76,8 +76,9 @@ export default class GraphicalTransformer {
         ),
       }
     );
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
-    return service;
+    const transformer = new mergedOptions.constructor(baseName, mergedOptions);
+    instanceTransformers.push(transformer);
+    return transformer;
   }
   static findTransformer(baseNameOrRealName: string): GraphicalTransformer[] {
     return instanceTransformers.filter((transformer) =>
