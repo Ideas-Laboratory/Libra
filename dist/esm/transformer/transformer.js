@@ -17,7 +17,7 @@ export default class GraphicalTransformer {
         this.redraw();
     }
     redraw() {
-        this._redraw({});
+        this._redraw({ layer: this._layer, transformer: this });
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

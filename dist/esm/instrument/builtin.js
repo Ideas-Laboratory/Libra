@@ -1,23 +1,36 @@
 import Instrument from "./instrument";
+import GraphicalTransformer from "../transformer";
 import { getTransform } from "../helpers";
 Instrument.register("HoverInstrument", {
     constructor: Instrument,
     interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
     on: {
         hover: [
-            ({ event, layer, instrument }) => {
+            async ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                instrument.services.find("SelectionService").forEach((service) => {
-                    service.setSharedVar("x", event.clientX, { layer });
-                    service.setSharedVar("y", event.clientY, { layer });
-                });
+                const services = instrument.services.find("SelectionService");
+                services.setSharedVar("x", event.clientX, { layer });
+                services.setSharedVar("y", event.clientY, { layer });
+                await Promise.all(instrument.services.results);
+                if (instrument.getSharedVar("highlightColor")) {
+                    GraphicalTransformer.initialize("HighlightSelection", {
+                        layer: layer.getLayerFromQueue("selectionLayer"),
+                        sharedVar: {
+                            highlightColor: instrument.getSharedVar("highlightColor"),
+                            highlightAttr: instrument.getSharedVar("highlightAttr") || "fill",
+                        },
+                    });
+                }
             },
         ],
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
         instrument.services.find("SelectionService", "SurfacePointSelectionService");
+        instrument.services.forEach((service) => {
+            service._layerInstances.push(layer);
+        });
     },
 });
 Instrument.register("BrushInstrument", {

@@ -46,7 +46,7 @@ export default class GraphicalTransformer {
   }
 
   redraw() {
-    this._redraw({});
+    this._redraw({ layer: this._layer, transformer: this });
   }
 
   isInstanceOf(name: string): boolean {

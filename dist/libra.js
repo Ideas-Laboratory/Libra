@@ -4133,24 +4133,103 @@ var unregister4 = Instrument.unregister;
 var initialize6 = Instrument.initialize;
 var findInstrument = Instrument.findInstrument;
 
+// dist/esm/transformer/transformer.js
+var registeredTransformers = {};
+var instanceTransformers = [];
+var GraphicalTransformer = class {
+  constructor(baseName2, options) {
+    this._baseName = baseName2;
+    this._userOptions = options;
+    this._sharedVar = options.sharedVar ?? {};
+    this._redraw = options.redraw ?? (() => {
+    });
+    this._layer = options.layer;
+    this.redraw();
+  }
+  getSharedVar(name) {
+    return this._sharedVar[name];
+  }
+  setSharedVar(name, value) {
+    this._sharedVar[name] = value;
+    this.redraw();
+  }
+  redraw() {
+    this._redraw({ layer: this._layer, transformer: this });
+  }
+  isInstanceOf(name) {
+    return this._baseName === name || this._name === name;
+  }
+  static register(baseName2, options) {
+    registeredTransformers[baseName2] = options;
+  }
+  static unregister(baseName2) {
+    delete registeredTransformers[baseName2];
+    return true;
+  }
+  static initialize(baseName2, options) {
+    const mergedOptions = Object.assign({}, registeredTransformers[baseName2] ?? { constructor: GraphicalTransformer }, options ?? {}, {
+      sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+    });
+    const service = new mergedOptions.constructor(baseName2, mergedOptions);
+    return service;
+  }
+  static findTransformer(baseNameOrRealName) {
+    return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
+  }
+};
+var register7 = GraphicalTransformer.register;
+var unregister5 = GraphicalTransformer.unregister;
+var initialize7 = GraphicalTransformer.initialize;
+var findTransformer = GraphicalTransformer.findTransformer;
+
+// dist/esm/transformer/builtin.js
+GraphicalTransformer.register("transientRectangleTransformer", {
+  constructor: GraphicalTransformer,
+  redraw: ({ layer, transformer }) => {
+    select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor"));
+  }
+});
+GraphicalTransformer.register("HighlightSelection", {
+  constructor: GraphicalTransformer,
+  redraw({ layer, transformer }) {
+    select_default2(layer.getGraphic()).selectAll("*").attr(transformer.getSharedVar("highlightAttr"), transformer.getSharedVar("highlightColor"));
+  }
+});
+
+// dist/esm/transformer/index.js
+var transformer_default = GraphicalTransformer;
+var GraphicalTransformer2 = GraphicalTransformer;
+
 // dist/esm/instrument/builtin.js
 Instrument.register("HoverInstrument", {
   constructor: Instrument,
   interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
-      ({ event, layer, instrument }) => {
+      async ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", event.clientX, { layer });
-          service.setSharedVar("y", event.clientY, { layer });
-        });
+        const services = instrument.services.find("SelectionService");
+        services.setSharedVar("x", event.clientX, { layer });
+        services.setSharedVar("y", event.clientY, { layer });
+        await Promise.all(instrument.services.results);
+        if (instrument.getSharedVar("highlightColor")) {
+          transformer_default.initialize("HighlightSelection", {
+            layer: layer.getLayerFromQueue("selectionLayer"),
+            sharedVar: {
+              highlightColor: instrument.getSharedVar("highlightColor"),
+              highlightAttr: instrument.getSharedVar("highlightAttr") || "fill"
+            }
+          });
+        }
       }
     ]
   },
   preAttach: (instrument, layer) => {
     instrument.services.find("SelectionService", "SurfacePointSelectionService");
+    instrument.services.forEach((service) => {
+      service._layerInstances.push(layer);
+    });
   }
 });
 Instrument.register("BrushInstrument", {
@@ -5081,58 +5160,6 @@ var HistoryManager = {
     commitLock = false;
   }
 };
-
-// dist/esm/transformer/transformer.js
-var registeredTransformers = {};
-var instanceTransformers = [];
-var GraphicalTransformer = class {
-  constructor(baseName2, options) {
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._sharedVar = options.sharedVar ?? {};
-    this._redraw = options.redraw ?? (() => {
-    });
-    this._layer = options.layer;
-    this.redraw();
-  }
-  getSharedVar(name) {
-    return this._sharedVar[name];
-  }
-  setSharedVar(name, value) {
-    this._sharedVar[name] = value;
-    this.redraw();
-  }
-  redraw() {
-    this._redraw({});
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  static register(baseName2, options) {
-    registeredTransformers[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredTransformers[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredTransformers[baseName2] ?? { constructor: GraphicalTransformer }, options ?? {}, {
-      sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
-    });
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findTransformer(baseNameOrRealName) {
-    return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register7 = GraphicalTransformer.register;
-var unregister5 = GraphicalTransformer.unregister;
-var initialize7 = GraphicalTransformer.initialize;
-var findTransformer = GraphicalTransformer.findTransformer;
-
-// dist/esm/transformer/index.js
-var GraphicalTransformer2 = GraphicalTransformer;
 
 // dist/esm/index.js
 var esm_default = {
