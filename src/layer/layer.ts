@@ -254,7 +254,7 @@ export default class Layer<T> {
       this._use(service, options);
     }
   }
-  getSiblingLayer(siblingLayerName: string): Layer<T> {
+  getLayerFromQueue(siblingLayerName: string): Layer<T> {
     if (!siblingLayers.has(this)) {
       siblingLayers.set(this, { [this._name]: this });
     }
@@ -292,19 +292,19 @@ export default class Layer<T> {
       .sort((a, b) => a[1] - b[1])
       .forEach(([layerName, order]) => {
         orders[layerName] = order;
-        orderLayers.set(this.getSiblingLayer(layerName), orders);
+        orderLayers.set(this.getLayerFromQueue(layerName), orders);
         if (order >= 0) {
-          const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+          const graphic: any = this.getLayerFromQueue(layerName).getGraphic();
           // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
           graphic && graphic.style && (graphic.style.display = "initial");
         } else {
-          const graphic: any = this.getSiblingLayer(layerName).getGraphic();
+          const graphic: any = this.getLayerFromQueue(layerName).getGraphic();
           // graphic && graphic.style && (graphic.style.pointerEvents = "none");
           graphic && graphic.style && (graphic.style.display = "none");
         }
-        this.getSiblingLayer(layerName)._order = order;
+        this.getLayerFromQueue(layerName)._order = order;
         frag.append(
-          this.getSiblingLayer(layerName).getGraphic() as unknown as Node
+          this.getLayerFromQueue(layerName).getGraphic() as unknown as Node
         );
       });
     this.getContainerGraphic().appendChild(frag);

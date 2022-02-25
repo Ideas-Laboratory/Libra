@@ -32,7 +32,7 @@ export default class SelectionService extends InteractionService {
           ...this._sharedVar,
         });
         const selectionLayer = layer
-          .getSiblingLayer("selectionLayer")
+          .getLayerFromQueue("selectionLayer")
           .getGraphic();
         while (selectionLayer.firstChild) {
           selectionLayer.removeChild(selectionLayer.lastChild);

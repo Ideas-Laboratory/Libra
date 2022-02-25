@@ -37,7 +37,7 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("starty", event.clientY, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
         instrument.setSharedVar("startx", event.clientX);
@@ -67,7 +67,7 @@ Instrument.register("BrushInstrument", {
           layer.getGraphic().querySelector(".ig-layer-background") ||
           layer.getGraphic()
         ).getBoundingClientRect();
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = `<rect x=${
           Math.min(event.clientX, startx) - baseBBox.x
         } y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(
@@ -87,7 +87,7 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("endy", event.clientY, { layer });
         });
         if (!instrument.getSharedVar("persistant")) {
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         }
       },
@@ -105,7 +105,7 @@ Instrument.register("BrushInstrument", {
           service.setSharedVar("endx", event.clientX, { layer });
           service.setSharedVar("endy", event.clientY, { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
@@ -134,7 +134,7 @@ Instrument.register("BrushXInstrument", {
           service.setSharedVar("height", baseBBox.height, { layer });
           service.setSharedVar("startx", event.clientX, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -153,7 +153,7 @@ Instrument.register("BrushXInstrument", {
             layer.getGraphic().querySelector(".ig-layer-background") ||
             layer.getGraphic()
           ).getBoundingClientRect();
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           // const matrix = matrixParse.fromElement(layer.getGraphic());
           transientLayer.getGraphic().innerHTML = `<rect x="${
             Math.min(event.clientX, startx) - baseBBox.x
@@ -170,7 +170,7 @@ Instrument.register("BrushXInstrument", {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
+            const transientLayer = layer.getLayerFromQueue("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
         });
@@ -186,7 +186,7 @@ Instrument.register("BrushXInstrument", {
           service.setSharedVar("height", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -216,7 +216,7 @@ Instrument.register("BrushYInstrument", {
           service.setSharedVar("height", 1, { layer });
           service.setSharedVar("starty", event.clientY, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -236,7 +236,7 @@ Instrument.register("BrushYInstrument", {
             layer.getGraphic().querySelector(".ig-layer-background") ||
             layer.getGraphic()
           ).getBoundingClientRect();
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = `<rect x=0 y=${
             Math.min(event.clientY, starty) - baseBBox.y
           } width=${baseBBox.width} height=${Math.abs(
@@ -252,7 +252,7 @@ Instrument.register("BrushYInstrument", {
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("endy", event.clientY, { layer });
           if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
+            const transientLayer = layer.getLayerFromQueue("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
         });
@@ -270,7 +270,7 @@ Instrument.register("BrushYInstrument", {
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
           service.setSharedVar("endy", event.clientY, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -289,7 +289,7 @@ Instrument.register("HelperBarInstrument", {
     hover: [
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         helperBar.setAttribute(
           "transform",
@@ -301,7 +301,7 @@ Instrument.register("HelperBarInstrument", {
   },
   preAttach: function (instrument, layer) {
     const height = layer.getSharedVar("height", 100);
-    const transientLayer = layer.getSiblingLayer("transientLayer");
+    const transientLayer = layer.getLayerFromQueue("transientLayer");
     const helperBar = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "line"
@@ -351,7 +351,7 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("extentX", [0, 0], { layer });
           service.setSharedVar("extentY", [0, 0], { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
@@ -389,7 +389,7 @@ Instrument.register("DataBrushInstrument", {
           );
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = `<rect x=${
             Math.min(event.clientX, startx) - baseBBox.x
           } y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(
@@ -414,7 +414,7 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("endy", event.clientY, { layer });
         });
         if (!instrument.getSharedVar("persistant")) {
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         }
       },
@@ -434,7 +434,7 @@ Instrument.register("DataBrushInstrument", {
           service.setSharedVar("extentX", undefined, { layer });
           service.setSharedVar("extentY", undefined, { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
@@ -472,7 +472,7 @@ Instrument.register("DataBrushXInstrument", {
             { layer }
           );
           service.setSharedVar("extent", [0, 0], { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -498,7 +498,7 @@ Instrument.register("DataBrushXInstrument", {
             { layer }
           );
           service.setSharedVar("currentx", event.clientX, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           // const matrix = matrixParse.fromElement(layer.getGraphic());
           transientLayer.getGraphic().innerHTML = `<rect x="${
             Math.min(event.clientX, startx) - baseBBox.x
@@ -515,7 +515,7 @@ Instrument.register("DataBrushXInstrument", {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
           if (!instrument.getSharedVar("persistant")) {
-            const transientLayer = layer.getSiblingLayer("transientLayer");
+            const transientLayer = layer.getLayerFromQueue("transientLayer");
             transientLayer.getGraphic().innerHTML = "";
           }
         });
@@ -532,7 +532,7 @@ Instrument.register("DataBrushXInstrument", {
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("extent", undefined, { layer });
           service.setSharedVar("endx", event.clientX, { layer });
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = "";
         });
       },
@@ -598,7 +598,7 @@ Instrument.register("DragInstrument", {
           service.setSharedVar("x", event.clientX, { layer });
           service.setSharedVar("y", event.clientY, { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
@@ -612,8 +612,8 @@ Instrument.register("DragInstrument", {
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("offsetx", offsetX, { layer });
           service.setSharedVar("offsety", offsetY, { layer });
-          const selectionLayer = layer.getSiblingLayer("selectionLayer");
-          const transientLayer = layer.getSiblingLayer("transientLayer");
+          const selectionLayer = layer.getLayerFromQueue("selectionLayer");
+          const transientLayer = layer.getLayerFromQueue("transientLayer");
           transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${
             selectionLayer.getGraphic().innerHTML
           }</g>`;
@@ -633,7 +633,7 @@ Instrument.register("DragInstrument", {
           service.setSharedVar("offsetx", offsetX, { layer });
           service.setSharedVar("offsety", offsetY, { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
       },
     ],
@@ -649,7 +649,7 @@ Instrument.register("DragInstrument", {
           service.setSharedVar("offsetx", 0, { layer });
           service.setSharedVar("offsety", 0, { layer });
         });
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         transientLayer.getGraphic().innerHTML = "";
         instrument.emit("dragconfirm", {
           ...options,
@@ -678,7 +678,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
       ({ event, layer, instrument }) => {
         console.log("left");
         const speed = layer.getSharedVar("speed", 1) as number;
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = transientLayer
           .getGraphic()
           .querySelector("line") as SVGElement;
@@ -692,7 +692,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
       ({ event, layer, instrument }) => {
         console.log("right");
         const speed = layer.getSharedVar("speed", 1) as number;
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = transientLayer
           .getGraphic()
           .querySelector("line") as SVGElement;
@@ -710,7 +710,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
     layer.getGraphic().focus();
     const height = layer.getSharedVar("height", 100);
     const startX = layer.getSharedVar("startX", 0);
-    const transientLayer = layer.getSiblingLayer("transientLayer");
+    const transientLayer = layer.getLayerFromQueue("transientLayer");
     const helperBar = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "line"
@@ -743,8 +743,8 @@ Instrument.register("PanInstrument", {
         instrument.setSharedVar("starty", event.clientY);
         instrument.setSharedVar("currentx", event.clientX);
         instrument.setSharedVar("currenty", event.clientY);
-        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     drag: [
@@ -852,8 +852,8 @@ Instrument.register("PanInstrument", {
             layer.setTransformation("scaleY", scaleY);
           }
         }
-        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     dragabort: [
@@ -873,8 +873,8 @@ Instrument.register("PanInstrument", {
           layer.setTransformation("scaleY", sy);
           layer.setTransformation("$scaleY", sy);
         }
-        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
   },
@@ -1030,8 +1030,8 @@ Instrument.register("ZoomInstrument", {
             layer.setTransformation("scaleY", scaleY);
           }
         }
-        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
     abort: [
@@ -1047,8 +1047,8 @@ Instrument.register("ZoomInstrument", {
         if (sy) {
           layer.setTransformation("scaleY", sy);
         }
-        layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-        layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
   },
