@@ -1,4 +1,5 @@
 import { Command } from "../command";
+import { Instrument } from "../instrument";
 import { Layer } from "../layer";
 import * as helpers from "../helpers";
 
@@ -15,8 +16,8 @@ type ServiceInitOption = {
   postInitialize?: (service: InteractionService) => void;
   preUpdate?: (service: InteractionService) => void;
   postUpdate?: (service: InteractionService) => void;
-  preAttach?: (service: InteractionService, layer: Layer<any>) => void;
-  postUse?: (service: InteractionService, layer: Layer<any>) => void;
+  preAttach?: (service: InteractionService, instrument: Instrument) => void;
+  postUse?: (service: InteractionService, instrument: Instrument) => void;
   [param: string]: any;
 };
 
@@ -43,8 +44,8 @@ export default class InteractionService {
   _postInitialize?: (service: InteractionService) => void;
   _preUpdate?: (service: InteractionService) => void;
   _postUpdate?: (service: InteractionService) => void;
-  _preAttach?: (service: InteractionService, layer: Layer<any>) => void;
-  _postUse?: (service: InteractionService, layer: Layer<any>) => void;
+  _preAttach?: (service: InteractionService, instrument: Instrument) => void;
+  _postUse?: (service: InteractionService, instrument: Instrument) => void;
   _layerInstances: Layer<any>[];
 
   constructor(baseName: string, options: ServiceInitOption) {
@@ -149,13 +150,12 @@ export default class InteractionService {
     this._postUpdate && this._postUpdate.call(this, this);
   }
 
-  preAttach(layer: Layer<any>) {
-    this._preAttach && this._preAttach.call(this, this, layer);
-    this._layerInstances.push(layer);
+  preAttach(instrument: Instrument) {
+    this._preAttach && this._preAttach.call(this, this, instrument);
   }
 
-  postUse(layer: Layer<any>) {
-    this._postUse && this._postUse.call(this, this, layer);
+  postUse(instrument: Instrument) {
+    this._postUse && this._postUse.call(this, this, instrument);
   }
 
   isInstanceOf(name: string): boolean {

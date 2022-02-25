@@ -1,15 +1,15 @@
 import GraphicalTransformer from "./index";
 import * as d3 from "d3";
 
-GraphicalTransformer.register("dataTransformer", {
+GraphicalTransformer.register("transientRectangleTransformer", {
+  constructor: GraphicalTransformer,
   redraw: ({ layer, transformer }) => {
     d3.select(layer.getGraphic())
-      .selectAll("circle")
-      .data(transformer.getSharedVar("data"))
-      .append("circle")
-      .attr("r", transformer.getSharedVar("radius"))
-      .attr("cx", (d) => transformer.getTransformation("scaleX")(d))
-      .attr("cy", (d) => transformer.getTransformation("scaleY")(d))
+      .append("rect")
+      .attr("x", transformer.getSharedVar("x"))
+      .attr("y", transformer.getSharedVar("y"))
+      .attr("width", transformer.getSharedVar("width"))
+      .attr("height", transformer.getSharedVar("height"))
       .attr("fill", transformer.getSharedVar("fillColor"));
   },
 });

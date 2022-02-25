@@ -37,7 +37,7 @@ export default class D3Layer extends Layer<SVGElement> {
     if (tempElem.tagName !== "svg")
       throw Error("Container must be wrapped in SVGSVGElement");
     this._svg = tempElem as Element as SVGSVGElement;
-    this.redraw();
+    // this.redraw();
     this._postInitialize && this._postInitialize.call(this, this);
   }
 
@@ -66,23 +66,23 @@ export default class D3Layer extends Layer<SVGElement> {
   //     !element.classList.contains(backgroundClassName)
   //   );
   // }
-  join(rightTable: any[], joinKey: string): any[] {
-    const leftTable = d3.select(this._graphic).selectChildren("*").data();
-    const joinTable = leftTable.flatMap((obj) => {
-      if (typeof obj !== "object" || obj === undefined || obj === null)
-        return [];
-      return rightTable
-        .filter(
-          (rObj) =>
-            typeof obj === "object" &&
-            obj !== undefined &&
-            obj !== null &&
-            rObj[joinKey] === obj[joinKey]
-        )
-        .map((rObj) => ({ ...obj, ...rObj }));
-    });
-    return joinTable;
-  }
+  // join(rightTable: any[], joinKey: string): any[] {
+  //   const leftTable = d3.select(this._graphic).selectChildren("*").data();
+  //   const joinTable = leftTable.flatMap((obj) => {
+  //     if (typeof obj !== "object" || obj === undefined || obj === null)
+  //       return [];
+  //     return rightTable
+  //       .filter(
+  //         (rObj) =>
+  //           typeof obj === "object" &&
+  //           obj !== undefined &&
+  //           obj !== null &&
+  //           rObj[joinKey] === obj[joinKey]
+  //       )
+  //       .map((rObj) => ({ ...obj, ...rObj }));
+  //   });
+  //   return joinTable;
+  // }
 
   select(selector: string): NodeListOf<Element> {
     return this._graphic.querySelectorAll(selector);

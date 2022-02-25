@@ -2,6 +2,7 @@ import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
+import { InteractionService } from "../service";
 declare type InstrumentInitOption = {
     name?: string;
     on?: {
@@ -9,6 +10,10 @@ declare type InstrumentInitOption = {
     };
     interactors?: (string | Interactor | {
         interactor: string | Interactor;
+        options: any;
+    })[];
+    services?: (string | InteractionService | {
+        service: string | InteractionService;
         options: any;
     })[];
     layers?: (Layer<any> | {
@@ -35,6 +40,11 @@ export default class Instrument {
     _on: {
         [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
+    _services: (string | InteractionService | {
+        service: string | InteractionService;
+        options: any;
+    })[];
+    _serviceInstances: InteractionService[];
     _interactors: (Interactor | {
         interactor: Interactor;
         options: any;
@@ -54,7 +64,9 @@ export default class Instrument {
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
     on(action: string | string[], feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
     off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
-    use(interactor: Interactor, options?: any): void;
+    _use(service: InteractionService, options?: any): void;
+    useService(service: string | InteractionService, options?: any): void;
+    useInteractor(interactor: Interactor, options?: any): void;
     attach(layer: Layer<any>, options?: any): void;
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): void;
@@ -63,6 +75,7 @@ export default class Instrument {
     _dispatch(layer: Layer<any>, event: string, e: Event): Promise<void>;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
+    get services(): any;
     static register(baseName: string, options: InstrumentInitTemplate): void;
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: InstrumentInitOption): Instrument;

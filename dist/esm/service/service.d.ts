@@ -1,4 +1,5 @@
 import { Command } from "../command";
+import { Instrument } from "../instrument";
 import { Layer } from "../layer";
 import * as helpers from "../helpers";
 declare type ServiceInitOption = {
@@ -13,8 +14,8 @@ declare type ServiceInitOption = {
     postInitialize?: (service: InteractionService) => void;
     preUpdate?: (service: InteractionService) => void;
     postUpdate?: (service: InteractionService) => void;
-    preAttach?: (service: InteractionService, layer: Layer<any>) => void;
-    postUse?: (service: InteractionService, layer: Layer<any>) => void;
+    preAttach?: (service: InteractionService, instrument: Instrument) => void;
+    postUse?: (service: InteractionService, instrument: Instrument) => void;
     [param: string]: any;
 };
 declare type ServiceInitTemplate = ServiceInitOption & {
@@ -33,16 +34,16 @@ export default class InteractionService {
     _postInitialize?: (service: InteractionService) => void;
     _preUpdate?: (service: InteractionService) => void;
     _postUpdate?: (service: InteractionService) => void;
-    _preAttach?: (service: InteractionService, layer: Layer<any>) => void;
-    _postUse?: (service: InteractionService, layer: Layer<any>) => void;
+    _preAttach?: (service: InteractionService, instrument: Instrument) => void;
+    _postUse?: (service: InteractionService, instrument: Instrument) => void;
     _layerInstances: Layer<any>[];
     constructor(baseName: string, options: ServiceInitOption);
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
     preUpdate(): void;
     postUpdate(): void;
-    preAttach(layer: Layer<any>): void;
-    postUse(layer: Layer<any>): void;
+    preAttach(instrument: Instrument): void;
+    postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: ServiceInitTemplate): void;
     static unregister(baseName: string): boolean;

@@ -16,18 +16,18 @@ type LayerRegisterRequiredOption = Required<{
 
 type LayerPartialOption = Partial<{
   name: string;
-  transformation: { [scaleName: string]: helpers.Transformation };
-  services: (
-    | string
-    | InteractionService
-    | { service: string | InteractionService; options: any }
-  )[];
+  // transformation: { [scaleName: string]: helpers.Transformation };
+  // services: (
+  //   | string
+  //   | InteractionService
+  //   | { service: string | InteractionService; options: any }
+  // )[];
   sharedVar: { [varName: string]: any };
-  redraw: (
-    sharedVars: { [name: string]: any },
-    scales: { [name: string]: helpers.Transformation },
-    services: InteractionService[]
-  ) => void;
+  // redraw: (
+  //   sharedVars: { [name: string]: any },
+  //   scales: { [name: string]: helpers.Transformation },
+  //   services: InteractionService[]
+  // ) => void;
   preInitialize: <T>(layer: Layer<T>) => void;
   postInitialize: <T>(layer: Layer<T>) => void;
   preUpdate: <T>(layer: Layer<T>) => void;
@@ -58,25 +58,25 @@ export default class Layer<T> {
   _baseName: string;
   _name: string;
   _userOptions: LayerInitOption;
-  _transformation: { [scaleName: string]: helpers.Transformation };
+  // _transformation: { [scaleName: string]: helpers.Transformation };
   // _transformationWatcher: { [scaleName: string]: (Function | Command)[] };
-  _services: (
-    | string
-    | InteractionService
-    | { service: string | InteractionService; options: any }
-  )[];
-  _serviceInstances: InteractionService[];
+  // _services: (
+  //   | string
+  //   | InteractionService
+  //   | { service: string | InteractionService; options: any }
+  // )[];
+  // _serviceInstances: InteractionService[];
   _graphic: T;
   _container: HTMLElement;
   _sharedVar: { [varName: string]: any };
   // _sharedVarWatcher: { [varName: string]: (Function | Command)[] };
   _order: number;
   _nextTick: number = 0;
-  _redraw?: (
-    sharedVars: { [name: string]: any },
-    scales: { [name: string]: helpers.Transformation },
-    services: InteractionService[]
-  ) => void;
+  // _redraw?: (
+  //   sharedVars: { [name: string]: any },
+  //   scales: { [name: string]: helpers.Transformation },
+  //   services: InteractionService[]
+  // ) => void;
   _preInitialize?: <T>(layer: Layer<T>) => void;
   _postInitialize?: <T>(layer: Layer<T>) => void;
   _preUpdate?: <T>(layer: Layer<T>) => void;
@@ -87,27 +87,27 @@ export default class Layer<T> {
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._transformation = options.transformation ?? {};
-    this._services = options.services ?? [];
+    // this._transformation = options.transformation ?? {};
+    // this._services = options.services ?? [];
     this._container = options.container;
     this._sharedVar = options.sharedVar ?? {};
     // this._sharedVarWatcher = {};
     // this._transformationWatcher = {};
-    this._serviceInstances = [];
+    // this._serviceInstances = [];
     this._order = 0;
-    this._redraw = options.redraw;
+    // this._redraw = options.redraw;
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
     this._preUpdate = options.preUpdate ?? null;
     this._postUpdate = options.postUpdate ?? null;
-    this._services.forEach((service) => {
-      if (typeof service === "string" || !("options" in service)) {
-        this.use(service);
-      } else {
-        this.use(service.service, service.options);
-      }
-    });
-    this.redraw();
+    // this._services.forEach((service) => {
+    //   if (typeof service === "string" || !("options" in service)) {
+    //     this.use(service);
+    //   } else {
+    //     this.use(service.service, service.options);
+    //   }
+    // });
+    // this.redraw();
     instanceLayers.push(this);
     this._postInitialize && this._postInitialize.call(this, this);
   }
@@ -159,65 +159,65 @@ export default class Layer<T> {
   //   }
   //   this._sharedVarWatcher[sharedName].push(handler);
   // }
-  getTransformation(
-    scaleName: string,
-    defaultValue?: helpers.Transformation
-  ): helpers.Transformation {
-    if (scaleName in this._transformation) {
-      return this._transformation[scaleName];
-    } else {
-      this.setTransformation(scaleName, defaultValue);
-      return defaultValue;
-    }
-  }
-  setTransformation(
-    scaleName: string,
-    transformation: helpers.Transformation
-  ): void {
-    this.preUpdate();
-    const oldValue = this._transformation[scaleName];
-    this._transformation[scaleName] = transformation;
-    if (this._nextTick) {
-      cancelAnimationFrame(this._nextTick);
-    }
-    this._nextTick = requestAnimationFrame(() => {
-      this.redraw();
-    });
-    // if (scaleName in this._transformationWatcher) {
-    //   this._transformationWatcher[scaleName].forEach((callback) => {
-    //     if (callback instanceof Command) {
-    //       callback.execute({
-    //         self: this,
-    //         layer: this,
-    //         instrument: null,
-    //         interactor: null,
-    //         value: transformation,
-    //         oldValue,
-    //       });
-    //     } else {
-    //       callback({ value: transformation, oldValue });
-    //     }
-    //   });
-    // }
-    this.postUpdate();
-  }
+  // getTransformation(
+  //   scaleName: string,
+  //   defaultValue?: helpers.Transformation
+  // ): helpers.Transformation {
+  //   if (scaleName in this._transformation) {
+  //     return this._transformation[scaleName];
+  //   } else {
+  //     this.setTransformation(scaleName, defaultValue);
+  //     return defaultValue;
+  //   }
+  // }
+  // setTransformation(
+  //   scaleName: string,
+  //   transformation: helpers.Transformation
+  // ): void {
+  //   this.preUpdate();
+  //   const oldValue = this._transformation[scaleName];
+  //   this._transformation[scaleName] = transformation;
+  //   if (this._nextTick) {
+  //     cancelAnimationFrame(this._nextTick);
+  //   }
+  //   this._nextTick = requestAnimationFrame(() => {
+  //     this.redraw();
+  //   });
+  //   // if (scaleName in this._transformationWatcher) {
+  //   //   this._transformationWatcher[scaleName].forEach((callback) => {
+  //   //     if (callback instanceof Command) {
+  //   //       callback.execute({
+  //   //         self: this,
+  //   //         layer: this,
+  //   //         instrument: null,
+  //   //         interactor: null,
+  //   //         value: transformation,
+  //   //         oldValue,
+  //   //       });
+  //   //     } else {
+  //   //       callback({ value: transformation, oldValue });
+  //   //     }
+  //   //   });
+  //   // }
+  //   this.postUpdate();
+  // }
   // watchTransformation(scaleName: string, handler: Function | Command): void {
   //   if (!(scaleName in this._transformationWatcher)) {
   //     this._transformationWatcher[scaleName] = [];
   //   }
   //   this._transformationWatcher[scaleName].push(handler);
   // }
-  redraw(): void {
-    this.preUpdate();
-    if (this._redraw && this._redraw instanceof Function) {
-      this._redraw(
-        this._sharedVar,
-        this._transformation,
-        this._serviceInstances
-      );
-    }
-    this.postUpdate();
-  }
+  // redraw(): void {
+  //   this.preUpdate();
+  //   if (this._redraw && this._redraw instanceof Function) {
+  //     this._redraw(
+  //       this._sharedVar,
+  //       this._transformation,
+  //       this._serviceInstances
+  //     );
+  //   }
+  //   this.postUpdate();
+  // }
   join(rightTable: any[], joinKey: string): any[] {
     return [];
   }
@@ -230,30 +230,30 @@ export default class Layer<T> {
   query(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
-  _use(service: InteractionService, options?: any) {
-    service.preAttach(this);
-    this._serviceInstances.push(service);
-    service.postUse(this);
-  }
-  use(service: string | InteractionService, options?: any) {
-    if (
-      typeof service !== "string" &&
-      this._serviceInstances.includes(service)
-    ) {
-      return;
-    }
-    if (arguments.length >= 2) {
-      this._services.push({ service, options });
-    } else {
-      this._services.push(service);
-    }
-    if (typeof service === "string") {
-      const services = findService(service);
-      services.forEach((service) => this._use(service, options));
-    } else {
-      this._use(service, options);
-    }
-  }
+  // _use(service: InteractionService, options?: any) {
+  //   service.preAttach(this);
+  //   this._serviceInstances.push(service);
+  //   service.postUse(this);
+  // }
+  // use(service: string | InteractionService, options?: any) {
+  //   if (
+  //     typeof service !== "string" &&
+  //     this._serviceInstances.includes(service)
+  //   ) {
+  //     return;
+  //   }
+  //   if (arguments.length >= 2) {
+  //     this._services.push({ service, options });
+  //   } else {
+  //     this._services.push(service);
+  //   }
+  //   if (typeof service === "string") {
+  //     const services = findService(service);
+  //     services.forEach((service) => this._use(service, options));
+  //   } else {
+  //     this._use(service, options);
+  //   }
+  // }
   getLayerFromQueue(siblingLayerName: string): Layer<T> {
     if (!siblingLayers.has(this)) {
       siblingLayers.set(this, { [this._name]: this });
@@ -313,13 +313,13 @@ export default class Layer<T> {
     return this._baseName === name || this._name === name;
   }
 
-  get services() {
-    return helpers.makeFindableList(
-      this._serviceInstances.slice(0),
-      InteractionService,
-      this.use.bind(this)
-    );
-  }
+  // get services() {
+  //   return helpers.makeFindableList(
+  //     this._serviceInstances.slice(0),
+  //     InteractionService,
+  //     this.use.bind(this)
+  //   );
+  // }
 }
 
 export function register(baseName: string, options: LayerRegisterOption): void {
@@ -339,11 +339,11 @@ export function initialize<T>(
     options ?? {},
     {
       // needs to deep merge object
-      transformation: Object.assign(
-        {},
-        (registeredLayers[baseName] ?? {}).transformation ?? {},
-        options?.transformation ?? {}
-      ),
+      // transformation: Object.assign(
+      //   {},
+      //   (registeredLayers[baseName] ?? {}).transformation ?? {},
+      //   options?.transformation ?? {}
+      // ),
       sharedVar: Object.assign(
         {},
         (registeredLayers[baseName] ?? {}).sharedVar ?? {},

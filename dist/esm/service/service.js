@@ -92,12 +92,11 @@ export default class InteractionService {
     postUpdate() {
         this._postUpdate && this._postUpdate.call(this, this);
     }
-    preAttach(layer) {
-        this._preAttach && this._preAttach.call(this, this, layer);
-        this._layerInstances.push(layer);
+    preAttach(instrument) {
+        this._preAttach && this._preAttach.call(this, this, instrument);
     }
-    postUse(layer) {
-        this._postUse && this._postUse.call(this, this, layer);
+    postUse(instrument) {
+        this._postUse && this._postUse.call(this, this, instrument);
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

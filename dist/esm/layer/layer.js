@@ -1,5 +1,3 @@
-import { InteractionService, findService } from "../service";
-import * as helpers from "../helpers";
 const registeredLayers = {};
 const instanceLayers = [];
 const siblingLayers = new Map();
@@ -11,28 +9,27 @@ export default class Layer {
         this._baseName = baseName;
         this._userOptions = options;
         this._name = options.name ?? baseName;
-        this._transformation = options.transformation ?? {};
-        this._services = options.services ?? [];
+        // this._transformation = options.transformation ?? {};
+        // this._services = options.services ?? [];
         this._container = options.container;
         this._sharedVar = options.sharedVar ?? {};
         // this._sharedVarWatcher = {};
         // this._transformationWatcher = {};
-        this._serviceInstances = [];
+        // this._serviceInstances = [];
         this._order = 0;
-        this._redraw = options.redraw;
+        // this._redraw = options.redraw;
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
         this._postUpdate = options.postUpdate ?? null;
-        this._services.forEach((service) => {
-            if (typeof service === "string" || !("options" in service)) {
-                this.use(service);
-            }
-            else {
-                this.use(service.service, service.options);
-            }
-        });
-        this.redraw();
+        // this._services.forEach((service) => {
+        //   if (typeof service === "string" || !("options" in service)) {
+        //     this.use(service);
+        //   } else {
+        //     this.use(service.service, service.options);
+        //   }
+        // });
+        // this.redraw();
         instanceLayers.push(this);
         this._postInitialize && this._postInitialize.call(this, this);
     }
@@ -85,56 +82,65 @@ export default class Layer {
     //   }
     //   this._sharedVarWatcher[sharedName].push(handler);
     // }
-    getTransformation(scaleName, defaultValue) {
-        if (scaleName in this._transformation) {
-            return this._transformation[scaleName];
-        }
-        else {
-            this.setTransformation(scaleName, defaultValue);
-            return defaultValue;
-        }
-    }
-    setTransformation(scaleName, transformation) {
-        this.preUpdate();
-        const oldValue = this._transformation[scaleName];
-        this._transformation[scaleName] = transformation;
-        if (this._nextTick) {
-            cancelAnimationFrame(this._nextTick);
-        }
-        this._nextTick = requestAnimationFrame(() => {
-            this.redraw();
-        });
-        // if (scaleName in this._transformationWatcher) {
-        //   this._transformationWatcher[scaleName].forEach((callback) => {
-        //     if (callback instanceof Command) {
-        //       callback.execute({
-        //         self: this,
-        //         layer: this,
-        //         instrument: null,
-        //         interactor: null,
-        //         value: transformation,
-        //         oldValue,
-        //       });
-        //     } else {
-        //       callback({ value: transformation, oldValue });
-        //     }
-        //   });
-        // }
-        this.postUpdate();
-    }
+    // getTransformation(
+    //   scaleName: string,
+    //   defaultValue?: helpers.Transformation
+    // ): helpers.Transformation {
+    //   if (scaleName in this._transformation) {
+    //     return this._transformation[scaleName];
+    //   } else {
+    //     this.setTransformation(scaleName, defaultValue);
+    //     return defaultValue;
+    //   }
+    // }
+    // setTransformation(
+    //   scaleName: string,
+    //   transformation: helpers.Transformation
+    // ): void {
+    //   this.preUpdate();
+    //   const oldValue = this._transformation[scaleName];
+    //   this._transformation[scaleName] = transformation;
+    //   if (this._nextTick) {
+    //     cancelAnimationFrame(this._nextTick);
+    //   }
+    //   this._nextTick = requestAnimationFrame(() => {
+    //     this.redraw();
+    //   });
+    //   // if (scaleName in this._transformationWatcher) {
+    //   //   this._transformationWatcher[scaleName].forEach((callback) => {
+    //   //     if (callback instanceof Command) {
+    //   //       callback.execute({
+    //   //         self: this,
+    //   //         layer: this,
+    //   //         instrument: null,
+    //   //         interactor: null,
+    //   //         value: transformation,
+    //   //         oldValue,
+    //   //       });
+    //   //     } else {
+    //   //       callback({ value: transformation, oldValue });
+    //   //     }
+    //   //   });
+    //   // }
+    //   this.postUpdate();
+    // }
     // watchTransformation(scaleName: string, handler: Function | Command): void {
     //   if (!(scaleName in this._transformationWatcher)) {
     //     this._transformationWatcher[scaleName] = [];
     //   }
     //   this._transformationWatcher[scaleName].push(handler);
     // }
-    redraw() {
-        this.preUpdate();
-        if (this._redraw && this._redraw instanceof Function) {
-            this._redraw(this._sharedVar, this._transformation, this._serviceInstances);
-        }
-        this.postUpdate();
-    }
+    // redraw(): void {
+    //   this.preUpdate();
+    //   if (this._redraw && this._redraw instanceof Function) {
+    //     this._redraw(
+    //       this._sharedVar,
+    //       this._transformation,
+    //       this._serviceInstances
+    //     );
+    //   }
+    //   this.postUpdate();
+    // }
     join(rightTable, joinKey) {
         return [];
     }
@@ -147,31 +153,31 @@ export default class Layer {
     query(options) {
         return [];
     }
-    _use(service, options) {
-        service.preAttach(this);
-        this._serviceInstances.push(service);
-        service.postUse(this);
-    }
-    use(service, options) {
-        if (typeof service !== "string" &&
-            this._serviceInstances.includes(service)) {
-            return;
-        }
-        if (arguments.length >= 2) {
-            this._services.push({ service, options });
-        }
-        else {
-            this._services.push(service);
-        }
-        if (typeof service === "string") {
-            const services = findService(service);
-            services.forEach((service) => this._use(service, options));
-        }
-        else {
-            this._use(service, options);
-        }
-    }
-    getSiblingLayer(siblingLayerName) {
+    // _use(service: InteractionService, options?: any) {
+    //   service.preAttach(this);
+    //   this._serviceInstances.push(service);
+    //   service.postUse(this);
+    // }
+    // use(service: string | InteractionService, options?: any) {
+    //   if (
+    //     typeof service !== "string" &&
+    //     this._serviceInstances.includes(service)
+    //   ) {
+    //     return;
+    //   }
+    //   if (arguments.length >= 2) {
+    //     this._services.push({ service, options });
+    //   } else {
+    //     this._services.push(service);
+    //   }
+    //   if (typeof service === "string") {
+    //     const services = findService(service);
+    //     services.forEach((service) => this._use(service, options));
+    //   } else {
+    //     this._use(service, options);
+    //   }
+    // }
+    getLayerFromQueue(siblingLayerName) {
         if (!siblingLayers.has(this)) {
             siblingLayers.set(this, { [this._name]: this });
         }
@@ -209,27 +215,24 @@ export default class Layer {
             .sort((a, b) => a[1] - b[1])
             .forEach(([layerName, order]) => {
             orders[layerName] = order;
-            orderLayers.set(this.getSiblingLayer(layerName), orders);
+            orderLayers.set(this.getLayerFromQueue(layerName), orders);
             if (order >= 0) {
-                const graphic = this.getSiblingLayer(layerName).getGraphic();
+                const graphic = this.getLayerFromQueue(layerName).getGraphic();
                 // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
                 graphic && graphic.style && (graphic.style.display = "initial");
             }
             else {
-                const graphic = this.getSiblingLayer(layerName).getGraphic();
+                const graphic = this.getLayerFromQueue(layerName).getGraphic();
                 // graphic && graphic.style && (graphic.style.pointerEvents = "none");
                 graphic && graphic.style && (graphic.style.display = "none");
             }
-            this.getSiblingLayer(layerName)._order = order;
-            frag.append(this.getSiblingLayer(layerName).getGraphic());
+            this.getLayerFromQueue(layerName)._order = order;
+            frag.append(this.getLayerFromQueue(layerName).getGraphic());
         });
         this.getContainerGraphic().appendChild(frag);
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
-    }
-    get services() {
-        return helpers.makeFindableList(this._serviceInstances.slice(0), InteractionService, this.use.bind(this));
     }
 }
 export function register(baseName, options) {
@@ -242,7 +245,11 @@ export function unregister(baseName) {
 export function initialize(baseName, options) {
     const mergedOptions = Object.assign({}, registeredLayers[baseName] ?? { constructor: Layer }, options ?? {}, {
         // needs to deep merge object
-        transformation: Object.assign({}, (registeredLayers[baseName] ?? {}).transformation ?? {}, options?.transformation ?? {}),
+        // transformation: Object.assign(
+        //   {},
+        //   (registeredLayers[baseName] ?? {}).transformation ?? {},
+        //   options?.transformation ?? {}
+        // ),
         sharedVar: Object.assign({}, (registeredLayers[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
     });
     const layer = new mergedOptions.constructor(baseName, mergedOptions);

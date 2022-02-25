@@ -5,10 +5,10 @@ Instrument.register("HoverInstrument", {
     interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
     on: {
         hover: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", event.clientX, { layer });
                     service.setSharedVar("y", event.clientY, { layer });
                 });
@@ -17,7 +17,7 @@ Instrument.register("HoverInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "SurfacePointSelectionService");
+        instrument.services.find("SelectionService", "SurfacePointSelectionService");
     },
 });
 Instrument.register("BrushInstrument", {
@@ -28,7 +28,7 @@ Instrument.register("BrushInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", event.clientX, { layer });
                     service.setSharedVar("y", event.clientY, { layer });
                     service.setSharedVar("width", 1, { layer });
@@ -37,7 +37,7 @@ Instrument.register("BrushInstrument", {
                     service.setSharedVar("starty", event.clientY, { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("currenty", event.clientY, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
                 instrument.setSharedVar("startx", event.clientX);
@@ -48,7 +48,7 @@ Instrument.register("BrushInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const startx = service.getSharedVar("startx", { layer });
                     const starty = service.getSharedVar("starty", { layer });
                     service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
@@ -66,7 +66,7 @@ Instrument.register("BrushInstrument", {
                 const starty = instrument.getSharedVar("starty");
                 const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                     layer.getGraphic()).getBoundingClientRect();
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
             },
         ],
@@ -74,23 +74,23 @@ Instrument.register("BrushInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("currenty", event.clientY, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
                     service.setSharedVar("endy", event.clientY, { layer });
                 });
                 if (!instrument.getSharedVar("persistant")) {
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 }
             },
         ],
         dragabort: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("width", 0, { layer });
@@ -100,14 +100,14 @@ Instrument.register("BrushInstrument", {
                     service.setSharedVar("endx", event.clientX, { layer });
                     service.setSharedVar("endy", event.clientY, { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
             },
         ],
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "RectSelectionService");
+        instrument.services.find("SelectionService", "RectSelectionService");
     },
 });
 Instrument.register("BrushXInstrument", {
@@ -115,10 +115,10 @@ Instrument.register("BrushXInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
                     service.setSharedVar("x", event.clientX, { layer });
@@ -127,16 +127,16 @@ Instrument.register("BrushXInstrument", {
                     service.setSharedVar("height", baseBBox.height, { layer });
                     service.setSharedVar("startx", event.clientX, { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
         ],
         drag: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const startx = service.getSharedVar("startx", { layer });
                     service.setSharedVar("x", Math.min(event.clientX, startx), { layer });
                     service.setSharedVar("width", Math.abs(event.clientX - startx), {
@@ -145,7 +145,7 @@ Instrument.register("BrushXInstrument", {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     // const matrix = matrixParse.fromElement(layer.getGraphic());
                     transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
                 });
@@ -155,28 +155,28 @@ Instrument.register("BrushXInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
                     if (!instrument.getSharedVar("persistant")) {
-                        const transientLayer = layer.getSiblingLayer("transientLayer");
+                        const transientLayer = layer.getLayerFromQueue("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
                 });
             },
         ],
         dragabort: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("width", 0, { layer });
                     service.setSharedVar("height", 0, { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
@@ -184,7 +184,7 @@ Instrument.register("BrushXInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "RectSelectionService");
+        instrument.services.find("SelectionService", "RectSelectionService");
     },
 });
 Instrument.register("BrushYInstrument", {
@@ -192,10 +192,10 @@ Instrument.register("BrushYInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
                     service.setSharedVar("x", baseBBox.x, { layer });
@@ -204,16 +204,16 @@ Instrument.register("BrushYInstrument", {
                     service.setSharedVar("height", 1, { layer });
                     service.setSharedVar("starty", event.clientY, { layer });
                     service.setSharedVar("currenty", event.clientY, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
         ],
         drag: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const startx = service.getSharedVar("startx", { layer });
                     const starty = service.getSharedVar("starty", { layer });
                     service.setSharedVar("y", Math.min(event.clientY, starty), { layer });
@@ -223,7 +223,7 @@ Instrument.register("BrushYInstrument", {
                     service.setSharedVar("currenty", event.clientY, { layer });
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = `<rect x=0 y=${Math.min(event.clientY, starty) - baseBBox.y} width=${baseBBox.width} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
                 });
             },
@@ -232,21 +232,21 @@ Instrument.register("BrushYInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("currenty", event.clientY, { layer });
                     service.setSharedVar("endy", event.clientY, { layer });
                     if (!instrument.getSharedVar("persistant")) {
-                        const transientLayer = layer.getSiblingLayer("transientLayer");
+                        const transientLayer = layer.getLayerFromQueue("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
                 });
             },
         ],
         dragabort: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("width", 0, { layer });
@@ -255,7 +255,7 @@ Instrument.register("BrushYInstrument", {
                     service.setSharedVar("currenty", event.clientY, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
                     service.setSharedVar("endy", event.clientY, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
@@ -263,7 +263,7 @@ Instrument.register("BrushYInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "RectSelectionService");
+        instrument.services.find("SelectionService", "RectSelectionService");
     },
 });
 Instrument.register("HelperBarInstrument", {
@@ -274,7 +274,7 @@ Instrument.register("HelperBarInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 const helperBar = transientLayer.getGraphic().querySelector("line");
                 helperBar.setAttribute("transform", `translate(${event.offsetX - 50}, 0)`);
                 instrument.setSharedVar("barX", event.offsetX - 50, {});
@@ -283,7 +283,7 @@ Instrument.register("HelperBarInstrument", {
     },
     preAttach: function (instrument, layer) {
         const height = layer.getSharedVar("height", 100);
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
         helperBar.setAttribute("x1", "0");
         helperBar.setAttribute("y1", "0");
@@ -299,10 +299,10 @@ Instrument.register("DataBrushInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", event.clientX, { layer });
                     service.setSharedVar("y", event.clientY, { layer });
                     service.setSharedVar("width", 1, { layer });
@@ -316,15 +316,15 @@ Instrument.register("DataBrushInstrument", {
                     service.setSharedVar("extentX", [0, 0], { layer });
                     service.setSharedVar("extentY", [0, 0], { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
             },
         ],
         drag: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
                     const startx = service.getSharedVar("startx", { layer });
@@ -345,7 +345,7 @@ Instrument.register("DataBrushInstrument", {
                         .sort((a, b) => a - b), { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("currenty", event.clientY, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = `<rect x=${Math.min(event.clientX, startx) - baseBBox.x} y=${Math.min(event.clientY, starty) - baseBBox.y} width=${Math.abs(event.clientX - startx)} height=${Math.abs(event.clientY - starty)} class="transientRect" fill="#000" opacity="0.3" />`;
                 });
             },
@@ -354,7 +354,7 @@ Instrument.register("DataBrushInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     // service.setSharedVar("x", 0, {layer});
                     // service.setSharedVar("y", 0, {layer});
                     // service.setSharedVar("width", 0, {layer});
@@ -365,16 +365,16 @@ Instrument.register("DataBrushInstrument", {
                     service.setSharedVar("endy", event.clientY, { layer });
                 });
                 if (!instrument.getSharedVar("persistant")) {
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 }
             },
         ],
         dragabort: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("width", 0, { layer });
@@ -386,14 +386,14 @@ Instrument.register("DataBrushInstrument", {
                     service.setSharedVar("extentX", undefined, { layer });
                     service.setSharedVar("extentY", undefined, { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
             },
         ],
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "RectSelectionService");
+        instrument.services.find("SelectionService", "RectSelectionService");
     },
 });
 Instrument.register("DataBrushXInstrument", {
@@ -401,10 +401,10 @@ Instrument.register("DataBrushXInstrument", {
     interactors: ["MouseTraceInteractor"],
     on: {
         dragstart: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
                     service.setSharedVar("x", event.clientX, { layer });
@@ -415,16 +415,16 @@ Instrument.register("DataBrushXInstrument", {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("attrNameX", layer.getSharedVar("fieldX", service.getSharedVar("attrNameX", { layer })), { layer });
                     service.setSharedVar("extent", [0, 0], { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
         ],
         drag: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     const startx = service.getSharedVar("startx", { layer });
                     const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
                         layer.getGraphic()).getBoundingClientRect();
@@ -436,7 +436,7 @@ Instrument.register("DataBrushXInstrument", {
                         .map((x) => layer.getSharedVar("scaleX").invert(x - baseBBox.x))
                         .sort((a, b) => a - b), { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     // const matrix = matrixParse.fromElement(layer.getGraphic());
                     transientLayer.getGraphic().innerHTML = `<rect x="${Math.min(event.clientX, startx) - baseBBox.x}" y="0" width="${Math.abs(event.clientX - startx)}" height="${baseBBox.height}" class="transientRect" fill="#000" opacity="0.3" />`;
                 });
@@ -446,21 +446,21 @@ Instrument.register("DataBrushXInstrument", {
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
                     if (!instrument.getSharedVar("persistant")) {
-                        const transientLayer = layer.getSiblingLayer("transientLayer");
+                        const transientLayer = layer.getLayerFromQueue("transientLayer");
                         transientLayer.getGraphic().innerHTML = "";
                     }
                 });
             },
         ],
         dragabort: [
-            ({ event, layer }) => {
+            ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("width", 0, { layer });
@@ -468,7 +468,7 @@ Instrument.register("DataBrushXInstrument", {
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("extent", undefined, { layer });
                     service.setSharedVar("endx", event.clientX, { layer });
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = "";
                 });
             },
@@ -476,7 +476,7 @@ Instrument.register("DataBrushXInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "RectSelectionService");
+        instrument.services.find("SelectionService", "RectSelectionService");
     },
 });
 Instrument.register("ClickInstrument", {
@@ -487,7 +487,9 @@ Instrument.register("ClickInstrument", {
             (options) => {
                 if (options.event.changedTouches)
                     options.event = options.event.changedTouches[0];
-                options.layer.services.find("SelectionService").forEach((service) => {
+                options.instrument.services
+                    .find("SelectionService")
+                    .forEach((service) => {
                     service.setSharedVar("x", options.event.clientX, {
                         layer: options.layer,
                     });
@@ -505,7 +507,9 @@ Instrument.register("ClickInstrument", {
             (options) => {
                 if (options.event.changedTouches)
                     options.event = options.event.changedTouches[0];
-                options.layer.services.find("SelectionService").forEach((service) => {
+                options.instrument.services
+                    .find("SelectionService")
+                    .forEach((service) => {
                     service.setSharedVar("x", 0, { layer: options.layer });
                     service.setSharedVar("y", 0, { layer: options.layer });
                 });
@@ -518,7 +522,7 @@ Instrument.register("ClickInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "SurfacePointSelectionService");
+        instrument.services.find("SelectionService", "SurfacePointSelectionService");
     },
 });
 Instrument.register("DragInstrument", {
@@ -526,39 +530,39 @@ Instrument.register("DragInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ layer, event }) => {
+            ({ layer, event, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", event.clientX, { layer });
                     service.setSharedVar("y", event.clientY, { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
             },
         ],
         drag: [
-            ({ layer, event }) => {
+            ({ layer, event, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     let offsetX = event.clientX - service.getSharedVar("x", { layer });
                     let offsetY = event.clientY - service.getSharedVar("y", { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
                     service.setSharedVar("currenty", event.clientY, { layer });
                     service.setSharedVar("offsetx", offsetX, { layer });
                     service.setSharedVar("offsety", offsetY, { layer });
-                    const selectionLayer = layer.getSiblingLayer("selectionLayer");
-                    const transientLayer = layer.getSiblingLayer("transientLayer");
+                    const selectionLayer = layer.getLayerFromQueue("selectionLayer");
+                    const transientLayer = layer.getLayerFromQueue("transientLayer");
                     transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${selectionLayer.getGraphic().innerHTML}</g>`;
                 });
             },
         ],
         dragend: [
-            ({ layer, event }) => {
+            ({ layer, event, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     let offsetX = event.clientX - service.getSharedVar("x", { layer });
                     let offsetY = event.clientY - service.getSharedVar("y", { layer });
                     service.setSharedVar("x", 0, { layer });
@@ -568,7 +572,7 @@ Instrument.register("DragInstrument", {
                     service.setSharedVar("offsetx", offsetX, { layer });
                     service.setSharedVar("offsety", offsetY, { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
             },
         ],
@@ -577,7 +581,7 @@ Instrument.register("DragInstrument", {
                 let { layer, event, instrument } = options;
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                layer.services.find("SelectionService").forEach((service) => {
+                instrument.services.find("SelectionService").forEach((service) => {
                     service.setSharedVar("x", 0, { layer });
                     service.setSharedVar("y", 0, { layer });
                     service.setSharedVar("currentx", event.clientX, { layer });
@@ -585,7 +589,7 @@ Instrument.register("DragInstrument", {
                     service.setSharedVar("offsetx", 0, { layer });
                     service.setSharedVar("offsety", 0, { layer });
                 });
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 transientLayer.getGraphic().innerHTML = "";
                 instrument.emit("dragconfirm", {
                     ...options,
@@ -596,7 +600,7 @@ Instrument.register("DragInstrument", {
     },
     preAttach: (instrument, layer) => {
         // Create default SM on layer
-        layer.services.find("SelectionService", "SurfacePointSelectionService");
+        instrument.services.find("SelectionService", "SurfacePointSelectionService");
     },
 });
 Instrument.register("SpeechInstrument", {
@@ -612,7 +616,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
             ({ event, layer, instrument }) => {
                 console.log("left");
                 const speed = layer.getSharedVar("speed", 1);
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 const helperBar = transientLayer
                     .getGraphic()
                     .querySelector("line");
@@ -626,7 +630,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
             ({ event, layer, instrument }) => {
                 console.log("right");
                 const speed = layer.getSharedVar("speed", 1);
-                const transientLayer = layer.getSiblingLayer("transientLayer");
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
                 const helperBar = transientLayer
                     .getGraphic()
                     .querySelector("line");
@@ -644,7 +648,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
         layer.getGraphic().focus();
         const height = layer.getSharedVar("height", 100);
         const startX = layer.getSharedVar("startX", 0);
-        const transientLayer = layer.getSiblingLayer("transientLayer");
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
         helperBar.setAttribute("x1", `${startX}`);
         helperBar.setAttribute("y1", `${startX}`);
@@ -660,33 +664,33 @@ Instrument.register("PanInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ layer, event, instrument }) => {
+            ({ layer, event, instrument, transformer }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                const sx = layer.getTransformation("scaleX");
-                const sy = layer.getTransformation("scaleY");
-                layer.setTransformation("$scaleX", sx);
-                layer.setTransformation("$scaleY", sy);
-                layer.getTransformation("$$scaleX", sx);
-                layer.getTransformation("$$scaleY", sy);
+                const sx = transformer.getTransformation("scaleX");
+                const sy = transformer.getTransformation("scaleY");
+                transformer.setTransformation("$scaleX", sx);
+                transformer.setTransformation("$scaleY", sy);
+                transformer.getTransformation("$$scaleX", sx);
+                transformer.getTransformation("$$scaleY", sy);
                 instrument.setSharedVar("startx", event.clientX);
                 instrument.setSharedVar("starty", event.clientY);
                 instrument.setSharedVar("currentx", event.clientX);
                 instrument.setSharedVar("currenty", event.clientY);
-                layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-                layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         drag: [
-            ({ layer, event, instrument }) => {
+            ({ layer, event, instrument, transformer }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
                 let offsetX = event.clientX - instrument.getSharedVar("startx");
                 let offsetY = event.clientY - instrument.getSharedVar("starty");
                 instrument.setSharedVar("currentx", event.clientX);
                 instrument.setSharedVar("currenty", event.clientY);
-                const sx = layer.getTransformation("$scaleX");
-                const sy = layer.getTransformation("$scaleY");
+                const sx = transformer.getTransformation("$scaleX");
+                const sy = transformer.getTransformation("$scaleY");
                 const fixRange = instrument.getSharedVar("fixRange");
                 if (fixRange) {
                     if (sx) {
@@ -697,7 +701,7 @@ Instrument.register("PanInstrument", {
                         if (scaleX.clamp)
                             scaleX.clamp(false);
                         scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
-                        layer.setTransformation("scaleX", scaleX);
+                        transformer.setTransformation("scaleX", scaleX);
                     }
                     if (sy) {
                         const scaleY = sy
@@ -707,7 +711,7 @@ Instrument.register("PanInstrument", {
                         if (scaleY.clamp)
                             scaleY.clamp(false);
                         scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
-                        layer.setTransformation("scaleY", scaleY);
+                        transformer.setTransformation("scaleY", scaleY);
                     }
                 }
                 else {
@@ -740,7 +744,7 @@ Instrument.register("PanInstrument", {
                         };
                         scaleXRaw.$origin = sx;
                         const scaleX = proxyRaw(scaleXRaw);
-                        layer.setTransformation("scaleX", scaleX);
+                        transformer.setTransformation("scaleX", scaleX);
                     }
                     if (sy) {
                         const proxyRaw = (raw) => new Proxy(raw, {
@@ -771,33 +775,33 @@ Instrument.register("PanInstrument", {
                             return proxyRaw(anotherScaleYRaw);
                         };
                         const scaleY = proxyRaw(scaleYRaw);
-                        layer.setTransformation("scaleY", scaleY);
+                        transformer.setTransformation("scaleY", scaleY);
                     }
                 }
-                layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-                layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         dragabort: [
-            ({ layer, event, instrument }) => {
+            ({ layer, event, instrument, transformer }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                const sx = layer.getTransformation("$$scaleX");
-                const sy = layer.getTransformation("$$scaleY");
+                const sx = transformer.getTransformation("$$scaleX");
+                const sy = transformer.getTransformation("$$scaleY");
                 instrument.setSharedVar("startx", event.clientX);
                 instrument.setSharedVar("starty", event.clientY);
                 instrument.setSharedVar("currentx", event.clientX);
                 instrument.setSharedVar("currenty", event.clientY);
                 if (sx) {
-                    layer.setTransformation("scaleX", sx);
-                    layer.setTransformation("$scaleX", sx);
+                    transformer.setTransformation("scaleX", sx);
+                    transformer.setTransformation("$scaleX", sx);
                 }
                 if (sy) {
-                    layer.setTransformation("scaleY", sy);
-                    layer.setTransformation("$scaleY", sy);
+                    transformer.setTransformation("scaleY", sy);
+                    transformer.setTransformation("$scaleY", sy);
                 }
-                layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-                layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
     },
@@ -807,12 +811,12 @@ Instrument.register("ZoomInstrument", {
     interactors: ["MouseWheelInteractor"],
     on: {
         wheel: [
-            ({ layer, event, instrument }) => {
+            ({ layer, event, instrument, transformer }) => {
                 const DEFAULT_DELTA_LEVEL_RATIO = 200;
-                let sx = layer.getTransformation("scaleX");
-                let sy = layer.getTransformation("scaleY");
-                layer.getTransformation("$$scaleX", sx);
-                layer.getTransformation("$$scaleY", sy);
+                let sx = transformer.getTransformation("scaleX");
+                let sy = transformer.getTransformation("scaleY");
+                transformer.getTransformation("$$scaleX", sx);
+                transformer.getTransformation("$$scaleY", sy);
                 instrument.setSharedVar("currentx", event.offsetX);
                 instrument.setSharedVar("currenty", event.offsetY);
                 let delta = event.deltaY;
@@ -838,7 +842,7 @@ Instrument.register("ZoomInstrument", {
                         if (scaleX.clamp)
                             scaleX.clamp(false);
                         scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
-                        layer.setTransformation("scaleX", scaleX);
+                        transformer.setTransformation("scaleX", scaleX);
                     }
                     if (sy) {
                         const scaleY = sy
@@ -848,7 +852,7 @@ Instrument.register("ZoomInstrument", {
                         if (scaleY.clamp)
                             scaleY.clamp(false);
                         scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
-                        layer.setTransformation("scaleY", scaleY);
+                        transformer.setTransformation("scaleY", scaleY);
                     }
                 }
                 else {
@@ -885,7 +889,7 @@ Instrument.register("ZoomInstrument", {
                             return proxyRaw(anotherScaleXRaw);
                         };
                         const scaleX = proxyRaw(scaleXRaw);
-                        layer.setTransformation("scaleX", scaleX);
+                        transformer.setTransformation("scaleX", scaleX);
                     }
                     if (sy) {
                         const proxyRaw = (raw) => new Proxy(raw, {
@@ -920,28 +924,28 @@ Instrument.register("ZoomInstrument", {
                             return proxyRaw(anotherScaleYRaw);
                         };
                         const scaleY = proxyRaw(scaleYRaw);
-                        layer.setTransformation("scaleY", scaleY);
+                        transformer.setTransformation("scaleY", scaleY);
                     }
                 }
-                layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-                layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         abort: [
-            ({ layer, event, instrument }) => {
-                const sx = layer.getTransformation("$$scaleX");
-                const sy = layer.getTransformation("$$scaleY");
+            ({ layer, event, instrument, transformer }) => {
+                const sx = transformer.getTransformation("$$scaleX");
+                const sy = transformer.getTransformation("$$scaleY");
                 instrument.setSharedVar("delta", 0);
                 instrument.setSharedVar("currentx", event.offsetX);
                 instrument.setSharedVar("currenty", event.offsetY);
                 if (sx) {
-                    layer.setTransformation("scaleX", sx);
+                    transformer.setTransformation("scaleX", sx);
                 }
                 if (sy) {
-                    layer.setTransformation("scaleY", sy);
+                    transformer.setTransformation("scaleY", sy);
                 }
-                layer.getSiblingLayer("selectionLayer").getGraphic().innerHTML = "";
-                layer.getSiblingLayer("transientLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
     },

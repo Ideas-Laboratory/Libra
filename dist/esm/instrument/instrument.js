@@ -2,6 +2,7 @@ import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
+import { InteractionService, findService } from "../service";
 const registeredInstruments = {};
 const instanceInstruments = [];
 const EventDispatcher = new Map();
@@ -20,22 +21,24 @@ export default class Instrument {
         this._on = helpers.deepClone(options.on ?? {});
         this._interactors = [];
         this._layers = [];
+        this._services = options.services ?? [];
+        this._serviceInstances = [];
         this._sharedVar = options.sharedVar ?? {};
         if (options.interactors) {
             options.interactors.forEach((interactor) => {
                 if (typeof interactor === "string") {
-                    this.use(Interactor.initialize(interactor));
+                    this.useInteractor(Interactor.initialize(interactor));
                 }
                 else if ("options" in interactor) {
                     if (typeof interactor.interactor === "string") {
-                        this.use(Interactor.initialize(interactor.interactor, interactor.options));
+                        this.useInteractor(Interactor.initialize(interactor.interactor, interactor.options));
                     }
                     else {
-                        this.use(interactor.interactor, interactor.options);
+                        this.useInteractor(interactor.interactor, interactor.options);
                     }
                 }
                 else {
-                    this.use(interactor);
+                    this.useInteractor(interactor);
                 }
             });
         }
@@ -49,6 +52,14 @@ export default class Instrument {
                 }
             });
         }
+        this._services.forEach((service) => {
+            if (typeof service === "string" || !("options" in service)) {
+                this.useService(service);
+            }
+            else {
+                this.useService(service.service, service.options);
+            }
+        });
         options.postInitialize && options.postInitialize.call(this, this);
     }
     emit(action, options) {
@@ -96,7 +107,31 @@ export default class Instrument {
             this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
         }
     }
-    use(interactor, options) {
+    _use(service, options) {
+        service.preAttach(this);
+        this._serviceInstances.push(service);
+        service.postUse(this);
+    }
+    useService(service, options) {
+        if (typeof service !== "string" &&
+            this._serviceInstances.includes(service)) {
+            return;
+        }
+        if (arguments.length >= 2) {
+            this._services.push({ service, options });
+        }
+        else {
+            this._services.push(service);
+        }
+        if (typeof service === "string") {
+            const services = findService(service);
+            services.forEach((service) => this._use(service, options));
+        }
+        else {
+            this._use(service, options);
+        }
+    }
+    useInteractor(interactor, options) {
         interactor.preUse(this);
         // TODO: inject options
         if (arguments.length >= 2) {
@@ -274,6 +309,9 @@ export default class Instrument {
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
+    }
+    get services() {
+        return helpers.makeFindableList(this._serviceInstances.slice(0), InteractionService, this.useService.bind(this));
     }
     static register(baseName, options) {
         registeredInstruments[baseName] = options;

@@ -21,7 +21,7 @@ export default class D3Layer extends Layer {
         if (tempElem.tagName !== "svg")
             throw Error("Container must be wrapped in SVGSVGElement");
         this._svg = tempElem;
-        this.redraw();
+        // this.redraw();
         this._postInitialize && this._postInitialize.call(this, this);
     }
     // _toTemplate() {  // it is better to store initOption in base class.
@@ -46,20 +46,23 @@ export default class D3Layer extends Layer {
     //     !element.classList.contains(backgroundClassName)
     //   );
     // }
-    join(rightTable, joinKey) {
-        const leftTable = d3.select(this._graphic).selectChildren("*").data();
-        const joinTable = leftTable.flatMap((obj) => {
-            if (typeof obj !== "object" || obj === undefined || obj === null)
-                return [];
-            return rightTable
-                .filter((rObj) => typeof obj === "object" &&
-                obj !== undefined &&
-                obj !== null &&
-                rObj[joinKey] === obj[joinKey])
-                .map((rObj) => ({ ...obj, ...rObj }));
-        });
-        return joinTable;
-    }
+    // join(rightTable: any[], joinKey: string): any[] {
+    //   const leftTable = d3.select(this._graphic).selectChildren("*").data();
+    //   const joinTable = leftTable.flatMap((obj) => {
+    //     if (typeof obj !== "object" || obj === undefined || obj === null)
+    //       return [];
+    //     return rightTable
+    //       .filter(
+    //         (rObj) =>
+    //           typeof obj === "object" &&
+    //           obj !== undefined &&
+    //           obj !== null &&
+    //           rObj[joinKey] === obj[joinKey]
+    //       )
+    //       .map((rObj) => ({ ...obj, ...rObj }));
+    //   });
+    //   return joinTable;
+    // }
     select(selector) {
         return this._graphic.querySelectorAll(selector);
     }
@@ -196,8 +199,6 @@ export default class D3Layer extends Layer {
             rect.width = absWidth;
             rect.height = absHeight;
             result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
-            console.log(this._graphic);
-            console.log("result", result);
         }
         else if (options.type === helpers.ShapeQueryType.Polygon) {
             // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
@@ -210,7 +211,6 @@ export default class D3Layer extends Layer {
             if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && (this._graphic !== elem.parentElement))
                 result.push(elem.parentElement);
         }
-        console.log("result2", resultWithSVGGElement);
         return resultWithSVGGElement;
     }
     _dataQuery(options) {

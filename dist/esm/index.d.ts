@@ -9,6 +9,7 @@ declare const _default: {
         undo(): Promise<void>;
         redo(): Promise<void>;
     };
+    GraphicalTransformer: typeof import("./transformer").default;
 };
 export default _default;
 export { Command } from "./command";
@@ -17,3 +18,4 @@ export { Interactor } from "./interactor";
 export { Layer } from "./layer";
 export { InteractionService } from "./service";
 export { HistoryManager } from "./history";
+export { GraphicalTransformer } from "./transformer";
