@@ -64,11 +64,16 @@ Instrument.register("BrushInstrument", {
 
         const startx = instrument.getSharedVar("startx");
         const starty = instrument.getSharedVar("starty");
+
+        const x = Math.min(startx, event.clientX);
+        const y = Math.min(starty, event.clientY);
         const width = Math.abs(event.clientX - startx);
         const height = Math.abs(event.clientY - starty);
+
+        // selection, currently service use client coordinates, but coordinates relative to the layer maybe more appropriate.
         const services = instrument.services.find("SelectionService")
-        services.setSharedVar("x", startx, { layer });
-        services.setSharedVar("y", starty, { layer });
+        services.setSharedVar("x", x, { layer });
+        services.setSharedVar("y", y, { layer });
         services.setSharedVar("width", width, {
           layer,
         });
@@ -79,25 +84,24 @@ Instrument.register("BrushInstrument", {
         services.setSharedVar("currenty", event.clientY, { layer });
         await Promise.all(instrument.services.results);
 
-        const fieldColor = layer.getSharedVar("fieldColor");
-        const scaleColor = layer.getSharedVar("scaleColor");
-        const strokeCallback = (d) => scaleColor(d[fieldColor]);
+        // highlight
         GraphicalTransformer.initialize("HighlightSelection", {
             layer: layer.getLayerFromQueue("selectionLayer"),
             sharedVar: {
               highlightAttr: instrument.getSharedVar("highlightAttr") || "fill",
-              highlightColor: strokeCallback,
+              highlightColor: instrument.getSharedVar("highlightColor") || "red",
             },
         });
 
+        // draw brush
         const baseBBox = (
           layer.getGraphic().querySelector(".ig-layer-background") ||
           layer.getGraphic()
         ).getBoundingClientRect();
         const transformers = GraphicalTransformer.findTransformer("TransientRectangleTransformer");
         transformers.forEach((tf) => {
-          tf.setSharedVar("x", startx - baseBBox.left)
-          tf.setSharedVar("y", starty - baseBBox.top)
+          tf.setSharedVar("x", x - baseBBox.left)
+          tf.setSharedVar("y", y - baseBBox.top)
           tf.setSharedVar("width", width)
           tf.setSharedVar("height", height)
           tf.redraw();
