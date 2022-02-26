@@ -31,6 +31,7 @@ GraphicalTransformer.register("HighlightSelection", {
         // const a = d3.select(layer.getLayerFromQueue("selectionLayer").getGraphic())
         // .selectChildren("circle")
         // .attr("stroke", (d) => scaleColor(d[fieldColor]));
+        console.log(layer.getGraphic());
 
     d3.select(layer.getGraphic())
       .selectAll("*")
