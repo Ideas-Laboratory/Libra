@@ -1,3 +1,4 @@
+import { Command } from ".";
 import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
@@ -445,7 +446,10 @@ export function deepClone(obj) {
   ) {
     return obj;
   }
-  return Object.fromEntries(
+  if(obj === null) return null;
+  console.log("obj", obj);
+  const propertyObject = Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, deepClone(v)])
   );
+  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }

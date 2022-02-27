@@ -4,6 +4,7 @@ export default class GraphicalTransformer {
     constructor(baseName, options) {
         this._baseName = baseName;
         this._userOptions = options;
+        this._name = options.name ?? this._baseName;
         this._sharedVar = options.sharedVar ?? {};
         this._redraw = options.redraw ?? (() => { });
         this._layer = options.layer;

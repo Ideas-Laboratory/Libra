@@ -317,7 +317,11 @@ function deepClone(obj) {
   ].includes(typeof obj)) {
     return obj;
   }
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+  if (obj === null)
+    return null;
+  console.log("obj", obj);
+  const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }
 
 // dist/esm/interactor/actions.jsgf.js
@@ -4140,6 +4144,7 @@ var GraphicalTransformer = class {
   constructor(baseName2, options) {
     this._baseName = baseName2;
     this._userOptions = options;
+    this._name = options.name ?? this._baseName;
     this._sharedVar = options.sharedVar ?? {};
     this._redraw = options.redraw ?? (() => {
     });
@@ -4240,95 +4245,117 @@ Instrument.register("BrushInstrument", {
   interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
     dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("RectSelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
-        services.setSharedVar("width", 1, { layer });
-        services.setSharedVar("height", 1, { layer });
-        services.setSharedVar("startx", event.clientX, { layer });
-        services.setSharedVar("starty", event.clientY, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("starty", event.clientY);
-      }
+      Command.initialize("setInitialState", {
+        execute: async ({ event, layer, instrument }) => {
+          if (event.changedTouches)
+            event = event.changedTouches[0];
+          const services = instrument.services.find("RectSelectionService");
+          services.setSharedVar("x", event.clientX, { layer });
+          services.setSharedVar("y", event.clientY, { layer });
+          services.setSharedVar("width", 1, { layer });
+          services.setSharedVar("height", 1, { layer });
+          services.setSharedVar("startx", event.clientX, { layer });
+          services.setSharedVar("starty", event.clientY, { layer });
+          services.setSharedVar("currentx", event.clientX, { layer });
+          services.setSharedVar("currenty", event.clientY, { layer });
+          instrument.setSharedVar("startx", event.clientX);
+          instrument.setSharedVar("starty", event.clientY);
+        }
+      })
     ],
     drag: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const startx = instrument.getSharedVar("startx");
-        const starty = instrument.getSharedVar("starty");
-        const x = Math.min(startx, event.clientX);
-        const y = Math.min(starty, event.clientY);
-        const width = Math.abs(event.clientX - startx);
-        const height = Math.abs(event.clientY - starty);
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", x, { layer });
-        services.setSharedVar("y", y, { layer });
-        services.setSharedVar("width", width, {
-          layer
-        });
-        services.setSharedVar("height", height, {
-          layer
-        });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        await Promise.all(instrument.services.results);
-        transformer_default.initialize("HighlightSelection", {
-          layer: layer.getLayerFromQueue("selectionLayer"),
-          sharedVar: {
-            highlightAttr: instrument.getSharedVar("highlightAttr") || "fill",
-            highlightColor: instrument.getSharedVar("highlightColor") || "red"
+      Command.initialize("drawBrushAndSelect", {
+        execute: async ({ event, layer, instrument }) => {
+          if (event.changedTouches)
+            event = event.changedTouches[0];
+          const startx = instrument.getSharedVar("startx");
+          const starty = instrument.getSharedVar("starty");
+          const x = Math.min(startx, event.clientX);
+          const y = Math.min(starty, event.clientY);
+          const width = Math.abs(event.clientX - startx);
+          const height = Math.abs(event.clientY - starty);
+          const services = instrument.services.find("SelectionService");
+          services.setSharedVar("x", x, { layer });
+          services.setSharedVar("y", y, { layer });
+          services.setSharedVar("width", width, {
+            layer
+          });
+          services.setSharedVar("height", height, {
+            layer
+          });
+          services.setSharedVar("currentx", event.clientX, { layer });
+          services.setSharedVar("currenty", event.clientY, { layer });
+          await Promise.all(instrument.services.results);
+        },
+        feedback: [
+          async ({ event, layer, instrument }) => {
+            const startx = instrument.getSharedVar("startx");
+            const starty = instrument.getSharedVar("starty");
+            const x = Math.min(startx, event.clientX);
+            const y = Math.min(starty, event.clientY);
+            const width = Math.abs(event.clientX - startx);
+            const height = Math.abs(event.clientY - starty);
+            const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
+            const transformers = transformer_default.findTransformer("TransientRectangleTransformer");
+            transformers.forEach((tf) => {
+              tf.setSharedVar("x", x - baseBBox.left);
+              tf.setSharedVar("y", y - baseBBox.top);
+              tf.setSharedVar("width", width);
+              tf.setSharedVar("height", height);
+            });
+          },
+          async ({ event, layer, instrument }) => {
+            transformer_default.initialize("HighlightSelection", {
+              layer: layer.getLayerFromQueue("selectionLayer"),
+              sharedVar: {
+                highlightAttr: instrument.getSharedVar("highlightAttr") || "fill",
+                highlightColor: instrument.getSharedVar("highlightColor") || "red"
+              }
+            });
           }
-        });
-        const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
-        const transformers = transformer_default.findTransformer("TransientRectangleTransformer");
-        transformers.forEach((tf) => {
-          tf.setSharedVar("x", x - baseBBox.left);
-          tf.setSharedVar("y", y - baseBBox.top);
-          tf.setSharedVar("width", width);
-          tf.setSharedVar("height", height);
-          tf.redraw();
-        });
-      },
-      async ({ event, layer, instrument }) => {
-      }
+        ]
+      })
     ],
     dragend: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        if (!instrument.getSharedVar("persistant")) {
-          const services = instrument.services.find("SelectionService");
-          services.setSharedVar("width", -1, { layer });
-          services.setSharedVar("height", -1, { layer });
-          const transformers = transformer_default.findTransformer("TransientRectangleTransformer");
-          transformers.forEach((tf) => {
-            tf.setSharedVar("width", 0);
-            tf.setSharedVar("height", 0);
-            tf.redraw();
-          });
-        }
-      }
+      Command.initialize("clearOrPersistant", {
+        execute: async ({ event, layer, instrument }) => {
+          if (event.changedTouches)
+            event = event.changedTouches[0];
+          if (!instrument.getSharedVar("persistant")) {
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("width", -1, { layer });
+            services.setSharedVar("height", -1, { layer });
+          }
+        },
+        feedback: [async ({ event, layer, instrument }) => {
+          if (event.changedTouches)
+            event = event.changedTouches[0];
+          if (!instrument.getSharedVar("persistant")) {
+            const transformers = transformer_default.findTransformer("TransientRectangleTransformer");
+            transformers.forEach((tf) => {
+              tf.setSharedVar("width", 0);
+              tf.setSharedVar("height", 0);
+            });
+          }
+        }]
+      })
     ],
     dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("y", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("height", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        services.setSharedVar("endy", event.clientY, { layer });
-      }
+      Command.initialize("abort", {
+        execute: async ({ event, layer, instrument }) => {
+          if (event.changedTouches)
+            event = event.changedTouches[0];
+          const services = instrument.services.find("SelectionService");
+          services.setSharedVar("x", 0, { layer });
+          services.setSharedVar("y", 0, { layer });
+          services.setSharedVar("width", 0, { layer });
+          services.setSharedVar("height", 0, { layer });
+          services.setSharedVar("currentx", event.clientX, { layer });
+          services.setSharedVar("currenty", event.clientY, { layer });
+          services.setSharedVar("endx", event.clientX, { layer });
+          services.setSharedVar("endy", event.clientY, { layer });
+        }
+      })
     ]
   },
   preAttach: (instrument, layer) => {

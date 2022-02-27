@@ -259,5 +259,9 @@ export function deepClone(obj) {
     ].includes(typeof obj)) {
         return obj;
     }
-    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+    if (obj === null)
+        return null;
+    console.log("obj", obj);
+    const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+    return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }

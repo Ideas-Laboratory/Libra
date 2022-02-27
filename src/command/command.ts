@@ -1,5 +1,7 @@
 import * as helpers from "../helpers";
 
+// const commandSymbol = Symbol("command");
+
 type CommandInitOption = {
   name?: string;
   feedback?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
@@ -22,6 +24,7 @@ const registeredCommands: { [name: string]: CommandInitTemplate } = {};
 export const instanceCommands: Command[] = [];
 
 export default class Command {
+  // _symbol:Symbol = commandSymbol; 
   _baseName: string;
   _name: string;
   _userOptions: CommandInitOption;
@@ -108,6 +111,10 @@ export default class Command {
       command.isInstanceOf(baseNameOrRealName)
     );
   }
+  // static[Symbol.hasInstance](instance: Command): boolean {
+  //   if(instance._symbol === undefined) return false;
+  //   return commandSymbol === instance._symbol;
+  // } 
 }
 
 export const register = Command.register;
