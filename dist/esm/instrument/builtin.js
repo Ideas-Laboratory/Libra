@@ -272,15 +272,9 @@ Instrument.register("BrushXInstrument", {
                         event = event.changedTouches[0];
                     const services = instrument.services.find("SelectionService");
                     services.setSharedVar("x", 0, { layer });
-                    services.setSharedVar("y", 0, { layer });
                     services.setSharedVar("width", 0, { layer });
-                    services.setSharedVar("height", 0, { layer });
                     services.setSharedVar("currentx", event.clientX, { layer });
-                    services.setSharedVar("currenty", event.clientY, { layer });
                     services.setSharedVar("endx", event.clientX, { layer });
-                    services.setSharedVar("endy", event.clientY, { layer });
-                    // const transientLayer = layer.getLayerFromQueue("transientLayer");
-                    // transientLayer.getGraphic().innerHTML = "";
                 },
             })
         ],

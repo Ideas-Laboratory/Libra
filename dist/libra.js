@@ -3411,18 +3411,18 @@ var D3Layer = class extends Layer {
     const visualElements = selectAll_default2(this.getVisualElements());
     if (options.type === DataQueryType.Quantitative) {
       const { attrName, extent } = options;
-      result = visualElements.filter((d) => extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
+      result = visualElements.filter((d) => d && d[attrName] && extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
     }
     if (options.type === DataQueryType.Quantitative2D) {
       const { attrNameX, extentX, attrNameY, extentY } = options;
-      result = visualElements.filter((d) => extentX[0] < d[attrNameX] && d[attrNameX] < extentX[1] && extentY[0] < d[attrNameY] && d[attrNameY] < extentY[1]).nodes();
+      result = visualElements.filter((d) => d && d[attrNameX] && d[attrNameY] && extentX[0] < d[attrNameX] && d[attrNameX] < extentX[1] && extentY[0] < d[attrNameY] && d[attrNameY] < extentY[1]).nodes();
     } else if (options.type === DataQueryType.Nominal) {
       const { attrName, extent } = options;
-      result = visualElements.filter((d) => extent.find(d[attrName])).nodes();
+      result = visualElements.filter((d) => d && d[attrName] && extent.find(d[attrName])).nodes();
     } else if (options.type === DataQueryType.Temporal) {
       const { attrName, extent } = options;
       const dateParser = options.dateParser || ((d) => d);
-      result = visualElements.filter((d) => extent[0].getTime() < dateParser(d[attrName]).getTime() && dateParser(d[attrName]).getTime() < extent[1].getTime()).nodes();
+      result = visualElements.filter((d) => d && d[attrName] && extent[0].getTime() < dateParser(d[attrName]).getTime() && dateParser(d[attrName]).getTime() < extent[1].getTime()).nodes();
     }
     return result;
   }
@@ -3529,6 +3529,8 @@ var SelectionService = class extends InteractionService {
     }
     this.preUpdate();
     this._sharedVar[sharedName] = value;
+    console.error("userOptions");
+    console.log(this._userOptions);
     if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
       const layer = options?.layer || this._layerInstances[0];
       if (this._nextTick) {
@@ -3648,6 +3650,15 @@ InteractionService.register("PolygonSelectionService", {
     baseOn: QueryType.Shape,
     type: ShapeQueryType.Polygon,
     points: []
+  }
+});
+InteractionService.register("QuantitativeSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: QueryType.Data,
+    type: DataQueryType.Quantitative,
+    attrName: "",
+    extent: [0, 0]
   }
 });
 
@@ -4483,13 +4494,9 @@ Instrument.register("BrushXInstrument", {
             event = event.changedTouches[0];
           const services = instrument.services.find("SelectionService");
           services.setSharedVar("x", 0, { layer });
-          services.setSharedVar("y", 0, { layer });
           services.setSharedVar("width", 0, { layer });
-          services.setSharedVar("height", 0, { layer });
           services.setSharedVar("currentx", event.clientX, { layer });
-          services.setSharedVar("currenty", event.clientY, { layer });
           services.setSharedVar("endx", event.clientX, { layer });
-          services.setSharedVar("endy", event.clientY, { layer });
         }
       })
     ]
