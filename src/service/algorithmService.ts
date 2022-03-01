@@ -183,6 +183,8 @@ export default class AnalysisService extends InteractionService {
   }
 }
 
+(InteractionService as any).AnalysisService = AnalysisService;
+
 InteractionService.register("AnalysisService", {
   constructor: AnalysisService,
 });

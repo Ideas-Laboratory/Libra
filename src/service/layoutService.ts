@@ -71,6 +71,8 @@ export default class LayoutService extends InteractionService {
   }
 }
 
+(InteractionService as any).LayoutService = LayoutService;
+
 InteractionService.register("LayoutService", {
   constructor: LayoutService,
 });

@@ -201,6 +201,7 @@ export default class SelectionService extends InteractionService {
         return this._oldResult;
     }
 }
+InteractionService.SelectionService = SelectionService;
 InteractionService.register("SelectionService", {
     constructor: SelectionService,
 });

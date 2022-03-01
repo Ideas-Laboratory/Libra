@@ -3600,6 +3600,7 @@ var SelectionService = class extends InteractionService {
     return this._oldResult;
   }
 };
+InteractionService.SelectionService = SelectionService;
 InteractionService.register("SelectionService", {
   constructor: SelectionService
 });
@@ -3774,6 +3775,71 @@ InteractionService.register("CrossSelectionService", {
   constructor: CrossSelectionService
 });
 
+// dist/esm/service/layoutService.js
+var LayoutService = class extends InteractionService {
+  constructor(baseName2, options) {
+    super(baseName2, options);
+    this._oldResult = null;
+    this._result = null;
+    this._nextTick = 0;
+    Object.entries(options.params || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+  }
+  async setSharedVar(sharedName, value, options) {
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    if (this._userOptions.layout) {
+      if (this._nextTick) {
+        return;
+      }
+      this._nextTick = requestAnimationFrame(async () => {
+        this._oldResult = this._result;
+        try {
+          this._result = await this._userOptions.layout({
+            ...this._userOptions.params ?? {},
+            ...this._sharedVar
+          });
+        } catch (e) {
+          console.error(e);
+          this._result = void 0;
+        }
+        this._nextTick = 0;
+        this.postUpdate();
+      });
+    } else {
+      this.postUpdate();
+    }
+  }
+  isInstanceOf(name) {
+    return name === "LayoutService" || this._baseName === name || this._name === name;
+  }
+  get results() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._result);
+        });
+      });
+    }
+    return this._result;
+  }
+  get oldResults() {
+    if (this._nextTick) {
+      return new Promise((res) => {
+        window.requestAnimationFrame(() => {
+          res(this._oldResult);
+        });
+      });
+    }
+    return this._oldResult;
+  }
+};
+InteractionService.LayoutService = LayoutService;
+InteractionService.register("LayoutService", {
+  constructor: LayoutService
+});
+
 // dist/esm/service/algorithmService.js
 var AnalysisService = class extends InteractionService {
   constructor(baseName2, options) {
@@ -3834,6 +3900,7 @@ var AnalysisService = class extends InteractionService {
     return this._oldResult;
   }
 };
+InteractionService.AnalysisService = AnalysisService;
 InteractionService.register("AnalysisService", {
   constructor: AnalysisService
 });
@@ -4653,14 +4720,6 @@ Instrument.register("HelperBarYaxisInstrument", {
     helperBarYaxis.setAttribute("stroke", `blue`);
     helperBarYaxis.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBarYaxis);
-    const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    helperBarYaxis2.setAttribute("x1", "0");
-    helperBarYaxis2.setAttribute("y1", "0");
-    helperBarYaxis2.setAttribute("x2", `${width}`);
-    helperBarYaxis2.setAttribute("y2", "0");
-    helperBarYaxis2.setAttribute("stroke", `green`);
-    helperBarYaxis2.setAttribute("stroke-width", `1px`);
-    transientLayer.getGraphic().append(helperBarYaxis2);
   }
 });
 Instrument.register("DataBrushInstrument", {
