@@ -15,6 +15,8 @@ export default class SelectionService extends InteractionService {
         }
         this.preUpdate();
         this._sharedVar[sharedName] = value;
+        console.error("userOptions");
+        console.log(this._userOptions);
         if ((options?.layer || this._layerInstances.length == 1) &&
             this._userOptions.query) {
             const layer = options?.layer || this._layerInstances[0];
@@ -249,5 +251,14 @@ InteractionService.register("PolygonSelectionService", {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Polygon,
         points: [],
+    },
+});
+InteractionService.register("QuantitativeSelectionService", {
+    constructor: SelectionService,
+    query: {
+        baseOn: helpers.QueryType.Data,
+        type: helpers.DataQueryType.Quantitative,
+        attrName: "",
+        extent: [0, 0],
     },
 });

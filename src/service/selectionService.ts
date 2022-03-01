@@ -274,3 +274,13 @@ InteractionService.register("PolygonSelectionService", {
     points: [],
   },
 });
+
+InteractionService.register("QuantitativeSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Data,
+    type: helpers.DataQueryType.Quantitative,
+    attrName: "",
+    extent: [0, 0],
+  },
+});

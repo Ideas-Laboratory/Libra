@@ -219,13 +219,14 @@ export default class D3Layer extends Layer {
         if (options.type === helpers.DataQueryType.Quantitative) {
             const { attrName, extent } = options;
             result = visualElements
-                .filter((d) => extent[0] < d[attrName] && d[attrName] < extent[1])
+                .filter((d) => d && d[attrName] && extent[0] < d[attrName] && d[attrName] < extent[1])
                 .nodes();
         }
         if (options.type === helpers.DataQueryType.Quantitative2D) {
             const { attrNameX, extentX, attrNameY, extentY } = options;
             result = visualElements
-                .filter((d) => extentX[0] < d[attrNameX] &&
+                .filter((d) => d && d[attrNameX] && d[attrNameY] &&
+                extentX[0] < d[attrNameX] &&
                 d[attrNameX] < extentX[1] &&
                 extentY[0] < d[attrNameY] &&
                 d[attrNameY] < extentY[1])
@@ -233,13 +234,14 @@ export default class D3Layer extends Layer {
         }
         else if (options.type === helpers.DataQueryType.Nominal) {
             const { attrName, extent } = options;
-            result = visualElements.filter((d) => extent.find(d[attrName])).nodes();
+            result = visualElements.filter((d) => d && d[attrName] && extent.find(d[attrName])).nodes();
         }
         else if (options.type === helpers.DataQueryType.Temporal) {
             const { attrName, extent } = options;
             const dateParser = options.dateParser || ((d) => d);
             result = visualElements
-                .filter((d) => extent[0].getTime() < dateParser(d[attrName]).getTime() &&
+                .filter((d) => d && d[attrName] &&
+                extent[0].getTime() < dateParser(d[attrName]).getTime() &&
                 dateParser(d[attrName]).getTime() < extent[1].getTime())
                 .nodes();
         }
