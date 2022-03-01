@@ -17,8 +17,6 @@ export default class SelectionService extends InteractionService {
     }
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    console.error("userOptions");
-    console.log(this._userOptions);
     if (
       (options?.layer || this._layerInstances.length == 1) &&
       this._userOptions.query
