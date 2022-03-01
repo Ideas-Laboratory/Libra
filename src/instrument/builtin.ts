@@ -508,14 +508,14 @@ Instrument.register("HelperBarYaxisInstrument", {
       helperBarYaxis.setAttribute("stroke", `blue`);
       helperBarYaxis.setAttribute("stroke-width", `1px`);
       transientLayer.getGraphic().append(helperBarYaxis);
-      const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      helperBarYaxis2.setAttribute("x1", "0");
-      helperBarYaxis2.setAttribute("y1", "0");
-      helperBarYaxis2.setAttribute("x2", `${width}`);
-      helperBarYaxis2.setAttribute("y2", "0");
-      helperBarYaxis2.setAttribute("stroke", `green`);
-      helperBarYaxis2.setAttribute("stroke-width", `1px`);
-      transientLayer.getGraphic().append(helperBarYaxis2);
+      // const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      // helperBarYaxis2.setAttribute("x1", "0");
+      // helperBarYaxis2.setAttribute("y1", "0");
+      // helperBarYaxis2.setAttribute("x2", `${width}`);
+      // helperBarYaxis2.setAttribute("y2", "0");
+      // helperBarYaxis2.setAttribute("stroke", `green`);
+      // helperBarYaxis2.setAttribute("stroke-width", `1px`);
+      // transientLayer.getGraphic().append(helperBarYaxis2);
   },
 });
 
