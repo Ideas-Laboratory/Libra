@@ -44,7 +44,7 @@ GraphicalTransformer.register("HighlightSelection", {
       .selectAll("*")
     const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
     attrValueEntries.forEach(([key, value]) => {
-      elems.attr(key, value + "");
+      elems.attr(key, value as string);
     })
   },
 });

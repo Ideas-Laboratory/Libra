@@ -3529,8 +3529,6 @@ var SelectionService = class extends InteractionService {
     }
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    console.error("userOptions");
-    console.log(this._userOptions);
     if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
       const layer = options?.layer || this._layerInstances[0];
       if (this._nextTick) {
@@ -4225,7 +4223,7 @@ GraphicalTransformer.register("HighlightSelection", {
     const elems = select_default2(layer.getGraphic()).selectAll("*");
     const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
     attrValueEntries.forEach(([key, value]) => {
-      elems.attr(key, value + "");
+      elems.attr(key, value);
     });
   }
 });
