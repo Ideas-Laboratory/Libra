@@ -4625,6 +4625,44 @@ Instrument.register("HelperBarInstrument", {
     transientLayer.getGraphic().append(helperBar);
   }
 });
+Instrument.register("HelperBarYaxisInstrument", {
+  constructor: Instrument,
+  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
+  on: {
+    hover: [
+      ({ event, layer, instrument }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
+        const helperBarYaxis = transientLayer.getGraphic().querySelector("line");
+        const helperBarYaxis2 = transientLayer.getGraphic().querySelector("line");
+        helperBarYaxis.setAttribute("transform", `translate(0, ${event.offsetY - 20})`);
+        helperBarYaxis2.setAttribute("transform", `translate(0, ${event.offsetY - 20})`);
+        instrument.setSharedVar("barX", event.offsetX, {});
+      }
+    ]
+  },
+  preAttach: function(instrument, layer) {
+    const width = layer.getSharedVar("width", 600);
+    const transientLayer = layer.getLayerFromQueue("transientLayer");
+    const helperBarYaxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    helperBarYaxis.setAttribute("x1", "0");
+    helperBarYaxis.setAttribute("y1", "0");
+    helperBarYaxis.setAttribute("x2", `${width}`);
+    helperBarYaxis.setAttribute("y2", "0");
+    helperBarYaxis.setAttribute("stroke", `blue`);
+    helperBarYaxis.setAttribute("stroke-width", `1px`);
+    transientLayer.getGraphic().append(helperBarYaxis);
+    const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    helperBarYaxis2.setAttribute("x1", "0");
+    helperBarYaxis2.setAttribute("y1", "0");
+    helperBarYaxis2.setAttribute("x2", `${width}`);
+    helperBarYaxis2.setAttribute("y2", "0");
+    helperBarYaxis2.setAttribute("stroke", `green`);
+    helperBarYaxis2.setAttribute("stroke-width", `1px`);
+    transientLayer.getGraphic().append(helperBarYaxis2);
+  }
+});
 Instrument.register("DataBrushInstrument", {
   constructor: Instrument,
   interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
