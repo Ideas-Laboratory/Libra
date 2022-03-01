@@ -113,7 +113,7 @@ Instrument.register("BrushInstrument", {
                         });
                     }
                 ]
-            }),
+            })
         ],
         dragend: [
             Command.initialize("clearOrPersistant", {
@@ -431,6 +431,36 @@ Instrument.register("HelperBarInstrument", {
         transientLayer.getGraphic().append(helperBar);
     },
 });
+
+Instrument.register("HelperBarYaxisInstrument", {
+    constructor: Instrument,
+    interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
+    on: {
+        hover: [
+            ({ event, layer, instrument }) => {
+                if (event.changedTouches)
+                    event = event.changedTouches[0];
+                const transientLayer = layer.getLayerFromQueue("transientLayer");
+                const helperBar = transientLayer.getGraphic().querySelector("line");
+                helperBar.setAttribute("transform", `translate(${event.offsetX - 50}, 0)`);
+                instrument.setSharedVar("barX", event.offsetX - 50, {});
+            },
+        ],
+    },
+    preAttach: function (instrument, layer) {
+        const height = layer.getSharedVar("height", 100);
+        const transientLayer = layer.getLayerFromQueue("transientLayer");
+        const helperBarYaxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        helperBarYaxis.setAttribute("x1", "0");
+        helperBarYaxis.setAttribute("y1", "0");
+        helperBarYaxis.setAttribute("x2", "0");
+        helperBarYaxis.setAttribute("y2", `${height}`);
+        helperBarYaxis.setAttribute("stroke", `red`);
+        helperBarYaxis.setAttribute("stroke-width", `1px`);
+        transientLayer.getGraphic().append(helperBarYaxis);
+    },
+});
+
 Instrument.register("DataBrushInstrument", {
     constructor: Instrument,
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
