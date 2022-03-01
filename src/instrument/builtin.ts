@@ -121,8 +121,7 @@ Instrument.register("BrushInstrument", {
               },
             });
           }]
-      }),
-
+      })
     ],
     dragend: [
       Command.initialize("clearOrPersistant", {
@@ -146,7 +145,6 @@ Instrument.register("BrushInstrument", {
           }
         }]
       }),
-
     ],
     dragabort: [
       Command.initialize("abort", {
@@ -192,6 +190,11 @@ Instrument.register("BrushInstrument", {
 
   },
 });
+
+
+
+
+
 
 Instrument.register("BrushXInstrument", {
   constructor: Instrument,
@@ -358,6 +361,7 @@ Instrument.register("BrushYInstrument", {
 
 Instrument.register("HelperBarInstrument", {
   constructor: Instrument,
+  
   interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
