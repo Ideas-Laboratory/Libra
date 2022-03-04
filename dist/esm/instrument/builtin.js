@@ -81,9 +81,9 @@ Instrument.register("BrushInstrument", {
                     });
                     services.setSharedVar("currentx", event.clientX, { layer });
                     services.setSharedVar("currenty", event.clientY, { layer });
-                    await Promise.all(instrument.services.results);
                 },
                 feedback: [
+                    // transient Layer
                     async ({ event, layer, instrument }) => {
                         const startx = instrument.getSharedVar("startx");
                         const starty = instrument.getSharedVar("starty");
@@ -102,6 +102,11 @@ Instrument.register("BrushInstrument", {
                             tf.setSharedVar("height", height);
                         });
                     },
+                    // selection Layer
+                    async ({ event, layer, instrument }) => {
+                        await Promise.all(instrument.services.results);
+                    },
+                    // Highlight seleciton Layer 
                     async ({ event, layer, instrument }) => {
                         GraphicalTransformer.initialize("HighlightSelection", {
                             layer: layer.getLayerFromQueue("selectionLayer"),
@@ -459,14 +464,14 @@ Instrument.register("HelperBarYaxisInstrument", {
         helperBarYaxis.setAttribute("stroke", `blue`);
         helperBarYaxis.setAttribute("stroke-width", `1px`);
         transientLayer.getGraphic().append(helperBarYaxis);
-        const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        helperBarYaxis2.setAttribute("x1", "0");
-        helperBarYaxis2.setAttribute("y1", "0");
-        helperBarYaxis2.setAttribute("x2", `${width}`);
-        helperBarYaxis2.setAttribute("y2", "0");
-        helperBarYaxis2.setAttribute("stroke", `green`);
-        helperBarYaxis2.setAttribute("stroke-width", `1px`);
-        transientLayer.getGraphic().append(helperBarYaxis2);
+        // const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        // helperBarYaxis2.setAttribute("x1", "0");
+        // helperBarYaxis2.setAttribute("y1", "0");
+        // helperBarYaxis2.setAttribute("x2", `${width}`);
+        // helperBarYaxis2.setAttribute("y2", "0");
+        // helperBarYaxis2.setAttribute("stroke", `green`);
+        // helperBarYaxis2.setAttribute("stroke-width", `1px`);
+        // transientLayer.getGraphic().append(helperBarYaxis2);
     },
 });
 Instrument.register("DataBrushInstrument", {

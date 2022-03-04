@@ -88,9 +88,9 @@ Instrument.register("BrushInstrument", {
           });
           services.setSharedVar("currentx", event.clientX, { layer });
           services.setSharedVar("currenty", event.clientY, { layer });
-          await Promise.all(instrument.services.results);
         },
         feedback: [
+            // transient Layer
           async ({ event, layer, instrument }) => {
             const startx = instrument.getSharedVar("startx");
             const starty = instrument.getSharedVar("starty");
@@ -114,6 +114,11 @@ Instrument.register("BrushInstrument", {
             }
             );
           },
+           // selection Layer
+          async ({event, layer, instrument}) => {
+            await Promise.all(instrument.services.results);
+          },
+          // Highlight seleciton Layer 
           async ({ event, layer, instrument }) => {
             GraphicalTransformer.initialize("HighlightSelection", {
               layer: layer.getLayerFromQueue("selectionLayer"),

@@ -4315,7 +4315,6 @@ Instrument.register("BrushInstrument", {
           });
           services.setSharedVar("currentx", event.clientX, { layer });
           services.setSharedVar("currenty", event.clientY, { layer });
-          await Promise.all(instrument.services.results);
         },
         feedback: [
           async ({ event, layer, instrument }) => {
@@ -4333,6 +4332,9 @@ Instrument.register("BrushInstrument", {
               tf.setSharedVar("width", width);
               tf.setSharedVar("height", height);
             });
+          },
+          async ({ event, layer, instrument }) => {
+            await Promise.all(instrument.services.results);
           },
           async ({ event, layer, instrument }) => {
             transformer_default.initialize("HighlightSelection", {
@@ -4653,14 +4655,6 @@ Instrument.register("HelperBarYaxisInstrument", {
     helperBarYaxis.setAttribute("stroke", `blue`);
     helperBarYaxis.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBarYaxis);
-    const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    helperBarYaxis2.setAttribute("x1", "0");
-    helperBarYaxis2.setAttribute("y1", "0");
-    helperBarYaxis2.setAttribute("x2", `${width}`);
-    helperBarYaxis2.setAttribute("y2", "0");
-    helperBarYaxis2.setAttribute("stroke", `green`);
-    helperBarYaxis2.setAttribute("stroke-width", `1px`);
-    transientLayer.getGraphic().append(helperBarYaxis2);
   }
 });
 Instrument.register("DataBrushInstrument", {
