@@ -3,6 +3,7 @@ import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
 import { InteractionService } from "../service";
+import { GraphicalTransformer } from "../transformer";
 declare type InstrumentInitOption = {
     name?: string;
     on?: {
@@ -56,6 +57,7 @@ export default class Instrument {
     _sharedVar: {
         [varName: string]: any;
     };
+    _transformers: GraphicalTransformer[];
     _preInitialize?: (instrument: Instrument) => void;
     _postInitialize?: (instrument: Instrument) => void;
     _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
@@ -76,6 +78,7 @@ export default class Instrument {
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
     get services(): any;
+    get transformers(): any;
     static register(baseName: string, options: InstrumentInitTemplate): void;
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: InstrumentInitOption): Instrument;

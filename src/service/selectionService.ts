@@ -1,11 +1,26 @@
 import InteractionService from "./service";
 import * as helpers from "../helpers";
 import * as d3 from "d3";
+import { GraphicalTransformer } from "../transformer";
 
 export default class SelectionService extends InteractionService {
   _oldResult: any = [];
   _result: any = [];
   _nextTick: number = 0;
+  _transformers: GraphicalTransformer[] = [];
+
+  constructor(baseName: string, options: any) {
+    super(baseName, options);
+    this._transformers.push(
+      GraphicalTransformer.initialize("SelectionTransformer", {
+        transient: true,
+        sharedVar: {
+          selectionResult: [],
+          layer: null,
+        },
+      })
+    );
+  }
 
   async setSharedVar(sharedName: string, value: any, options?: any) {
     if (
@@ -60,13 +75,21 @@ export default class SelectionService extends InteractionService {
               refNodes.push(node);
             }
           });
-          resultNodes.forEach((resultNode) =>
-            selectionLayer.appendChild(resultNode)
-          );
+          this._transformers.forEach((transformer) => {
+            transformer.setSharedVars({
+              layer: layer.getLayerFromQueue("selectionLayer"),
+              selectionResult: resultNodes,
+            });
+          });
         } else {
-          this._result.forEach((node) =>
-            selectionLayer.appendChild(layer.cloneVisualElements(node))
-          );
+          this._transformers.forEach((transformer) => {
+            transformer.setSharedVars({
+              layer: layer.getLayerFromQueue("selectionLayer"),
+              selectionResult: this._result.map((node) =>
+                layer.cloneVisualElements(node)
+              ),
+            });
+          });
         }
 
         this._nextTick = 0;

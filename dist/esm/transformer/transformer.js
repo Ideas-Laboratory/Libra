@@ -1,5 +1,22 @@
 const registeredTransformers = {};
 const instanceTransformers = [];
+let transientQueue = [];
+const transientCleaner = () => {
+    let transientElement;
+    while ((transientElement = transientQueue.pop())) {
+        try {
+            transientElement.remove(); // TODO: other VIS toolkit APIs
+        }
+        catch (e) {
+            // ignore?
+        }
+    }
+    instanceTransformers
+        .filter((transformer) => transformer._transient)
+        .forEach((transformer) => transformer.redraw());
+    requestAnimationFrame(transientCleaner);
+};
+requestAnimationFrame(transientCleaner);
 export default class GraphicalTransformer {
     constructor(baseName, options) {
         this._baseName = baseName;
@@ -8,7 +25,9 @@ export default class GraphicalTransformer {
         this._sharedVar = options.sharedVar ?? {};
         this._redraw = options.redraw ?? (() => { });
         this._layer = options.layer;
+        this._transient = options.transient ?? false;
         this.redraw();
+        instanceTransformers.push(this);
     }
     getSharedVar(name) {
         return this._sharedVar[name];
@@ -17,8 +36,28 @@ export default class GraphicalTransformer {
         this._sharedVar[name] = value;
         this.redraw();
     }
-    redraw() {
-        this._redraw({ layer: this._layer, transformer: this });
+    setSharedVars(obj) {
+        Object.entries(obj).forEach(([k, v]) => (this._sharedVar[k] = v));
+        this.redraw();
+    }
+    redraw(transient = false) {
+        if (!this._layer && !this.getSharedVar("layer"))
+            return;
+        const layer = this._layer || this.getSharedVar("layer");
+        transient = transient || this._transient;
+        let preDrawElements = [], postDrawElements = [];
+        if (transient) {
+            preDrawElements = layer.getVisualElements();
+        }
+        this._redraw({
+            layer,
+            transformer: this,
+        });
+        if (transient) {
+            postDrawElements = layer.getVisualElements();
+            const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+            transientQueue = transientQueue.concat(transientElements);
+        }
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

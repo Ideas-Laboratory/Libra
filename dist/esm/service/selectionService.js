@@ -1,11 +1,20 @@
 import InteractionService from "./service";
 import * as helpers from "../helpers";
+import { GraphicalTransformer } from "../transformer";
 export default class SelectionService extends InteractionService {
-    constructor() {
-        super(...arguments);
+    constructor(baseName, options) {
+        super(baseName, options);
         this._oldResult = [];
         this._result = [];
         this._nextTick = 0;
+        this._transformers = [];
+        this._transformers.push(GraphicalTransformer.initialize("SelectionTransformer", {
+            transient: true,
+            sharedVar: {
+                selectionResult: [],
+                layer: null,
+            },
+        }));
     }
     async setSharedVar(sharedName, value, options) {
         if (options &&
@@ -54,10 +63,20 @@ export default class SelectionService extends InteractionService {
                             refNodes.push(node);
                         }
                     });
-                    resultNodes.forEach((resultNode) => selectionLayer.appendChild(resultNode));
+                    this._transformers.forEach((transformer) => {
+                        transformer.setSharedVars({
+                            layer: layer.getLayerFromQueue("selectionLayer"),
+                            selectionResult: resultNodes,
+                        });
+                    });
                 }
                 else {
-                    this._result.forEach((node) => selectionLayer.appendChild(layer.cloneVisualElements(node)));
+                    this._transformers.forEach((transformer) => {
+                        transformer.setSharedVars({
+                            layer: layer.getLayerFromQueue("selectionLayer"),
+                            selectionResult: this._result.map((node) => layer.cloneVisualElements(node)),
+                        });
+                    });
                 }
                 this._nextTick = 0;
                 // if (this._on.update) {

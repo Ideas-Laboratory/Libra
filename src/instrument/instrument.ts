@@ -3,6 +3,7 @@ import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
 import { InteractionService, findService } from "../service";
+import { GraphicalTransformer } from "../transformer";
 
 type InstrumentInitOption = {
   name?: string;
@@ -69,6 +70,7 @@ export default class Instrument {
   _interactors: (Interactor | { interactor: Interactor; options: any })[];
   _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
   _sharedVar: { [varName: string]: any };
+  _transformers: GraphicalTransformer[] = [];
   _preInitialize?: (instrument: Instrument) => void;
   _postInitialize?: (instrument: Instrument) => void;
   _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
@@ -414,6 +416,14 @@ export default class Instrument {
       this._serviceInstances.slice(0),
       InteractionService,
       this.useService.bind(this)
+    );
+  }
+
+  get transformers() {
+    return helpers.makeFindableList(
+      this._transformers.slice(0),
+      GraphicalTransformer,
+      (e) => this._transformers.push(e)
     );
   }
 

@@ -12,7 +12,7 @@ export default class Layer {
         // this._transformation = options.transformation ?? {};
         // this._services = options.services ?? [];
         this._container = options.container;
-        this._sharedVar = options.sharedVar ?? {};
+        // this._sharedVar = options.sharedVar ?? {};
         // this._sharedVarWatcher = {};
         // this._transformationWatcher = {};
         // this._serviceInstances = [];
@@ -45,37 +45,36 @@ export default class Layer {
     cloneVisualElements(element, deep = false) {
         return element.cloneNode(deep);
     }
-    getSharedVar(sharedName, defaultValue) {
-        if (sharedName in this._sharedVar) {
-            return this._sharedVar[sharedName];
-        }
-        else {
-            this.setSharedVar(sharedName, defaultValue);
-            return defaultValue;
-        }
-    }
-    setSharedVar(sharedName, value) {
-        this.preUpdate();
-        const oldValue = this._sharedVar[sharedName];
-        this._sharedVar[sharedName] = value;
-        // if (sharedName in this._sharedVarWatcher) {
-        //   this._sharedVarWatcher[sharedName].forEach((callback) => {
-        //     if (callback instanceof Command) {
-        //       callback.execute({
-        //         self: this,
-        //         layer: this,
-        //         instrument: null,
-        //         interactor: null,
-        //         value,
-        //         oldValue,
-        //       });
-        //     } else {
-        //       callback({ value, oldValue });
-        //     }
-        //   });
-        // }
-        this.postUpdate();
-    }
+    // getSharedVar(sharedName: string, defaultValue?: any): any {
+    //   if (sharedName in this._sharedVar) {
+    //     return this._sharedVar[sharedName];
+    //   } else {
+    //     this.setSharedVar(sharedName, defaultValue);
+    //     return defaultValue;
+    //   }
+    // }
+    // setSharedVar(sharedName: string, value: any): void {
+    //   this.preUpdate();
+    //   const oldValue = this._sharedVar[sharedName];
+    //   this._sharedVar[sharedName] = value;
+    //   // if (sharedName in this._sharedVarWatcher) {
+    //   //   this._sharedVarWatcher[sharedName].forEach((callback) => {
+    //   //     if (callback instanceof Command) {
+    //   //       callback.execute({
+    //   //         self: this,
+    //   //         layer: this,
+    //   //         instrument: null,
+    //   //         interactor: null,
+    //   //         value,
+    //   //         oldValue,
+    //   //       });
+    //   //     } else {
+    //   //       callback({ value, oldValue });
+    //   //     }
+    //   //   });
+    //   // }
+    //   this.postUpdate();
+    // }
     // watchSharedVar(sharedName: string, handler: Function | Command): void {
     //   if (!(sharedName in this._sharedVarWatcher)) {
     //     this._sharedVarWatcher[sharedName] = [];
@@ -244,13 +243,17 @@ export function unregister(baseName) {
 }
 export function initialize(baseName, options) {
     const mergedOptions = Object.assign({}, registeredLayers[baseName] ?? { constructor: Layer }, options ?? {}, {
-        // needs to deep merge object
-        // transformation: Object.assign(
-        //   {},
-        //   (registeredLayers[baseName] ?? {}).transformation ?? {},
-        //   options?.transformation ?? {}
-        // ),
-        sharedVar: Object.assign({}, (registeredLayers[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
+    // needs to deep merge object
+    // transformation: Object.assign(
+    //   {},
+    //   (registeredLayers[baseName] ?? {}).transformation ?? {},
+    //   options?.transformation ?? {}
+    // ),
+    // sharedVar: Object.assign(
+    //   {},
+    //   (registeredLayers[baseName] ?? {}).sharedVar ?? {},
+    //   options?.sharedVar ?? {}
+    // ),
     });
     const layer = new mergedOptions.constructor(baseName, mergedOptions);
     return layer;

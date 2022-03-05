@@ -146,7 +146,7 @@ export type CommonHandlerInput<T> = {
 
 export function makeFindableList<T>(
   list: any,
-  typing: T,
+  typing: new (...args: any[]) => T,
   addFunc: (newElement: T) => void
 ) {
   return new Proxy(list, {
@@ -161,6 +161,15 @@ export function makeFindableList<T>(
             addFunc(newElement);
             filteredResult.push(newElement);
           }
+          return makeFindableList(filteredResult, typing, addFunc);
+        };
+      } else if (p === "add") {
+        return (...args: any[]) => {
+          const filteredResult = target.slice();
+          const newElement = (typing as any).initialize(...args) as T;
+          addFunc(newElement);
+          filteredResult.push(newElement);
+
           return makeFindableList(filteredResult, typing, addFunc);
         };
       } else if (p in target) {
@@ -446,10 +455,13 @@ export function deepClone(obj) {
   ) {
     return obj;
   }
-  if(obj === null) return null;
+  if (obj === null) return null;
   console.log("obj", obj);
   const propertyObject = Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, deepClone(v)])
   );
-  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(obj)),
+    propertyObject
+  );
 }

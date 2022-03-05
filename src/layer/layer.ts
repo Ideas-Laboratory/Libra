@@ -22,7 +22,7 @@ type LayerPartialOption = Partial<{
   //   | InteractionService
   //   | { service: string | InteractionService; options: any }
   // )[];
-  sharedVar: { [varName: string]: any };
+  // sharedVar: { [varName: string]: any };
   // redraw: (
   //   sharedVars: { [name: string]: any },
   //   scales: { [name: string]: helpers.Transformation },
@@ -68,7 +68,7 @@ export default class Layer<T> {
   // _serviceInstances: InteractionService[];
   _graphic: T;
   _container: HTMLElement;
-  _sharedVar: { [varName: string]: any };
+  // _sharedVar: { [varName: string]: any };
   // _sharedVarWatcher: { [varName: string]: (Function | Command)[] };
   _order: number;
   _nextTick: number = 0;
@@ -90,7 +90,7 @@ export default class Layer<T> {
     // this._transformation = options.transformation ?? {};
     // this._services = options.services ?? [];
     this._container = options.container;
-    this._sharedVar = options.sharedVar ?? {};
+    // this._sharedVar = options.sharedVar ?? {};
     // this._sharedVarWatcher = {};
     // this._transformationWatcher = {};
     // this._serviceInstances = [];
@@ -123,36 +123,36 @@ export default class Layer<T> {
   cloneVisualElements(element: Element, deep: boolean = false) {
     return element.cloneNode(deep);
   }
-  getSharedVar(sharedName: string, defaultValue?: any): any {
-    if (sharedName in this._sharedVar) {
-      return this._sharedVar[sharedName];
-    } else {
-      this.setSharedVar(sharedName, defaultValue);
-      return defaultValue;
-    }
-  }
-  setSharedVar(sharedName: string, value: any): void {
-    this.preUpdate();
-    const oldValue = this._sharedVar[sharedName];
-    this._sharedVar[sharedName] = value;
-    // if (sharedName in this._sharedVarWatcher) {
-    //   this._sharedVarWatcher[sharedName].forEach((callback) => {
-    //     if (callback instanceof Command) {
-    //       callback.execute({
-    //         self: this,
-    //         layer: this,
-    //         instrument: null,
-    //         interactor: null,
-    //         value,
-    //         oldValue,
-    //       });
-    //     } else {
-    //       callback({ value, oldValue });
-    //     }
-    //   });
-    // }
-    this.postUpdate();
-  }
+  // getSharedVar(sharedName: string, defaultValue?: any): any {
+  //   if (sharedName in this._sharedVar) {
+  //     return this._sharedVar[sharedName];
+  //   } else {
+  //     this.setSharedVar(sharedName, defaultValue);
+  //     return defaultValue;
+  //   }
+  // }
+  // setSharedVar(sharedName: string, value: any): void {
+  //   this.preUpdate();
+  //   const oldValue = this._sharedVar[sharedName];
+  //   this._sharedVar[sharedName] = value;
+  //   // if (sharedName in this._sharedVarWatcher) {
+  //   //   this._sharedVarWatcher[sharedName].forEach((callback) => {
+  //   //     if (callback instanceof Command) {
+  //   //       callback.execute({
+  //   //         self: this,
+  //   //         layer: this,
+  //   //         instrument: null,
+  //   //         interactor: null,
+  //   //         value,
+  //   //         oldValue,
+  //   //       });
+  //   //     } else {
+  //   //       callback({ value, oldValue });
+  //   //     }
+  //   //   });
+  //   // }
+  //   this.postUpdate();
+  // }
   // watchSharedVar(sharedName: string, handler: Function | Command): void {
   //   if (!(sharedName in this._sharedVarWatcher)) {
   //     this._sharedVarWatcher[sharedName] = [];
@@ -344,11 +344,11 @@ export function initialize<T>(
       //   (registeredLayers[baseName] ?? {}).transformation ?? {},
       //   options?.transformation ?? {}
       // ),
-      sharedVar: Object.assign(
-        {},
-        (registeredLayers[baseName] ?? {}).sharedVar ?? {},
-        options?.sharedVar ?? {}
-      ),
+      // sharedVar: Object.assign(
+      //   {},
+      //   (registeredLayers[baseName] ?? {}).sharedVar ?? {},
+      //   options?.sharedVar ?? {}
+      // ),
     }
   );
   const layer = new mergedOptions.constructor<T>(

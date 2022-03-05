@@ -107,7 +107,7 @@ export declare type CommonHandlerInput<T> = {
     interactor: Interactor;
     [parameter: string]: any;
 };
-export declare function makeFindableList<T>(list: any, typing: T, addFunc: (newElement: T) => void): any;
+export declare function makeFindableList<T>(list: any, typing: new (...args: any[]) => T, addFunc: (newElement: T) => void): any;
 export declare function getTransform(elem: SVGElement): number[];
 /**
  * Parse an event selector string.
