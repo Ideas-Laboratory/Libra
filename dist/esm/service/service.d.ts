@@ -7,6 +7,7 @@ declare type ServiceInitOption = {
     on?: {
         [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
+    layer?: Layer<any>;
     sharedVar?: {
         [key: string]: any;
     };

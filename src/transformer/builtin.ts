@@ -4,7 +4,9 @@ import * as d3 from "d3";
 GraphicalTransformer.register("SliderTransformer", {
   constructor: GraphicalTransformer,
   redraw: ({ layer, transformer }) => {
-    d3.select(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+    d3.select(layer.getGraphic())
+      .selectAll(":not(.ig-layer-background)")
+      .remove();
     const x1 = transformer.getSharedVar("x1") ?? 0;
     const x2 = transformer.getSharedVar("x2") ?? 0;
     const height = transformer.getSharedVar("height") ?? 0;
@@ -24,7 +26,9 @@ GraphicalTransformer.register("SliderTransformer", {
 GraphicalTransformer.register("TransientRectangleTransformer", {
   constructor: GraphicalTransformer,
   redraw: ({ layer, transformer }) => {
-    d3.select(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+    d3.select(layer.getGraphic())
+      .selectAll(":not(.ig-layer-background)")
+      .remove();
     d3.select(layer.getGraphic())
       .append("rect")
       .attr("x", transformer.getSharedVar("x"))
@@ -32,27 +36,29 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
       .attr("width", transformer.getSharedVar("width"))
       .attr("height", transformer.getSharedVar("height"))
       .attr("fill", transformer.getSharedVar("fillColor"))
-      .attr("opacity", transformer.getSharedVar("opacity"))
-      ;
+      .attr("opacity", transformer.getSharedVar("opacity"));
   },
 });
 
 GraphicalTransformer.register("HighlightSelection", {
   constructor: GraphicalTransformer,
   redraw({ layer, transformer }) {
-    const elems = d3.select(layer.getGraphic())
-      .selectAll("*")
-    const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
+    const elems = d3.select(layer.getGraphic()).selectAll("*");
+    const attrValueEntries = Object.entries(
+      transformer.getSharedVar("highlightAttrValues")
+    );
     attrValueEntries.forEach(([key, value]) => {
       elems.attr(key, value as string);
-    })
+    });
   },
 });
 
 GraphicalTransformer.register("TransientRectangleTransformer", {
   constructor: GraphicalTransformer,
   redraw: ({ layer, transformer }) => {
-    d3.select(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+    d3.select(layer.getGraphic())
+      .selectAll(":not(.ig-layer-background)")
+      .remove();
     d3.select(layer.getGraphic())
       .append("rect")
       .attr("x", transformer.getSharedVar("x"))
@@ -60,7 +66,15 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
       .attr("width", transformer.getSharedVar("width"))
       .attr("height", transformer.getSharedVar("height"))
       .attr("fill", transformer.getSharedVar("fillColor"))
-      .attr("opacity", transformer.getSharedVar("opacity"))
-      ;
+      .attr("opacity", transformer.getSharedVar("opacity"));
+  },
+});
+
+GraphicalTransformer.register("SelectionTransformer", {
+  constructor: GraphicalTransformer,
+  redraw: ({ layer, transformer }) => {
+    transformer
+      .getSharedVar("selectionResult")
+      .forEach((resultNode) => layer.getGraphic().appendChild(resultNode));
   },
 });

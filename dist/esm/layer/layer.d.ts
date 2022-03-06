@@ -7,9 +7,6 @@ declare type LayerRegisterRequiredOption = Required<{
 }>;
 declare type LayerPartialOption = Partial<{
     name: string;
-    sharedVar: {
-        [varName: string]: any;
-    };
     preInitialize: <T>(layer: Layer<T>) => void;
     postInitialize: <T>(layer: Layer<T>) => void;
     preUpdate: <T>(layer: Layer<T>) => void;
@@ -27,9 +24,6 @@ export default class Layer<T> {
     _userOptions: LayerInitOption;
     _graphic: T;
     _container: HTMLElement;
-    _sharedVar: {
-        [varName: string]: any;
-    };
     _order: number;
     _nextTick: number;
     _preInitialize?: <T>(layer: Layer<T>) => void;
@@ -41,8 +35,6 @@ export default class Layer<T> {
     getContainerGraphic(): HTMLElement;
     getVisualElements(): T[];
     cloneVisualElements(element: Element, deep?: boolean): Node;
-    getSharedVar(sharedName: string, defaultValue?: any): any;
-    setSharedVar(sharedName: string, value: any): void;
     join(rightTable: any[], joinKey: string): any[];
     preUpdate(): void;
     postUpdate(): void;

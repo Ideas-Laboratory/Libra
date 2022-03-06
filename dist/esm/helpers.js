@@ -33,6 +33,15 @@ export function makeFindableList(list, typing, addFunc) {
                     return makeFindableList(filteredResult, typing, addFunc);
                 };
             }
+            else if (p === "add") {
+                return (...args) => {
+                    const filteredResult = target.slice();
+                    const newElement = typing.initialize(...args);
+                    addFunc(newElement);
+                    filteredResult.push(newElement);
+                    return makeFindableList(filteredResult, typing, addFunc);
+                };
+            }
             else if (p in target) {
                 return target[p];
             }

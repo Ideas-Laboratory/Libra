@@ -62,6 +62,7 @@ export default class LayoutService extends InteractionService {
         return this._oldResult;
     }
 }
+InteractionService.LayoutService = LayoutService;
 InteractionService.register("LayoutService", {
     constructor: LayoutService,
 });

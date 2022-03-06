@@ -18,6 +18,9 @@ export default class InteractionService {
         Object.entries(options.sharedVar || {}).forEach((entry) => {
             this.setSharedVar(entry[0], entry[1]);
         });
+        if (options.layer) {
+            this._layerInstances.push(options.layer);
+        }
         instanceServices.push(this);
         options.postInitialize && options.postInitialize.call(this, this);
     }

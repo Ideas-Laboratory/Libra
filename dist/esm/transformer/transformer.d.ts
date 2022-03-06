@@ -8,6 +8,7 @@ declare type TransformerInitOption = {
     redraw?: (option: {
         [name: string]: any;
     }) => void;
+    transient?: boolean;
     [param: string]: any;
 };
 declare type TransformerInitTemplate = TransformerInitOption & {
@@ -23,10 +24,14 @@ export default class GraphicalTransformer {
     };
     _redraw: (option: any) => void;
     _layer: Layer<any>;
+    _transient: boolean;
     constructor(baseName: string, options: TransformerInitOption);
     getSharedVar(name: string): any;
     setSharedVar(name: string, value: any): void;
-    redraw(): void;
+    setSharedVars(obj: {
+        [key: string]: any;
+    }): void;
+    redraw(transient?: boolean): void;
     isInstanceOf(name: string): boolean;
     static register(baseName: string, options: TransformerInitTemplate): void;
     static unregister(baseName: string): boolean;

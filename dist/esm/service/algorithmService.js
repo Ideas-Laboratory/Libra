@@ -170,6 +170,7 @@ export default class AnalysisService extends InteractionService {
         return this._oldResult;
     }
 }
+InteractionService.AnalysisService = AnalysisService;
 InteractionService.register("AnalysisService", {
     constructor: AnalysisService,
 });

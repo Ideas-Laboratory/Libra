@@ -3,6 +3,7 @@ import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
 import { InteractionService, findService } from "../service";
+import { GraphicalTransformer } from "../transformer";
 const registeredInstruments = {};
 const instanceInstruments = [];
 const EventDispatcher = new Map();
@@ -10,6 +11,7 @@ const EventQueue = [];
 let eventHandling = false;
 export default class Instrument {
     constructor(baseName, options) {
+        this._transformers = [];
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -312,6 +314,9 @@ export default class Instrument {
     }
     get services() {
         return helpers.makeFindableList(this._serviceInstances.slice(0), InteractionService, this.useService.bind(this));
+    }
+    get transformers() {
+        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e));
     }
     static register(baseName, options) {
         registeredInstruments[baseName] = options;
