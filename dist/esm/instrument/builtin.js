@@ -1,6 +1,7 @@
 import Instrument from "./instrument";
 import GraphicalTransformer from "../transformer";
 import { getTransform } from "../helpers";
+import * as d3 from "d3";
 import Command from "../command/command";
 Instrument.register("HoverInstrument", {
     constructor: Instrument,
@@ -844,15 +845,16 @@ Instrument.register("PanInstrument", {
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
     on: {
         dragstart: [
-            ({ layer, event, instrument, transformer }) => {
+            ({ layer, event, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                const sx = transformer.getTransformation("scaleX");
-                const sy = transformer.getTransformation("scaleY");
-                transformer.setTransformation("$scaleX", sx);
-                transformer.setTransformation("$scaleY", sy);
-                transformer.getTransformation("$$scaleX", sx);
-                transformer.getTransformation("$$scaleY", sy);
+                // const transformer = instrument.getSharedVar("transformer");
+                // const sx = transformer.getSharedVar("scaleX");
+                // const sy = transformer.getSharedVar("scaleY");
+                // transformer.setTransformation("$scaleX", sx);
+                // transformer.setTransformation("$scaleY", sy);
+                // transformer.getTransformation("$$scaleX", sx);
+                // transformer.getTransformation("$$scaleY", sy);
                 instrument.setSharedVar("startx", event.clientX);
                 instrument.setSharedVar("starty", event.clientY);
                 instrument.setSharedVar("currentx", event.clientX);
@@ -865,123 +867,51 @@ Instrument.register("PanInstrument", {
             ({ layer, event, instrument, transformer }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                let offsetX = event.clientX - instrument.getSharedVar("startx");
-                let offsetY = event.clientY - instrument.getSharedVar("starty");
+                const transformers = instrument.getSharedVar("transformers");
+                let offsetX = event.clientX - instrument.getSharedVar("currentx");
+                let offsetY = event.clientY - instrument.getSharedVar("currenty");
                 instrument.setSharedVar("currentx", event.clientX);
                 instrument.setSharedVar("currenty", event.clientY);
-                const sx = transformer.getTransformation("$scaleX");
-                const sy = transformer.getTransformation("$scaleY");
-                const fixRange = instrument.getSharedVar("fixRange");
-                if (fixRange) {
+                const layerGraphic = layer.getGraphic();
+                const [x, y] = d3.pointer(event, layerGraphic);
+                // const fixRange = instrument.getSharedVar("fixRange") ?? false;
+                transformers.forEach((transformer) => {
+                    const sx = transformer.getSharedVar("scaleX");
+                    const sy = transformer.getSharedVar("scaleY");
                     if (sx) {
-                        const scaleX = sx
-                            .copy()
-                            .domain(sx.range().map((x) => x + offsetX))
-                            .range(sx.domain());
-                        if (scaleX.clamp)
-                            scaleX.clamp(false);
-                        scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
-                        transformer.setTransformation("scaleX", scaleX);
+                        const newRangeX = sx.range().map((x) => x + offsetX);
+                        sx.range(newRangeX);
+                        transformer.setSharedVar("scaleX", sx);
                     }
                     if (sy) {
-                        const scaleY = sy
-                            .copy()
-                            .domain(sy.range().map((y) => y + offsetY))
-                            .range(sy.domain());
-                        if (scaleY.clamp)
-                            scaleY.clamp(false);
-                        scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
-                        transformer.setTransformation("scaleY", scaleY);
+                        const newRangeY = sy.range().map((y) => y + offsetY);
+                        sy.range(newRangeY);
+                        transformer.setSharedVar("scaleY", sy);
                     }
-                }
-                else {
-                    if (sx) {
-                        const proxyRaw = (raw) => new Proxy(raw, {
-                            get(target, path) {
-                                if (path in target)
-                                    return target[path];
-                                if (path === "range")
-                                    return (...args) => target.$origin
-                                        .range(...args)
-                                        .map((x) => x + offsetX);
-                                return target.$origin[path];
-                            },
-                            apply(target, thisArg, argArray) {
-                                return target.apply(thisArg, argArray);
-                            },
-                            has(target, path) {
-                                return path in target || path in target.$origin;
-                            },
-                        });
-                        const scaleXRaw = (domain) => sx(domain) + offsetX;
-                        scaleXRaw.invert = (range) => sx.invert(range - offsetX);
-                        scaleXRaw.copy = () => {
-                            const anotherScaleXRaw = (domain) => anotherScaleXRaw.$origin(domain) + offsetX;
-                            Object.assign(anotherScaleXRaw, scaleXRaw);
-                            anotherScaleXRaw.invert = (range) => anotherScaleXRaw.$origin.invert(range - offsetX);
-                            anotherScaleXRaw.$origin = sx.copy();
-                            return proxyRaw(anotherScaleXRaw);
-                        };
-                        scaleXRaw.$origin = sx;
-                        const scaleX = proxyRaw(scaleXRaw);
-                        transformer.setTransformation("scaleX", scaleX);
-                    }
-                    if (sy) {
-                        const proxyRaw = (raw) => new Proxy(raw, {
-                            get(target, path) {
-                                if (path in target)
-                                    return target[path];
-                                if (path === "range")
-                                    return (...args) => target.$origin
-                                        .range(...args)
-                                        .map((y) => y + offsetY);
-                                return target.$origin[path];
-                            },
-                            apply(target, thisArg, argArray) {
-                                return target.apply(thisArg, argArray);
-                            },
-                            has(target, path) {
-                                return path in target || path in target.$origin;
-                            },
-                        });
-                        const scaleYRaw = (domain) => scaleYRaw.$origin(domain) + offsetY;
-                        scaleYRaw.invert = (range) => scaleYRaw.$origin.invert(range - offsetY);
-                        scaleYRaw.$origin = sy;
-                        scaleYRaw.copy = () => {
-                            const anotherScaleYRaw = (domain) => anotherScaleYRaw.$origin(domain) + offsetY;
-                            Object.assign(anotherScaleYRaw, scaleYRaw);
-                            anotherScaleYRaw.invert = (range) => anotherScaleYRaw.$origin.invert(range - offsetY);
-                            anotherScaleYRaw.$origin = sy.copy();
-                            return proxyRaw(anotherScaleYRaw);
-                        };
-                        const scaleY = proxyRaw(scaleYRaw);
-                        transformer.setTransformation("scaleY", scaleY);
-                    }
-                }
+                });
                 layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
                 layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         dragabort: [
             ({ layer, event, instrument, transformer }) => {
-                if (event.changedTouches)
-                    event = event.changedTouches[0];
-                const sx = transformer.getTransformation("$$scaleX");
-                const sy = transformer.getTransformation("$$scaleY");
-                instrument.setSharedVar("startx", event.clientX);
-                instrument.setSharedVar("starty", event.clientY);
-                instrument.setSharedVar("currentx", event.clientX);
-                instrument.setSharedVar("currenty", event.clientY);
-                if (sx) {
-                    transformer.setTransformation("scaleX", sx);
-                    transformer.setTransformation("$scaleX", sx);
-                }
-                if (sy) {
-                    transformer.setTransformation("scaleY", sy);
-                    transformer.setTransformation("$scaleY", sy);
-                }
-                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
-                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+                // if (event.changedTouches) event = event.changedTouches[0];
+                // const sx = transformer.getTransformation("$$scaleX");
+                // const sy = transformer.getTransformation("$$scaleY");
+                // instrument.setSharedVar("startx", event.clientX);
+                // instrument.setSharedVar("starty", event.clientY);
+                // instrument.setSharedVar("currentx", event.clientX);
+                // instrument.setSharedVar("currenty", event.clientY);
+                // if (sx) {
+                //   transformer.setTransformation("scaleX", sx);
+                //   transformer.setTransformation("$scaleX", sx);
+                // }
+                // if (sy) {
+                //   transformer.setTransformation("scaleY", sy);
+                //   transformer.setTransformation("$scaleY", sy);
+                // }
+                // layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
     },
@@ -991,12 +921,10 @@ Instrument.register("ZoomInstrument", {
     interactors: ["MouseWheelInteractor"],
     on: {
         wheel: [
-            ({ layer, event, instrument, transformer }) => {
-                const DEFAULT_DELTA_LEVEL_RATIO = 200;
-                let sx = transformer.getTransformation("scaleX");
-                let sy = transformer.getTransformation("scaleY");
-                transformer.getTransformation("$$scaleX", sx);
-                transformer.getTransformation("$$scaleY", sy);
+            ({ layer, instrument, event }) => {
+                const layerGraphic = layer.getGraphic();
+                const layerRoot = d3.select(layerGraphic);
+                const transformers = instrument.getSharedVar("transformers");
                 instrument.setSharedVar("currentx", event.offsetX);
                 instrument.setSharedVar("currenty", event.offsetY);
                 let delta = event.deltaY;
@@ -1006,127 +934,173 @@ Instrument.register("ZoomInstrument", {
                 });
                 cumulativeDelta += delta;
                 instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
-                const deltaLevelRatio = instrument.getSharedVar("deltaLevelRatio", {
-                    defaultValue: DEFAULT_DELTA_LEVEL_RATIO,
-                });
                 delta /= 1000;
-                const offsetX = instrument.getSharedVar("centroidX") || event.offsetX;
-                const offsetY = instrument.getSharedVar("centroidY") || event.offsetY;
-                const fixRange = instrument.getSharedVar("fixRange");
-                if (fixRange) {
+                const [x, y] = d3.pointer(event, layerGraphic);
+                const offsetX = instrument.getSharedVar("centroidX") || x;
+                const offsetY = instrument.getSharedVar("centroidY") || y;
+                // const fixRange = instrument.getSharedVar("fixRange") ?? false;
+                transformers.forEach((transformer) => {
+                    const sx = transformer.getSharedVar("scaleX");
+                    const sy = transformer.getSharedVar("scaleY");
                     if (sx) {
-                        const scaleX = sx
-                            .copy()
-                            .domain(sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX))
-                            .range(sx.domain());
-                        if (scaleX.clamp)
-                            scaleX.clamp(false);
-                        scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
-                        transformer.setTransformation("scaleX", scaleX);
+                        const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                        sx.range(newRangeX);
+                        transformer.setSharedVar("scaleX", sx);
                     }
                     if (sy) {
-                        const scaleY = sy
-                            .copy()
-                            .domain(sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY))
-                            .range(sy.domain());
-                        if (scaleY.clamp)
-                            scaleY.clamp(false);
-                        scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
-                        transformer.setTransformation("scaleY", scaleY);
+                        const newRangeY = sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                        sy.range(newRangeY);
+                        transformer.setSharedVar("scaleY", sy);
                     }
-                }
-                else {
-                    if (sx) {
-                        const proxyRaw = (raw) => new Proxy(raw, {
-                            get(target, path) {
-                                if (path in target)
-                                    return target[path];
-                                if (path === "range")
-                                    return (...args) => target.$origin
-                                        .range(...args.map((x) => (x - offsetX) / Math.exp(delta) + offsetX))
-                                        .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
-                                if (path === "bandwidth" && "bandwidth" in target.$origin) {
-                                    return () => target.$origin.bandwidth() * Math.exp(delta);
-                                }
-                                return target.$origin[path];
-                            },
-                            apply(target, thisArg, argArray) {
-                                return target.apply(thisArg, argArray);
-                            },
-                            has(target, path) {
-                                return path in target || path in target.$origin;
-                            },
-                        });
-                        const scaleXRaw = (domain) => (scaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) + offsetX;
-                        scaleXRaw.invert = (range) => scaleXRaw.$origin.invert((range - offsetX) / Math.exp(delta) + offsetX);
-                        scaleXRaw.$origin = sx;
-                        scaleXRaw.copy = () => {
-                            const anotherScaleXRaw = (domain) => (anotherScaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) +
-                                offsetX;
-                            Object.assign(anotherScaleXRaw, scaleXRaw);
-                            anotherScaleXRaw.$origin = sx.copy();
-                            anotherScaleXRaw.invert = (range) => anotherScaleXRaw.$origin.invert((range - offsetX) / Math.exp(delta) + offsetX);
-                            return proxyRaw(anotherScaleXRaw);
-                        };
-                        const scaleX = proxyRaw(scaleXRaw);
-                        transformer.setTransformation("scaleX", scaleX);
-                    }
-                    if (sy) {
-                        const proxyRaw = (raw) => new Proxy(raw, {
-                            get(target, path) {
-                                if (path in target)
-                                    return target[path];
-                                if (path === "range")
-                                    return (...args) => target.$origin
-                                        .range(...args)
-                                        .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
-                                if (path === "bandwidth" && "bandwidth" in target.$origin) {
-                                    return () => target.$origin.bandwidth() * Math.exp(delta);
-                                }
-                                return target.$origin[path];
-                            },
-                            apply(target, thisArg, argArray) {
-                                return target.apply(thisArg, argArray);
-                            },
-                            has(target, path) {
-                                return path in target || path in target.$origin;
-                            },
-                        });
-                        const scaleYRaw = (domain) => (scaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) + offsetY;
-                        scaleYRaw.invert = (range) => scaleYRaw.$origin.invert((range - offsetY) / Math.exp(delta) + offsetY);
-                        scaleYRaw.$origin = sy;
-                        scaleYRaw.copy = () => {
-                            const anotherScaleYRaw = (domain) => (anotherScaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) +
-                                offsetY;
-                            Object.assign(anotherScaleYRaw, scaleYRaw);
-                            anotherScaleYRaw.invert = (range) => anotherScaleYRaw.$origin.invert((range - offsetY) / Math.exp(delta) + offsetY);
-                            anotherScaleYRaw.$origin = sy.copy();
-                            return proxyRaw(anotherScaleYRaw);
-                        };
-                        const scaleY = proxyRaw(scaleYRaw);
-                        transformer.setTransformation("scaleY", scaleY);
-                    }
-                }
+                });
+                // if (fixRange) {
+                //   if (sx) {
+                //     const scaleX = sx
+                //       .copy()
+                //       .domain(
+                //         sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX)
+                //       )
+                //       .range(sx.domain());
+                //     if (scaleX.clamp) scaleX.clamp(false);
+                //     scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
+                //     transformers.forEach((transformer) => transformer.setSharedVar("scaleX", scaleX));
+                //   }
+                //   if (sy) {
+                //     const scaleY = sy
+                //       .copy()
+                //       .domain(
+                //         sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY)
+                //       )
+                //       .range(sy.domain());
+                //     if (scaleY.clamp) scaleY.clamp(false);
+                //     scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
+                //     transformers.forEach((transformer) => transformer.setSharedVar("scaleY", scaleY));
+                //   }
+                // } 
+                // else {
+                //   if (sx) {
+                //     const proxyRaw = (
+                //       raw: Transformation & { $origin: Transformation }
+                //     ) =>
+                //       new Proxy(raw, {
+                //         get(target, path) {
+                //           if (path in target) return target[path];
+                //           if (path === "range")
+                //             return (...args) =>
+                //               (target.$origin as any)
+                //                 .range(
+                //                   ...args.map(
+                //                     (x) => (x - offsetX) / Math.exp(delta) + offsetX
+                //                   )
+                //                 )
+                //                 .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                //           if (path === "bandwidth" && "bandwidth" in target.$origin) {
+                //             return () =>
+                //               (target.$origin as any).bandwidth() * Math.exp(delta);
+                //           }
+                //           return target.$origin[path];
+                //         },
+                //         apply(target, thisArg, argArray) {
+                //           return target.apply(thisArg, argArray);
+                //         },
+                //         has(target, path) {
+                //           return path in target || path in target.$origin;
+                //         },
+                //       });
+                //     const scaleXRaw = (domain) =>
+                //       (scaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) + offsetX;
+                //     scaleXRaw.invert = (range) =>
+                //       scaleXRaw.$origin.invert(
+                //         (range - offsetX) / Math.exp(delta) + offsetX
+                //       );
+                //     scaleXRaw.$origin = sx;
+                //     scaleXRaw.copy = () => {
+                //       const anotherScaleXRaw = (domain) =>
+                //         (anotherScaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) +
+                //         offsetX;
+                //       Object.assign(anotherScaleXRaw, scaleXRaw);
+                //       anotherScaleXRaw.$origin = sx.copy();
+                //       anotherScaleXRaw.invert = (range) =>
+                //         anotherScaleXRaw.$origin.invert(
+                //           (range - offsetX) / Math.exp(delta) + offsetX
+                //         );
+                //       return proxyRaw(anotherScaleXRaw as any);
+                //     };
+                //     const scaleX = proxyRaw(scaleXRaw);
+                //     transformer.setTransformation("scaleX", scaleX);
+                //   }
+                //   if (sy) {
+                //     const proxyRaw = (
+                //       raw: Transformation & { $origin: Transformation }
+                //     ) =>
+                //       new Proxy(raw, {
+                //         get(target, path) {
+                //           if (path in target) return target[path];
+                //           if (path === "range")
+                //             return (...args) =>
+                //               (target.$origin as any)
+                //                 .range(...args)
+                //                 .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                //           if (path === "bandwidth" && "bandwidth" in target.$origin) {
+                //             return () =>
+                //               (target.$origin as any).bandwidth() * Math.exp(delta);
+                //           }
+                //           return target.$origin[path];
+                //         },
+                //         apply(target, thisArg, argArray) {
+                //           return target.apply(thisArg, argArray);
+                //         },
+                //         has(target, path) {
+                //           return path in target || path in target.$origin;
+                //         },
+                //       });
+                //     const scaleYRaw = (domain) =>
+                //       (scaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) + offsetY;
+                //     scaleYRaw.invert = (range) =>
+                //       scaleYRaw.$origin.invert(
+                //         (range - offsetY) / Math.exp(delta) + offsetY
+                //       );
+                //     scaleYRaw.$origin = sy;
+                //     scaleYRaw.copy = () => {
+                //       const anotherScaleYRaw = (domain) =>
+                //         (anotherScaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) +
+                //         offsetY;
+                //       Object.assign(anotherScaleYRaw, scaleYRaw);
+                //       anotherScaleYRaw.invert = (range) =>
+                //         anotherScaleYRaw.$origin.invert(
+                //           (range - offsetY) / Math.exp(delta) + offsetY
+                //         );
+                //       anotherScaleYRaw.$origin = sy.copy();
+                //       return proxyRaw(anotherScaleYRaw as any);
+                //     };
+                //     const scaleY = proxyRaw(scaleYRaw);
+                //     transformer.setTransformation("scaleY", scaleY);
+                //   }
+                // }
                 layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
                 layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         abort: [
             ({ layer, event, instrument, transformer }) => {
-                const sx = transformer.getTransformation("$$scaleX");
-                const sy = transformer.getTransformation("$$scaleY");
-                instrument.setSharedVar("delta", 0);
-                instrument.setSharedVar("currentx", event.offsetX);
-                instrument.setSharedVar("currenty", event.offsetY);
-                if (sx) {
-                    transformer.setTransformation("scaleX", sx);
-                }
-                if (sy) {
-                    transformer.setTransformation("scaleY", sy);
-                }
-                layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
-                layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+                // const sx = transformer.getTransformation("$$scaleX");
+                // const sy = transformer.getTransformation("$$scaleY");
+                // instrument.setSharedVar("delta", 0);
+                // instrument.setSharedVar("currentx", event.offsetX);
+                // instrument.setSharedVar("currenty", event.offsetY);
+                // if (sx) {
+                //   transformer.setTransformation("scaleX", sx);
+                // }
+                // if (sy) {
+                //   transformer.setTransformation("scaleY", sy);
+                // }
+                // layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+                // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
     },
 });
+// function getTransformMatrix(transform: string){
+//   const regex = /.*matrix\t*(\t*\t*).*/;
+//   return tran
+// }

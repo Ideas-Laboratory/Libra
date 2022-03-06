@@ -32,6 +32,7 @@
     "2d-css-matrix-parse": "^1.0.0",
     "@types/d3": "^7.1.0",
     "d3": "^6.7.0",
-    "deep-clone": "^3.0.3"
+    "deep-clone": "^3.0.3",
+    "mathjs": "^10.3.0"
   }
 }
