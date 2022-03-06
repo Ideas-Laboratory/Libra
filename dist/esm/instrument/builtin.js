@@ -921,6 +921,7 @@ Instrument.register("KeyboardHelperBarInstrument", {
         transientLayer.getGraphic().append(helperBar);
     },
 });
+/** only apply to linear scale. should record currentX as x in domain if fixRange is true */
 Instrument.register("PanInstrument", {
     constructor: Instrument,
     interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
@@ -929,45 +930,70 @@ Instrument.register("PanInstrument", {
             ({ layer, event, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                // const transformer = instrument.getSharedVar("transformer");
-                // const sx = transformer.getSharedVar("scaleX");
-                // const sy = transformer.getSharedVar("scaleY");
-                // transformer.setTransformation("$scaleX", sx);
-                // transformer.setTransformation("$scaleY", sy);
-                // transformer.getTransformation("$$scaleX", sx);
-                // transformer.getTransformation("$$scaleY", sy);
                 instrument.setSharedVar("startx", event.clientX);
                 instrument.setSharedVar("starty", event.clientY);
-                instrument.setSharedVar("currentx", event.clientX);
-                instrument.setSharedVar("currenty", event.clientY);
+                const transformers = instrument.getSharedVar("transformers");
+                transformers.forEach((transformer) => {
+                    const sx = transformer.getSharedVar("scaleX");
+                    const sy = transformer.getSharedVar("scaleY");
+                    if (sx) {
+                        transformer.setSharedVar("$$scaleX", sx.copy());
+                        // transformer.setSharedVar("startDomainX", sx.domain());
+                        // transformer.setSharedVar("startRangeX", sx.range());
+                    }
+                    if (sy) {
+                        transformer.setSharedVar("$$scaleY", sy.copy());
+                        // transformer.setSharedVar("startDomainY", sy.domain());
+                        // transformer.setSharedVar("startRangeY", sy.range());
+                    }
+                });
                 layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
                 layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
             },
         ],
         drag: [
-            ({ layer, event, instrument, transformer }) => {
+            async ({ layer, event, instrument, transformer }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
                 const transformers = instrument.getSharedVar("transformers");
-                let offsetX = event.clientX - instrument.getSharedVar("currentx");
-                let offsetY = event.clientY - instrument.getSharedVar("currenty");
-                instrument.setSharedVar("currentx", event.clientX);
-                instrument.setSharedVar("currenty", event.clientY);
-                const layerGraphic = layer.getGraphic();
-                const [x, y] = d3.pointer(event, layerGraphic);
-                // const fixRange = instrument.getSharedVar("fixRange") ?? false;
+                const startx = instrument.getSharedVar("startx");
+                const starty = instrument.getSharedVar("starty");
+                const fixRange = instrument.getSharedVar("fixRange") ?? false;
                 transformers.forEach((transformer) => {
                     const sx = transformer.getSharedVar("scaleX");
                     const sy = transformer.getSharedVar("scaleY");
-                    if (sx) {
-                        const newRangeX = sx.range().map((x) => x + offsetX);
-                        sx.range(newRangeX);
-                        transformer.setSharedVar("scaleX", sx);
+                    if (fixRange) {
+                        if (sx) {
+                            const scaleXOrigin = transformer.getSharedVar("$$scaleX");
+                            const startRangeX = scaleXOrigin.range();
+                            const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+                            const newDomain = newRangeX.map(x => scaleXOrigin.invert(x));
+                            sx.domain(newDomain);
+                            transformer.setSharedVar("scaleX", sx);
+                        }
+                        if (sy) {
+                            const scaleYOrigin = transformer.getSharedVar("$$scaleY");
+                            const startRangeY = scaleYOrigin.range();
+                            const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
+                            const newDomain = newRangeY.map(y => scaleYOrigin.invert(y));
+                            sy.domain(newDomain);
+                            transformer.setSharedVar("scaleY", sy);
+                        }
                     }
-                    if (sy) {
-                        const newRangeY = sy.range().map((y) => y + offsetY);
-                        sy.range(newRangeY);
-                        transformer.setSharedVar("scaleY", sy);
+                    else {
+                        if (sx) {
+                            const startRangeX = transformer.getSharedVar("$$scaleX").range();
+                            const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+                            sx.range(newRangeX);
+                            transformer.setSharedVar("scaleX", sx);
+                        }
+                        if (sy) {
+                            // const newRangeY = sy.range().map((y) => y + offsetY);
+                            const startRangeY = transformer.getSharedVar("$$scaleY").range();
+                            const newRangeY = startRangeY.map((y, i) => y + event.clientY - starty);
+                            sy.range(newRangeY);
+                            transformer.setSharedVar("scaleY", sy);
+                        }
                     }
                 });
                 layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
@@ -1019,19 +1045,41 @@ Instrument.register("ZoomInstrument", {
                 const [x, y] = d3.pointer(event, layerGraphic);
                 const offsetX = instrument.getSharedVar("centroidX") || x;
                 const offsetY = instrument.getSharedVar("centroidY") || y;
-                // const fixRange = instrument.getSharedVar("fixRange") ?? false;
+                const fixRange = instrument.getSharedVar("fixRange") ?? false;
                 transformers.forEach((transformer) => {
                     const sx = transformer.getSharedVar("scaleX");
                     const sy = transformer.getSharedVar("scaleY");
-                    if (sx) {
-                        const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
-                        sx.range(newRangeX);
-                        transformer.setSharedVar("scaleX", sx);
+                    if (fixRange) {
+                        if (sx) {
+                            const offsetXDomain = sx.invert(offsetX);
+                            sx.domain(sx
+                                .domain()
+                                .map(d => d - offsetXDomain)
+                                .map(d => d * Math.exp(-delta))
+                                .map(d => d + offsetXDomain));
+                            transformers.forEach((transformer) => transformer.setSharedVar("scaleX", sx));
+                        }
+                        if (sy) {
+                            const offsetYDomain = sy.invert(offsetY);
+                            sy.domain(sy
+                                .domain()
+                                .map(d => d - offsetYDomain)
+                                .map(d => d * Math.exp(-delta))
+                                .map(d => d + offsetYDomain));
+                            transformers.forEach((transformer) => transformer.setSharedVar("scaleY", sy));
+                        }
                     }
-                    if (sy) {
-                        const newRangeY = sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
-                        sy.range(newRangeY);
-                        transformer.setSharedVar("scaleY", sy);
+                    else {
+                        if (sx) {
+                            const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                            sx.range(newRangeX);
+                            transformer.setSharedVar("scaleX", sx);
+                        }
+                        if (sy) {
+                            const newRangeY = sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                            sy.range(newRangeY);
+                            transformer.setSharedVar("scaleY", sy);
+                        }
                     }
                 });
                 // if (fixRange) {

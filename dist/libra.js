@@ -5186,35 +5186,62 @@ Instrument.register("PanInstrument", {
           event = event.changedTouches[0];
         instrument.setSharedVar("startx", event.clientX);
         instrument.setSharedVar("starty", event.clientY);
-        instrument.setSharedVar("currentx", event.clientX);
-        instrument.setSharedVar("currenty", event.clientY);
+        const transformers = instrument.getSharedVar("transformers");
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          const sy = transformer.getSharedVar("scaleY");
+          if (sx) {
+            transformer.setSharedVar("$$scaleX", sx.copy());
+          }
+          if (sy) {
+            transformer.setSharedVar("$$scaleY", sy.copy());
+          }
+        });
         layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
         layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       }
     ],
     drag: [
-      ({ layer, event, instrument, transformer }) => {
+      async ({ layer, event, instrument, transformer }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
         const transformers = instrument.getSharedVar("transformers");
-        let offsetX = event.clientX - instrument.getSharedVar("currentx");
-        let offsetY = event.clientY - instrument.getSharedVar("currenty");
-        instrument.setSharedVar("currentx", event.clientX);
-        instrument.setSharedVar("currenty", event.clientY);
-        const layerGraphic = layer.getGraphic();
-        const [x, y] = pointer_default(event, layerGraphic);
+        const startx = instrument.getSharedVar("startx");
+        const starty = instrument.getSharedVar("starty");
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
         transformers.forEach((transformer2) => {
           const sx = transformer2.getSharedVar("scaleX");
           const sy = transformer2.getSharedVar("scaleY");
-          if (sx) {
-            const newRangeX = sx.range().map((x2) => x2 + offsetX);
-            sx.range(newRangeX);
-            transformer2.setSharedVar("scaleX", sx);
-          }
-          if (sy) {
-            const newRangeY = sy.range().map((y2) => y2 + offsetY);
-            sy.range(newRangeY);
-            transformer2.setSharedVar("scaleY", sy);
+          if (fixRange) {
+            if (sx) {
+              const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
+              const startRangeX = scaleXOrigin.range();
+              const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+              const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
+              sx.domain(newDomain);
+              transformer2.setSharedVar("scaleX", sx);
+            }
+            if (sy) {
+              const scaleYOrigin = transformer2.getSharedVar("$$scaleY");
+              const startRangeY = scaleYOrigin.range();
+              const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
+              const newDomain = newRangeY.map((y) => scaleYOrigin.invert(y));
+              sy.domain(newDomain);
+              transformer2.setSharedVar("scaleY", sy);
+            }
+          } else {
+            if (sx) {
+              const startRangeX = transformer2.getSharedVar("$$scaleX").range();
+              const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+              sx.range(newRangeX);
+              transformer2.setSharedVar("scaleX", sx);
+            }
+            if (sy) {
+              const startRangeY = transformer2.getSharedVar("$$scaleY").range();
+              const newRangeY = startRangeY.map((y, i) => y + event.clientY - starty);
+              sy.range(newRangeY);
+              transformer2.setSharedVar("scaleY", sy);
+            }
           }
         });
         layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
@@ -5249,18 +5276,32 @@ Instrument.register("ZoomInstrument", {
         const [x, y] = pointer_default(event, layerGraphic);
         const offsetX = instrument.getSharedVar("centroidX") || x;
         const offsetY = instrument.getSharedVar("centroidY") || y;
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
         transformers.forEach((transformer) => {
           const sx = transformer.getSharedVar("scaleX");
           const sy = transformer.getSharedVar("scaleY");
-          if (sx) {
-            const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
-            sx.range(newRangeX);
-            transformer.setSharedVar("scaleX", sx);
-          }
-          if (sy) {
-            const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
-            sy.range(newRangeY);
-            transformer.setSharedVar("scaleY", sy);
+          if (fixRange) {
+            if (sx) {
+              const offsetXDomain = sx.invert(offsetX);
+              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+            }
+            if (sy) {
+              const offsetYDomain = sy.invert(offsetY);
+              sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
+              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
+            }
+          } else {
+            if (sx) {
+              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            if (sy) {
+              const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
+              sy.range(newRangeY);
+              transformer.setSharedVar("scaleY", sy);
+            }
           }
         });
         layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
