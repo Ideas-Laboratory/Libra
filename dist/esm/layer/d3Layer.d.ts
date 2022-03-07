@@ -8,6 +8,11 @@ declare type D3LayerInitOption = LayerInitOption & D3RequiredOption;
 export default class D3Layer extends Layer<SVGElement> {
     _width: number;
     _height: number;
+    _offset: {
+        x: number;
+        y: number;
+    };
+    _name: string;
     _svg: SVGSVGElement;
     constructor(baseName: string, options: D3LayerInitOption);
     getVisualElements(): SVGElement[];

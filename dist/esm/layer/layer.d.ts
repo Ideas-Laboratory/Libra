@@ -7,6 +7,10 @@ declare type LayerRegisterRequiredOption = Required<{
 }>;
 declare type LayerPartialOption = Partial<{
     name: string;
+    offset: {
+        x: number;
+        y: number;
+    };
     preInitialize: <T>(layer: Layer<T>) => void;
     postInitialize: <T>(layer: Layer<T>) => void;
     preUpdate: <T>(layer: Layer<T>) => void;

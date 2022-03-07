@@ -3293,7 +3293,15 @@ var D3Layer = class extends Layer {
     super(baseName2, options);
     this._width = options.width;
     this._height = options.height;
-    this._graphic = select_default2(options.container).append("g").node();
+    this._offset = options.offset;
+    this._name = options.name;
+    this._graphic = select_default2(options.container).append("g").call((g) => {
+      if (this._name)
+        g.attr("className", this._name);
+    }).call((g) => {
+      if (this._offset)
+        g.attr("transform", `translate(${this._offset.x || 0}, ${this._offset.y || 0})`);
+    }).node();
     select_default2(this._graphic).append("rect").attr("class", backgroundClassName).attr("width", this._width).attr("height", this._height).attr("opacity", 0);
     let tempElem = this._container;
     while (tempElem && tempElem.tagName !== "svg")

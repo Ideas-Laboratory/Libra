@@ -17,6 +17,11 @@ export default class D3Layer extends Layer<SVGElement> {
   //_root: d3.Selection<SVGElement, unknown, d3.BaseType, unknown> = d3.create("svg:g");
   _width: number;
   _height: number;
+  _offset: {
+    x: number,
+    y: number
+  };
+  _name: string;
   //_checked: boolean;
   _svg: SVGSVGElement;
 
@@ -24,7 +29,17 @@ export default class D3Layer extends Layer<SVGElement> {
     super(baseName, options);
     this._width = options.width;
     this._height = options.height;
-    this._graphic = d3.select(options.container).append("g").node();
+    this._offset  = options.offset;
+    this._name = options.name;
+    this._graphic = d3.select(options.container).
+      append("g")
+      .call((g) => {
+        if(this._name) g.attr("className", this._name)
+      })
+      .call((g) => {
+        if(this._offset) g.attr("transform", `translate(${this._offset.x || 0}, ${this._offset.y || 0})`)
+      })
+      .node();
     d3.select(this._graphic)
       .append("rect")
       .attr("class", backgroundClassName)

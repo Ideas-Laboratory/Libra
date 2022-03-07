@@ -16,6 +16,10 @@ type LayerRegisterRequiredOption = Required<{
 
 type LayerPartialOption = Partial<{
   name: string;
+  offset: {
+    x: number,
+    y: number
+  }
   // transformation: { [scaleName: string]: helpers.Transformation };
   // services: (
   //   | string
