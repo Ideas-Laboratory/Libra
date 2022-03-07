@@ -3467,85 +3467,6 @@ Layer.register(baseName, { constructor: D3Layer });
 // dist/esm/layer/index.js
 var Layer2 = Layer;
 
-// dist/esm/service/service.js
-var registeredServices = {};
-var instanceServices = [];
-var InteractionService = class {
-  constructor(baseName2, options) {
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._sharedVar = {};
-    this._layerInstances = [];
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preUpdate = options.preUpdate ?? null;
-    this._postUpdate = options.postUpdate ?? null;
-    this._preAttach = options.preAttach ?? null;
-    this._postUse = options.postUse ?? null;
-    Object.entries(options.sharedVar || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
-    if (options.layer) {
-      this._layerInstances.push(options.layer);
-    }
-    instanceServices.push(this);
-    options.postInitialize && options.postInitialize.call(this, this);
-  }
-  getSharedVar(sharedName, options) {
-    if (options && options.layer && !this._layerInstances.includes(options.layer)) {
-      return void 0;
-    }
-    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
-      this.setSharedVar(sharedName, options.defaultValue, options);
-    }
-    return this._sharedVar[sharedName];
-  }
-  async setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    this.postUpdate();
-  }
-  preUpdate() {
-    this._preUpdate && this._preUpdate.call(this, this);
-  }
-  postUpdate() {
-    this._postUpdate && this._postUpdate.call(this, this);
-  }
-  preAttach(instrument) {
-    this._preAttach && this._preAttach.call(this, this, instrument);
-  }
-  postUse(instrument) {
-    this._postUse && this._postUse.call(this, this, instrument);
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  static register(baseName2, options) {
-    registeredServices[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredServices[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredServices[baseName2] ?? { constructor: InteractionService }, options ?? {}, {
-      on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
-      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
-    });
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findService(baseNameOrRealName) {
-    return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register5 = InteractionService.register;
-var unregister3 = InteractionService.unregister;
-var initialize5 = InteractionService.initialize;
-var findService = InteractionService.findService;
-
 // dist/esm/transformer/transformer.js
 var registeredTransformers = {};
 var instanceTransformers = [];
@@ -3627,9 +3548,9 @@ var GraphicalTransformer = class {
     return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
   }
 };
-var register6 = GraphicalTransformer.register;
-var unregister4 = GraphicalTransformer.unregister;
-var initialize6 = GraphicalTransformer.initialize;
+var register5 = GraphicalTransformer.register;
+var unregister3 = GraphicalTransformer.unregister;
+var initialize5 = GraphicalTransformer.initialize;
 var findTransformer = GraphicalTransformer.findTransformer;
 
 // dist/esm/transformer/builtin.js
@@ -3678,6 +3599,89 @@ GraphicalTransformer.register("SelectionTransformer", {
 
 // dist/esm/transformer/index.js
 var GraphicalTransformer2 = GraphicalTransformer;
+
+// dist/esm/service/service.js
+var registeredServices = {};
+var instanceServices = [];
+var InteractionService = class {
+  constructor(baseName2, options) {
+    this._transformers = [];
+    options.preInitialize && options.preInitialize.call(this, this);
+    this._baseName = baseName2;
+    this._userOptions = options;
+    this._name = options.name ?? baseName2;
+    this._sharedVar = {};
+    this._layerInstances = [];
+    this._preInitialize = options.preInitialize ?? null;
+    this._postInitialize = options.postInitialize ?? null;
+    this._preUpdate = options.preUpdate ?? null;
+    this._postUpdate = options.postUpdate ?? null;
+    this._preAttach = options.preAttach ?? null;
+    this._postUse = options.postUse ?? null;
+    Object.entries(options.sharedVar || {}).forEach((entry) => {
+      this.setSharedVar(entry[0], entry[1]);
+    });
+    if (options.layer) {
+      this._layerInstances.push(options.layer);
+    }
+    instanceServices.push(this);
+    options.postInitialize && options.postInitialize.call(this, this);
+  }
+  getSharedVar(sharedName, options) {
+    if (options && options.layer && !this._layerInstances.includes(options.layer)) {
+      return void 0;
+    }
+    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
+      this.setSharedVar(sharedName, options.defaultValue, options);
+    }
+    return this._sharedVar[sharedName];
+  }
+  async setSharedVar(sharedName, value, options) {
+    this.preUpdate();
+    this._sharedVar[sharedName] = value;
+    this.postUpdate();
+  }
+  preUpdate() {
+    this._preUpdate && this._preUpdate.call(this, this);
+  }
+  postUpdate() {
+    this._postUpdate && this._postUpdate.call(this, this);
+  }
+  preAttach(instrument) {
+    this._preAttach && this._preAttach.call(this, this, instrument);
+  }
+  postUse(instrument) {
+    this._postUse && this._postUse.call(this, this, instrument);
+  }
+  isInstanceOf(name) {
+    return this._baseName === name || this._name === name;
+  }
+  get transformers() {
+    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e));
+  }
+  static register(baseName2, options) {
+    registeredServices[baseName2] = options;
+  }
+  static unregister(baseName2) {
+    delete registeredServices[baseName2];
+    return true;
+  }
+  static initialize(baseName2, options) {
+    const mergedOptions = Object.assign({}, registeredServices[baseName2] ?? { constructor: InteractionService }, options ?? {}, {
+      on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+    });
+    const service = new mergedOptions.constructor(baseName2, mergedOptions);
+    return service;
+  }
+  static findService(baseNameOrRealName) {
+    return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
+  }
+};
+var register6 = InteractionService.register;
+var unregister4 = InteractionService.unregister;
+var initialize6 = InteractionService.initialize;
+var findService = InteractionService.findService;
 
 // dist/esm/service/selectionService.js
 var SelectionService = class extends InteractionService {
@@ -3981,6 +3985,11 @@ var LayoutService = class extends InteractionService {
           this._result = await this._userOptions.layout({
             ...this._userOptions.params ?? {},
             ...this._sharedVar
+          });
+          this._transformers.forEach((transformer) => {
+            transformer.setSharedVars({
+              layoutResult: this._result
+            });
           });
         } catch (e) {
           console.error(e);

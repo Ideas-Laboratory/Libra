@@ -2,6 +2,7 @@ import { Command } from "../command";
 import { Instrument } from "../instrument";
 import { Layer } from "../layer";
 import * as helpers from "../helpers";
+import { GraphicalTransformer } from "../transformer";
 
 type ServiceInitOption = {
   name?: string;
@@ -48,6 +49,7 @@ export default class InteractionService {
   _preAttach?: (service: InteractionService, instrument: Instrument) => void;
   _postUse?: (service: InteractionService, instrument: Instrument) => void;
   _layerInstances: Layer<any>[];
+  _transformers: GraphicalTransformer[] = [];
 
   constructor(baseName: string, options: ServiceInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -164,6 +166,14 @@ export default class InteractionService {
 
   isInstanceOf(name: string): boolean {
     return this._baseName === name || this._name === name;
+  }
+
+  get transformers() {
+    return helpers.makeFindableList(
+      this._transformers.slice(0),
+      GraphicalTransformer,
+      (e) => this._transformers.push(e)
+    );
   }
 
   static register(baseName: string, options: ServiceInitTemplate): void {

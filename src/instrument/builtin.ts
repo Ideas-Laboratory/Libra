@@ -4,7 +4,6 @@ import { getTransform, Transformation } from "../helpers";
 import * as d3 from "d3";
 import Command from "../command/command";
 import Service from "../service";
-import * as math from "mathjs";
 
 Instrument.register("HoverInstrument", {
   constructor: Instrument,

@@ -1,7 +1,10 @@
+import * as helpers from "../helpers";
+import { GraphicalTransformer } from "../transformer";
 const registeredServices = {};
 export const instanceServices = [];
 export default class InteractionService {
     constructor(baseName, options) {
+        this._transformers = [];
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
@@ -103,6 +106,9 @@ export default class InteractionService {
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;
+    }
+    get transformers() {
+        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e));
     }
     static register(baseName, options) {
         registeredServices[baseName] = options;
