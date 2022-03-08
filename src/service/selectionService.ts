@@ -309,3 +309,15 @@ InteractionService.register("QuantitativeSelectionService", {
     extent: [0, 0],
   },
 });
+
+InteractionService.register("Quantitative2DSelectionService", {
+  constructor: SelectionService,
+  query: {
+    baseOn: helpers.QueryType.Data,
+    type: helpers.DataQueryType.Quantitative2D,
+    attrNameX: "",
+    attrNameY: "",
+    extentX: [0, 0],
+    extentY: [0, 0],
+  },
+});
