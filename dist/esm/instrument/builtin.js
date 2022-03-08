@@ -115,13 +115,12 @@ Instrument.register("BrushInstrument", {
         dragend: [
             Command.initialize("clearOrPersistant", {
                 execute: async ({ event, layer, instrument }) => {
-                    if (event.changedTouches)
-                        event = event.changedTouches[0];
-                    if (!instrument.getSharedVar("persistant")) {
-                        const services = instrument.services.find("SelectionService");
-                        services.setSharedVar("width", -1, { layer });
-                        services.setSharedVar("height", -1, { layer });
-                    }
+                    // if (event.changedTouches) event = event.changedTouches[0];
+                    // if (!instrument.getSharedVar("persistant")) {
+                    //   const services = instrument.services.find("SelectionService");
+                    //   services.setSharedVar("width", -1, { layer });
+                    //   services.setSharedVar("height", -1, { layer });
+                    // }
                 },
                 feedback: [
                     async ({ event, layer, instrument }) => {
@@ -253,12 +252,11 @@ Instrument.register("BrushXInstrument", {
         dragend: [
             Command.initialize("clearOrPersistant", {
                 execute: async ({ event, layer, instrument }) => {
-                    if (event.changedTouches)
-                        event = event.changedTouches[0];
-                    if (!instrument.getSharedVar("persistant")) {
-                        const services = instrument.services.find("SelectionService");
-                        services.setSharedVar("width", -1, { layer });
-                    }
+                    // if (event.changedTouches) event = event.changedTouches[0];
+                    // if (!instrument.getSharedVar("persistant")) {
+                    //   const services = instrument.services.find("SelectionService");
+                    //   services.setSharedVar("width", -1, { layer });
+                    // }
                 },
                 feedback: [
                     async ({ event, layer, instrument }) => {
