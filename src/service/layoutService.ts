@@ -26,6 +26,11 @@ export default class LayoutService extends InteractionService {
             ...(this._userOptions.params ?? {}),
             ...this._sharedVar,
           });
+          this._transformers.forEach((transformer) => {
+            transformer.setSharedVars({
+              layoutResult: this._result,
+            });
+          });
         } catch (e) {
           console.error(e);
           this._result = undefined;
@@ -42,9 +47,7 @@ export default class LayoutService extends InteractionService {
 
   isInstanceOf(name: string): boolean {
     return (
-      "LayoutService" === name ||
-      this._baseName === name ||
-      this._name === name
+      "LayoutService" === name || this._baseName === name || this._name === name
     );
   }
 
