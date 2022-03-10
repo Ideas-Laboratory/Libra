@@ -23,6 +23,11 @@ export default class AnalysisService extends InteractionService {
                         ...this._userOptions.params,
                         ...this._sharedVar,
                     });
+                    this._transformers.forEach((transformer) => {
+                        transformer.setSharedVars({
+                            result: this._result,
+                        });
+                    });
                 }
                 catch (e) {
                     console.error(e);
