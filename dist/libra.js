@@ -4452,6 +4452,51 @@ Instrument.register("HoverInstrument", {
     });
   }
 });
+Instrument.register("ClickInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+  on: {
+    dragend: [
+      async (options) => {
+        let { event, layer, instrument } = options;
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const services = instrument.services.find("SelectionService");
+        services.setSharedVar("x", event.clientX, { layer });
+        services.setSharedVar("y", event.clientY, { layer });
+        await Promise.all(instrument.services.results);
+        if (instrument.getSharedVar("highlightAttrValues")) {
+          instrument.transformers.setSharedVar("highlightAttrValues", instrument.getSharedVar("highlightAttrValues"));
+        }
+        instrument.emit("click", {
+          ...options,
+          self: options.instrument
+        });
+      }
+    ],
+    dragabort: [
+      (options) => {
+        if (options.event.changedTouches)
+          options.event = options.event.changedTouches[0];
+        const services = options.instrument.services.find("SelectionService");
+        services.setSharedVar("x", 0, { layer: options.layer });
+        services.setSharedVar("y", 0, { layer: options.layer });
+        options.instrument.emit("clickabort", {
+          ...options,
+          self: options.instrument
+        });
+      }
+    ]
+  },
+  preAttach: (instrument, layer) => {
+    instrument.services.add("SurfacePointSelectionService", { layer });
+    instrument.transformers.add("HighlightSelection", {
+      transient: true,
+      layer: layer.getLayerFromQueue("selectionLayer"),
+      sharedVar: { highlightAttrValues: {} }
+    });
+  }
+});
 Instrument.register("BrushInstrument", {
   constructor: Instrument,
   interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
@@ -5149,47 +5194,6 @@ Instrument.register("DataBrushXInstrument", {
       layer: layer.getLayerFromQueue("selectionLayer"),
       sharedVar: { highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {} }
     });
-  }
-});
-Instrument.register("ClickInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragend: [
-      (options) => {
-        if (options.event.changedTouches)
-          options.event = options.event.changedTouches[0];
-        options.instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", options.event.clientX, {
-            layer: options.layer
-          });
-          service.setSharedVar("y", options.event.clientY, {
-            layer: options.layer
-          });
-        });
-        options.instrument.emit("click", {
-          ...options,
-          self: options.instrument
-        });
-      }
-    ],
-    dragabort: [
-      (options) => {
-        if (options.event.changedTouches)
-          options.event = options.event.changedTouches[0];
-        options.instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", 0, { layer: options.layer });
-          service.setSharedVar("y", 0, { layer: options.layer });
-        });
-        options.instrument.emit("clickabort", {
-          ...options,
-          self: options.instrument
-        });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    instrument.services.find("SelectionService", "SurfacePointSelectionService");
   }
 });
 Instrument.register("DragInstrument", {
