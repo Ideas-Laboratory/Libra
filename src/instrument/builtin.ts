@@ -1422,6 +1422,110 @@ Instrument.register("PanInstrument", {
   },
 });
 
+Instrument.register("PanXInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ layer, event, instrument }) => {
+        if (event.changedTouches) event = event.changedTouches[0];
+        instrument.setSharedVar("startx", event.clientX);
+        // instrument.setSharedVar("starty", event.clientY);
+        const transformers = instrument.getSharedVar("transformers");
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          // const sy = transformer.getSharedVar("scaleY");
+          if (sx) {
+            transformer.setSharedVar("$$scaleX", sx.copy());
+            // transformer.setSharedVar("startDomainX", sx.domain());
+            // transformer.setSharedVar("startRangeX", sx.range());
+          }
+          // if (sy) {
+            // transformer.setSharedVar("$$scaleY", sy.copy());
+            // transformer.setSharedVar("startDomainY", sy.domain());
+            // transformer.setSharedVar("startRangeY", sy.range());
+          // }
+        })
+
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+    drag: [
+      async ({ layer, event, instrument, transformer }) => {
+        if (event.changedTouches) event = event.changedTouches[0];
+        const transformers = instrument.getSharedVar("transformers");
+
+        const startx = instrument.getSharedVar("startx");
+        // const starty = instrument.getSharedVar("starty");
+
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          // const sy = transformer.getSharedVar("scaleY");
+          if (fixRange) {
+            if (sx) {
+              const scaleXOrigin = transformer.getSharedVar("$$scaleX");
+              const startRangeX = scaleXOrigin.range();
+              const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+              const newDomain = newRangeX.map(x => scaleXOrigin.invert(x));
+              sx.domain(newDomain);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            // if (sy) {
+            //   const scaleYOrigin = transformer.getSharedVar("$$scaleY");
+            //   const startRangeY = scaleYOrigin.range();
+            //   const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
+            //   const newDomain = newRangeY.map(y => scaleYOrigin.invert(y));
+            //   sy.domain(newDomain);
+            //   transformer.setSharedVar("scaleY", sy);
+            // }
+          } else {
+            if (sx) {
+              const startRangeX = transformer.getSharedVar("$$scaleX").range();
+              const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            // if (sy) {
+            //   // const newRangeY = sy.range().map((y) => y + offsetY);
+            //   const startRangeY = transformer.getSharedVar("$$scaleY").range();
+            //   const newRangeY = startRangeY.map((y, i) => y + event.clientY - starty);
+            //   sy.range(newRangeY);
+            //   transformer.setSharedVar("scaleY", sy);
+            // }
+          }
+        });
+
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+    dragabort: [
+      ({ layer, event, instrument, transformer }) => {
+        // if (event.changedTouches) event = event.changedTouches[0];
+        // const sx = transformer.getTransformation("$$scaleX");
+        // const sy = transformer.getTransformation("$$scaleY");
+        // instrument.setSharedVar("startx", event.clientX);
+        // instrument.setSharedVar("starty", event.clientY);
+        // instrument.setSharedVar("currentx", event.clientX);
+        // instrument.setSharedVar("currenty", event.clientY);
+        // if (sx) {
+        //   transformer.setTransformation("scaleX", sx);
+        //   transformer.setTransformation("$scaleX", sx);
+        // }
+        // if (sy) {
+        //   transformer.setTransformation("scaleY", sy);
+        //   transformer.setTransformation("$scaleY", sy);
+        // }
+        // layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+  },
+});
+
 Instrument.register("ZoomInstrument", {
   constructor: Instrument,
   interactors: ["MouseWheelInteractor"],
@@ -1632,6 +1736,93 @@ Instrument.register("ZoomInstrument", {
     ],
   },
 });
+
+Instrument.register("ZoomXInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseWheelInteractor"],
+  on: {
+    wheel: [
+      ({ layer, instrument, event }) => {
+        const layerGraphic = layer.getGraphic();
+        const layerRoot = d3.select(layerGraphic);
+        const transformers = instrument.getSharedVar("transformers");
+
+        instrument.setSharedVar("currentx", event.offsetX);
+        // instrument.setSharedVar("currenty", event.offsetY);
+        let delta = event.deltaY;
+        instrument.setSharedVar("delta", delta);
+        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+          defaultValue: 0,
+        });
+        cumulativeDelta += delta;
+        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+        delta /= 1000;
+
+        const [x, y] = d3.pointer(event, layerGraphic);
+        const offsetX = instrument.getSharedVar("centroidX") || x;
+        // const offsetY = instrument.getSharedVar("centroidY") || y;
+
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          // const sy = transformer.getSharedVar("scaleY");
+          if (fixRange) {
+            if (sx) {
+              const offsetXDomain = sx.invert(offsetX);
+              sx.domain(sx
+                .domain()
+                .map(d => d - offsetXDomain)
+                .map(d => d * Math.exp(-delta))
+                .map(d => d + offsetXDomain));
+              transformers.forEach((transformer) => transformer.setSharedVar("scaleX", sx));
+            }
+            // if (sy) {
+            //   const offsetYDomain = sy.invert(offsetY);
+            //   sy.domain(sy
+            //     .domain()
+            //     .map(d => d - offsetYDomain)
+            //     .map(d => d * Math.exp(-delta))
+            //     .map(d => d + offsetYDomain));
+            //   transformers.forEach((transformer) => transformer.setSharedVar("scaleY", sy));
+            // }
+          } else {
+            if (sx) {
+              const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            // if (sy) {
+            //   const newRangeY = sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+            //   sy.range(newRangeY);
+            //   transformer.setSharedVar("scaleY", sy);
+            // }
+          }
+
+        });
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+    abort: [
+      ({ layer, event, instrument, transformer }) => {
+        // const sx = transformer.getTransformation("$$scaleX");
+        // const sy = transformer.getTransformation("$$scaleY");
+        // instrument.setSharedVar("delta", 0);
+        // instrument.setSharedVar("currentx", event.offsetX);
+        // instrument.setSharedVar("currenty", event.offsetY);
+        // if (sx) {
+        //   transformer.setTransformation("scaleX", sx);
+        // }
+        // if (sy) {
+        //   transformer.setTransformation("scaleY", sy);
+        // }
+        // layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+  },
+});
+
 
 // function getTransformMatrix(transform: string){
 //   const regex = /.*matrix\t*(\t*\t*).*/;

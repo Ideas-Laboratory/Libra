@@ -5389,6 +5389,63 @@ Instrument.register("PanInstrument", {
     ]
   }
 });
+Instrument.register("PanXInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+  on: {
+    dragstart: [
+      ({ layer, event, instrument }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        instrument.setSharedVar("startx", event.clientX);
+        const transformers = instrument.getSharedVar("transformers");
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          if (sx) {
+            transformer.setSharedVar("$$scaleX", sx.copy());
+          }
+        });
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      }
+    ],
+    drag: [
+      async ({ layer, event, instrument, transformer }) => {
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const transformers = instrument.getSharedVar("transformers");
+        const startx = instrument.getSharedVar("startx");
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+        transformers.forEach((transformer2) => {
+          const sx = transformer2.getSharedVar("scaleX");
+          if (fixRange) {
+            if (sx) {
+              const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
+              const startRangeX = scaleXOrigin.range();
+              const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+              const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
+              sx.domain(newDomain);
+              transformer2.setSharedVar("scaleX", sx);
+            }
+          } else {
+            if (sx) {
+              const startRangeX = transformer2.getSharedVar("$$scaleX").range();
+              const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+              sx.range(newRangeX);
+              transformer2.setSharedVar("scaleX", sx);
+            }
+          }
+        });
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      }
+    ],
+    dragabort: [
+      ({ layer, event, instrument, transformer }) => {
+      }
+    ]
+  }
+});
 Instrument.register("ZoomInstrument", {
   constructor: Instrument,
   interactors: ["MouseWheelInteractor"],
@@ -5436,6 +5493,53 @@ Instrument.register("ZoomInstrument", {
               const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
               sy.range(newRangeY);
               transformer.setSharedVar("scaleY", sy);
+            }
+          }
+        });
+        layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      }
+    ],
+    abort: [
+      ({ layer, event, instrument, transformer }) => {
+      }
+    ]
+  }
+});
+Instrument.register("ZoomXInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseWheelInteractor"],
+  on: {
+    wheel: [
+      ({ layer, instrument, event }) => {
+        const layerGraphic = layer.getGraphic();
+        const layerRoot = select_default2(layerGraphic);
+        const transformers = instrument.getSharedVar("transformers");
+        instrument.setSharedVar("currentx", event.offsetX);
+        let delta = event.deltaY;
+        instrument.setSharedVar("delta", delta);
+        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+          defaultValue: 0
+        });
+        cumulativeDelta += delta;
+        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+        delta /= 1e3;
+        const [x, y] = pointer_default(event, layerGraphic);
+        const offsetX = instrument.getSharedVar("centroidX") || x;
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          if (fixRange) {
+            if (sx) {
+              const offsetXDomain = sx.invert(offsetX);
+              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+            }
+          } else {
+            if (sx) {
+              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
             }
           }
         });
