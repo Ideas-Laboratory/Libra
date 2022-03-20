@@ -5290,28 +5290,38 @@ Instrument.register("KeyboardHelperBarInstrument", {
     begin: [() => console.log("begin")],
     left: [
       ({ event, layer, instrument }) => {
-        console.log("left");
+        const speed = instrument.getSharedVar("speed") || 1;
         const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         const transform2 = getTransform(helperBar);
+        const newX = transform2[0] - speed;
+        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+        instrument.setSharedVar("barX", newX, {});
       }
     ],
     right: [
       ({ event, layer, instrument }) => {
-        console.log("right");
+        const speed = instrument.getSharedVar("speed") || 1;
         const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBar = transientLayer.getGraphic().querySelector("line");
         const transform2 = getTransform(helperBar);
+        const newX = transform2[0] + speed;
+        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+        instrument.setSharedVar("barX", newX, {});
       }
     ]
   },
   preAttach: function(instrument, layer) {
-    console.log("preAttach");
-    console.log(layer.getContainerGraphic());
     layer.getGraphic().setAttribute("tabindex", 0);
     layer.getGraphic().focus();
+    const height = layer._height;
+    const startPos = instrument.getSharedVar("startPos");
     const transientLayer = layer.getLayerFromQueue("transientLayer");
     const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    helperBar.setAttribute("x1", startPos);
+    helperBar.setAttribute("y1", "0");
+    helperBar.setAttribute("x2", startPos);
+    helperBar.setAttribute("y2", height);
     helperBar.setAttribute("stroke", `black`);
     helperBar.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBar);
