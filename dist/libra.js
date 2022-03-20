@@ -4884,11 +4884,14 @@ Instrument.register("HelperBarInstrument", {
     ]
   },
   preAttach: function(instrument, layer) {
+    const height = layer._height;
+    const startPos = instrument.getSharedVar("startPos");
     const transientLayer = layer.getLayerFromQueue("transientLayer");
     const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    helperBar.setAttribute("x1", "0");
+    helperBar.setAttribute("x1", startPos);
     helperBar.setAttribute("y1", "0");
-    helperBar.setAttribute("x2", "0");
+    helperBar.setAttribute("x2", startPos);
+    helperBar.setAttribute("y2", height);
     helperBar.setAttribute("stroke", `black`);
     helperBar.setAttribute("stroke-width", `1px`);
     transientLayer.getGraphic().append(helperBar);
@@ -4902,12 +4905,13 @@ Instrument.register("HelperBarYaxisInstrument", {
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
+        const barX = pointer_default(event, layer.getGraphic())[0];
         const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBarYaxis = transientLayer.getGraphic().querySelector("line");
         const helperBarYaxis2 = transientLayer.getGraphic().querySelector("line");
-        helperBarYaxis.setAttribute("transform", `translate(0, ${event.offsetY - 20})`);
-        helperBarYaxis2.setAttribute("transform", `translate(0, ${event.offsetY - 20})`);
-        instrument.setSharedVar("barX", event.offsetX, {});
+        helperBarYaxis.setAttribute("transform", `translate(0, ${barX})`);
+        helperBarYaxis2.setAttribute("transform", `translate(0, ${barX})`);
+        instrument.setSharedVar("barX", barX, {});
       }
     ]
   },

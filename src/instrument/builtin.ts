@@ -547,16 +547,17 @@ Instrument.register("HelperBarInstrument", {
     ],
   },
   preAttach: function (instrument, layer) {
-    // const height = layer.getSharedVar("height", 100);
+    const height = (layer as any)._height;
+    const startPos = instrument.getSharedVar("startPos");
     const transientLayer = layer.getLayerFromQueue("transientLayer");
     const helperBar = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "line"
     );
-    helperBar.setAttribute("x1", "0");
+    helperBar.setAttribute("x1", startPos);
     helperBar.setAttribute("y1", "0");
-    helperBar.setAttribute("x2", "0");
-    // helperBar.setAttribute("y2", `${height}`);
+    helperBar.setAttribute("x2", startPos);
+    helperBar.setAttribute("y2", height);
     helperBar.setAttribute("stroke", `black`);
     helperBar.setAttribute("stroke-width", `1px`);
     (transientLayer.getGraphic() as SVGGElement).append(helperBar);
@@ -570,6 +571,7 @@ Instrument.register("HelperBarYaxisInstrument", {
     hover: [
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
+        const barX = d3.pointer(event, layer.getGraphic())[0];
         const transientLayer = layer.getLayerFromQueue("transientLayer");
         const helperBarYaxis = transientLayer
           .getGraphic()
@@ -579,13 +581,13 @@ Instrument.register("HelperBarYaxisInstrument", {
           .querySelector("line");
         helperBarYaxis.setAttribute(
           "transform",
-          `translate(0, ${event.offsetY - 20})`
+          `translate(0, ${barX})`
         );
         helperBarYaxis2.setAttribute(
           "transform",
-          `translate(0, ${event.offsetY - 20})`
+          `translate(0, ${barX})`
         );
-        instrument.setSharedVar("barX", event.offsetX, {});
+        instrument.setSharedVar("barX", barX, {});
       },
     ],
   },
