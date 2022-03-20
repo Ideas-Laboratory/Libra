@@ -749,6 +749,7 @@ Instrument.register("DataBrushXInstrument", {
                 const layerPosX = d3.pointer(event, layer.getGraphic())[0];
                 instrument.setSharedVar("layerOffsetX", event.clientX - layerPosX);
                 instrument.setSharedVar("startx", event.clientX);
+                instrument.setSharedVar("startLayerPosX", layerPosX);
                 const newExtent = [layerPosX, layerPosX + 1].map(scaleX.invert);
                 services.setSharedVar("extent", newExtent);
                 instrument.transformers
@@ -784,16 +785,20 @@ Instrument.register("DataBrushXInstrument", {
                 },
                 feedback: [
                     async ({ event, layer, instrument }) => {
-                        const startx = instrument.getSharedVar("startx");
-                        const x = Math.min(startx, event.clientX);
-                        const width = Math.abs(event.clientX - startx);
-                        // draw brush
-                        const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") ||
-                            layer.getGraphic()).getBoundingClientRect();
+                        const startLayerPosX = instrument.getSharedVar("startLayerPosX");
+                        const layerPosX = d3.pointer(event, layer.getGraphic())[0];
+                        console.log(startLayerPosX, layerPosX);
+                        const x = Math.min(startLayerPosX, layerPosX);
+                        const width = Math.abs(layerPosX - startLayerPosX);
+                        // // draw brush
+                        // const baseBBox = (
+                        //   layer.getGraphic().querySelector(".ig-layer-background") ||
+                        //   layer.getGraphic()
+                        // ).getBoundingClientRect();
                         instrument.transformers
                             .find("TransientRectangleTransformer")
                             .setSharedVars({
-                            x: x - baseBBox.left,
+                            x: x,
                             width: width,
                         });
                     },
