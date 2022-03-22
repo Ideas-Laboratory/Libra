@@ -15,17 +15,23 @@ Instrument.register("HoverInstrument", {
                 services.setSharedVar("y", event.clientY, { layer });
                 await Promise.all(instrument.services.results);
                 if (instrument.getSharedVar("highlightAttrValues")) {
-                    instrument.transformers.setSharedVar("highlightAttrValues", instrument.getSharedVar("highlightAttrValues"));
+                    instrument.transformers.setSharedVars({
+                        highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+                        selector: instrument.getSharedVar("selector") || "*",
+                    });
                 }
             },
         ],
     },
     preAttach: (instrument, layer) => {
-        instrument.services.add("SurfacePointSelectionService", { layer });
+        instrument.services.add("SurfacePointSelectionService", {
+            layer,
+            sharedVar: { deepClone: instrument.getSharedVar("deepClone") },
+        });
         instrument.transformers.add("HighlightSelection", {
             transient: true,
             layer: layer.getLayerFromQueue("selectionLayer"),
-            sharedVar: { highlightAttrValues: {} },
+            sharedVar: { highlightAttrValues: {}, selector: "*" },
         });
     },
 });
@@ -581,7 +587,7 @@ Instrument.register("DataBrushInstrument", {
                 const services = instrument.services.find("Quantitative2DSelectionService");
                 // services.setSharedVar("x", event.clientX, { layer });
                 // services.setSharedVar("width", 1, { layer });
-                // const 
+                // const
                 // services.setSharedVar("startx", event.clientX, { layer });
                 // services.setSharedVar("currentx", event.clientX, { layer });
                 const layerPos = d3.pointer(event, layer.getGraphic());
@@ -707,7 +713,9 @@ Instrument.register("DataBrushInstrument", {
         const attrNameY = instrument.getSharedVar("attrNameY");
         const extentY = instrument.getSharedVar("extentY") ?? [0, 0];
         const extentYData = extentX.map(scaleY).reverse();
-        const services = instrument.services.add("Quantitative2DSelectionService", { layer });
+        const services = instrument.services.add("Quantitative2DSelectionService", {
+            layer,
+        });
         services.setSharedVar("attrNameX", attrNameX);
         services.setSharedVar("extentX", extentX);
         services.setSharedVar("attrNameY", attrNameY);
@@ -728,7 +736,9 @@ Instrument.register("DataBrushInstrument", {
             .add("HighlightSelection", {
             transient: true,
             layer: layer.getLayerFromQueue("selectionLayer"),
-            sharedVar: { highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {} },
+            sharedVar: {
+                highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {},
+            },
         });
         await Promise.all(instrument.services.results);
     },
@@ -745,7 +755,7 @@ Instrument.register("DataBrushXInstrument", {
                 const services = instrument.services.find("QuantitativeSelectionService");
                 // services.setSharedVar("x", event.clientX, { layer });
                 // services.setSharedVar("width", 1, { layer });
-                // const 
+                // const
                 // services.setSharedVar("startx", event.clientX, { layer });
                 // services.setSharedVar("currentx", event.clientX, { layer });
                 const layerPosX = d3.pointer(event, layer.getGraphic())[0];
@@ -865,7 +875,9 @@ Instrument.register("DataBrushXInstrument", {
         const extentData = extent.map(scaleX);
         // const attrNameY = instrument.getSharedVar("attrNameY");
         // const extentY = instrument.getSharedVar("extentY");
-        const services = instrument.services.add("QuantitativeSelectionService", { layer });
+        const services = instrument.services.add("QuantitativeSelectionService", {
+            layer,
+        });
         // const bbox = layer.getGraphic().getBoundingClientRect();
         services.setSharedVar("attrName", attrName);
         services.setSharedVar("extent", extent);
@@ -885,7 +897,9 @@ Instrument.register("DataBrushXInstrument", {
             .add("HighlightSelection", {
             transient: true,
             layer: layer.getLayerFromQueue("selectionLayer"),
-            sharedVar: { highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {} },
+            sharedVar: {
+                highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {},
+            },
         });
     },
 });
@@ -1289,7 +1303,7 @@ Instrument.register("PanInstrument", {
                             const scaleXOrigin = transformer.getSharedVar("$$scaleX");
                             const startRangeX = scaleXOrigin.range();
                             const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
-                            const newDomain = newRangeX.map(x => scaleXOrigin.invert(x));
+                            const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
                             sx.domain(newDomain);
                             transformer.setSharedVar("scaleX", sx);
                         }
@@ -1297,7 +1311,7 @@ Instrument.register("PanInstrument", {
                             const scaleYOrigin = transformer.getSharedVar("$$scaleY");
                             const startRangeY = scaleYOrigin.range();
                             const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
-                            const newDomain = newRangeY.map(y => scaleYOrigin.invert(y));
+                            const newDomain = newRangeY.map((y) => scaleYOrigin.invert(y));
                             sy.domain(newDomain);
                             transformer.setSharedVar("scaleY", sy);
                         }
@@ -1390,7 +1404,7 @@ Instrument.register("PanXInstrument", {
                             const scaleXOrigin = transformer.getSharedVar("$$scaleX");
                             const startRangeX = scaleXOrigin.range();
                             const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
-                            const newDomain = newRangeX.map(x => scaleXOrigin.invert(x));
+                            const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
                             sx.domain(newDomain);
                             transformer.setSharedVar("scaleX", sx);
                         }
@@ -1477,29 +1491,33 @@ Instrument.register("ZoomInstrument", {
                             const offsetXDomain = sx.invert(offsetX);
                             sx.domain(sx
                                 .domain()
-                                .map(d => d - offsetXDomain)
-                                .map(d => d * Math.exp(-delta))
-                                .map(d => d + offsetXDomain));
+                                .map((d) => d - offsetXDomain)
+                                .map((d) => d * Math.exp(-delta))
+                                .map((d) => d + offsetXDomain));
                             transformers.forEach((transformer) => transformer.setSharedVar("scaleX", sx));
                         }
                         if (sy) {
                             const offsetYDomain = sy.invert(offsetY);
                             sy.domain(sy
                                 .domain()
-                                .map(d => d - offsetYDomain)
-                                .map(d => d * Math.exp(-delta))
-                                .map(d => d + offsetYDomain));
+                                .map((d) => d - offsetYDomain)
+                                .map((d) => d * Math.exp(-delta))
+                                .map((d) => d + offsetYDomain));
                             transformers.forEach((transformer) => transformer.setSharedVar("scaleY", sy));
                         }
                     }
                     else {
                         if (sx) {
-                            const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                            const newRangeX = sx
+                                .range()
+                                .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
                             sx.range(newRangeX);
                             transformer.setSharedVar("scaleX", sx);
                         }
                         if (sy) {
-                            const newRangeY = sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+                            const newRangeY = sy
+                                .range()
+                                .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
                             sy.range(newRangeY);
                             transformer.setSharedVar("scaleY", sy);
                         }
@@ -1528,7 +1546,7 @@ Instrument.register("ZoomInstrument", {
                 //     scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
                 //     transformers.forEach((transformer) => transformer.setSharedVar("scaleY", scaleY));
                 //   }
-                // } 
+                // }
                 // else {
                 //   if (sx) {
                 //     const proxyRaw = (
@@ -1683,9 +1701,9 @@ Instrument.register("ZoomXInstrument", {
                             const offsetXDomain = sx.invert(offsetX);
                             sx.domain(sx
                                 .domain()
-                                .map(d => d - offsetXDomain)
-                                .map(d => d * Math.exp(-delta))
-                                .map(d => d + offsetXDomain));
+                                .map((d) => d - offsetXDomain)
+                                .map((d) => d * Math.exp(-delta))
+                                .map((d) => d + offsetXDomain));
                             transformers.forEach((transformer) => transformer.setSharedVar("scaleX", sx));
                         }
                         // if (sy) {
@@ -1700,7 +1718,9 @@ Instrument.register("ZoomXInstrument", {
                     }
                     else {
                         if (sx) {
-                            const newRangeX = sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+                            const newRangeX = sx
+                                .range()
+                                .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
                             sx.range(newRangeX);
                             transformer.setSharedVar("scaleX", sx);
                         }

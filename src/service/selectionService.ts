@@ -70,7 +70,7 @@ export default class SelectionService extends InteractionService {
               }
             }
             resultNodes.push(
-              layer.cloneVisualElements(node, this._sharedVar.deepClone)
+              layer.cloneVisualElements(node, true)
             );
             refNodes.push(node);
           }

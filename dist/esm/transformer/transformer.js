@@ -58,7 +58,8 @@ export default class GraphicalTransformer {
         });
         if (transient) {
             postDrawElements = layer.getVisualElements();
-            const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+            const topLevelElements = postDrawElements.filter((el) => !postDrawElements.find((e) => e !== el && e.contains(el)));
+            const transientElements = topLevelElements.filter((el) => !preDrawElements.includes(el));
             transientQueue = transientQueue.concat(transientElements);
         }
     }

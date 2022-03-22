@@ -3516,7 +3516,8 @@ var GraphicalTransformer = class {
     });
     if (transient) {
       postDrawElements = layer.getVisualElements();
-      const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+      const topLevelElements = postDrawElements.filter((el) => !postDrawElements.find((e) => e !== el && e.contains(el)));
+      const transientElements = topLevelElements.filter((el) => !preDrawElements.includes(el));
       transientQueue = transientQueue.concat(transientElements);
     }
   }
@@ -3570,7 +3571,7 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
 GraphicalTransformer.register("HighlightSelection", {
   constructor: GraphicalTransformer,
   redraw({ layer, transformer }) {
-    const elems = select_default2(layer.getGraphic()).selectAll("*");
+    const elems = select_default2(layer.getGraphic()).selectAll(transformer.getSharedVar("selector") || "*");
     const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
     attrValueEntries.forEach(([key, value]) => {
       elems.attr(key, value);
@@ -3726,7 +3727,7 @@ var SelectionService = class extends InteractionService {
                 k--;
               }
             }
-            resultNodes.push(layer.cloneVisualElements(node, this._sharedVar.deepClone));
+            resultNodes.push(layer.cloneVisualElements(node, true));
             refNodes.push(node);
           }
         });
@@ -4471,17 +4472,23 @@ Instrument.register("HoverInstrument", {
         services.setSharedVar("y", event.clientY, { layer });
         await Promise.all(instrument.services.results);
         if (instrument.getSharedVar("highlightAttrValues")) {
-          instrument.transformers.setSharedVar("highlightAttrValues", instrument.getSharedVar("highlightAttrValues"));
+          instrument.transformers.setSharedVars({
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            selector: instrument.getSharedVar("selector") || "*"
+          });
         }
       }
     ]
   },
   preAttach: (instrument, layer) => {
-    instrument.services.add("SurfacePointSelectionService", { layer });
+    instrument.services.add("SurfacePointSelectionService", {
+      layer,
+      sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
+    });
     instrument.transformers.add("HighlightSelection", {
       transient: true,
       layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: {} }
+      sharedVar: { highlightAttrValues: {}, selector: "*" }
     });
   }
 });
@@ -5085,7 +5092,9 @@ Instrument.register("DataBrushInstrument", {
     const attrNameY = instrument.getSharedVar("attrNameY");
     const extentY = instrument.getSharedVar("extentY") ?? [0, 0];
     const extentYData = extentX.map(scaleY).reverse();
-    const services = instrument.services.add("Quantitative2DSelectionService", { layer });
+    const services = instrument.services.add("Quantitative2DSelectionService", {
+      layer
+    });
     services.setSharedVar("attrNameX", attrNameX);
     services.setSharedVar("extentX", extentX);
     services.setSharedVar("attrNameY", attrNameY);
@@ -5104,7 +5113,9 @@ Instrument.register("DataBrushInstrument", {
     }).add("HighlightSelection", {
       transient: true,
       layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {} }
+      sharedVar: {
+        highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+      }
     });
     await Promise.all(instrument.services.results);
   }
@@ -5214,7 +5225,9 @@ Instrument.register("DataBrushXInstrument", {
     const attrName = instrument.getSharedVar("attrNameX");
     const extent = instrument.getSharedVar("extentX") ?? [0, 0];
     const extentData = extent.map(scaleX);
-    const services = instrument.services.add("QuantitativeSelectionService", { layer });
+    const services = instrument.services.add("QuantitativeSelectionService", {
+      layer
+    });
     services.setSharedVar("attrName", attrName);
     services.setSharedVar("extent", extent);
     instrument.transformers.add("TransientRectangleTransformer", {
@@ -5231,7 +5244,9 @@ Instrument.register("DataBrushXInstrument", {
     }).add("HighlightSelection", {
       transient: true,
       layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {} }
+      sharedVar: {
+        highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+      }
     });
   }
 });

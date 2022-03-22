@@ -43,7 +43,9 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
 GraphicalTransformer.register("HighlightSelection", {
   constructor: GraphicalTransformer,
   redraw({ layer, transformer }) {
-    const elems = d3.select(layer.getGraphic()).selectAll("*");
+    const elems = d3
+      .select(layer.getGraphic())
+      .selectAll(transformer.getSharedVar("selector") || "*");
     const attrValueEntries = Object.entries(
       transformer.getSharedVar("highlightAttrValues")
     );
