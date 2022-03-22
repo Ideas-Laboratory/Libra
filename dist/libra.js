@@ -3683,7 +3683,6 @@ var SelectionService = class extends InteractionService {
     super(baseName2, options);
     this._oldResult = [];
     this._result = [];
-    this._nextTick = 0;
     this._transformers = [];
     this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
       transient: true,
@@ -3701,57 +3700,51 @@ var SelectionService = class extends InteractionService {
     this._sharedVar[sharedName] = value;
     if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
       const layer = options?.layer || this._layerInstances[0];
-      if (this._nextTick) {
-        return;
-      }
-      this._nextTick = requestAnimationFrame(async () => {
-        this._oldResult = this._result;
-        this._result = layer.picking({
-          ...this._userOptions.query,
-          ...this._sharedVar
-        });
-        const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
-        while (selectionLayer.firstChild) {
-          selectionLayer.removeChild(selectionLayer.lastChild);
-        }
-        if (this._sharedVar.deepClone) {
-          let resultNodes = [];
-          let refNodes = [];
-          this._result.forEach((node) => {
-            if (node !== layer.getGraphic()) {
-              let k = refNodes.length;
-              for (let i = 0; i < k; i++) {
-                const refNode = refNodes[i];
-                const resultNode = resultNodes[i];
-                if (node.contains(refNode)) {
-                  refNodes.splice(i, 1);
-                  resultNodes.splice(i, 1);
-                  resultNode.remove();
-                  i--;
-                  k--;
-                }
-              }
-              resultNodes.push(layer.cloneVisualElements(node, this._sharedVar.deepClone));
-              refNodes.push(node);
-            }
-          });
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              layer: layer.getLayerFromQueue("selectionLayer"),
-              selectionResult: resultNodes
-            });
-          });
-        } else {
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              layer: layer.getLayerFromQueue("selectionLayer"),
-              selectionResult: this._result.map((node) => layer.cloneVisualElements(node))
-            });
-          });
-        }
-        this._nextTick = 0;
-        this.postUpdate();
+      this._oldResult = this._result;
+      this._result = layer.picking({
+        ...this._userOptions.query,
+        ...this._sharedVar
       });
+      const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
+      while (selectionLayer.firstChild) {
+        selectionLayer.removeChild(selectionLayer.lastChild);
+      }
+      if (this._sharedVar.deepClone) {
+        let resultNodes = [];
+        let refNodes = [];
+        this._result.forEach((node) => {
+          if (node !== layer.getGraphic()) {
+            let k = refNodes.length;
+            for (let i = 0; i < k; i++) {
+              const refNode = refNodes[i];
+              const resultNode = resultNodes[i];
+              if (node.contains(refNode)) {
+                refNodes.splice(i, 1);
+                resultNodes.splice(i, 1);
+                resultNode.remove();
+                i--;
+                k--;
+              }
+            }
+            resultNodes.push(layer.cloneVisualElements(node, this._sharedVar.deepClone));
+            refNodes.push(node);
+          }
+        });
+        this._transformers.forEach((transformer) => {
+          transformer.setSharedVars({
+            layer: layer.getLayerFromQueue("selectionLayer"),
+            selectionResult: resultNodes
+          });
+        });
+      } else {
+        this._transformers.forEach((transformer) => {
+          transformer.setSharedVars({
+            layer: layer.getLayerFromQueue("selectionLayer"),
+            selectionResult: this._result.map((node) => layer.cloneVisualElements(node))
+          });
+        });
+      }
+      this.postUpdate();
     } else {
       this.postUpdate();
     }
@@ -3760,23 +3753,9 @@ var SelectionService = class extends InteractionService {
     return name === "SelectionService" || this._baseName === name || this._name === name;
   }
   get results() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._result);
-        });
-      });
-    }
     return this._result;
   }
   get oldResults() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._oldResult);
-        });
-      });
-    }
     return this._oldResult;
   }
 };
@@ -4409,7 +4388,7 @@ var Instrument = class {
     let handled = false;
     for (let [inter, layr, layerOption] of layers) {
       if (e instanceof MouseEvent) {
-        if (layerOption && layerOption.pointerEvents === "all" || layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
+        if (layerOption && layerOption.pointerEvents === "all" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
         } else {
           const query = layr.picking({
             baseOn: QueryType.Shape,

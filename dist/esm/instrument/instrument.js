@@ -334,9 +334,9 @@ export default class Instrument {
         for (let [inter, layr, layerOption] of layers) {
             if (e instanceof MouseEvent) {
                 if ((layerOption && layerOption.pointerEvents === "all") ||
-                    layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+                    layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
                         "backgroundlayer" ||
-                    layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+                    layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
                         "bglayer") {
                     // Default is `all` for BGLayer
                 }

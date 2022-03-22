@@ -440,9 +440,9 @@ export default class Instrument {
       if (e instanceof MouseEvent) {
         if (
           (layerOption && layerOption.pointerEvents === "all") ||
-          layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+          layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
             "backgroundlayer" ||
-          layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+          layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
             "bglayer"
         ) {
           // Default is `all` for BGLayer
