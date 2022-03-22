@@ -1,3 +1,4 @@
+import * as helpers from "../helpers";
 const registeredTransformers = {};
 const instanceTransformers = [];
 let transientQueue = [];
@@ -11,9 +12,11 @@ const transientCleaner = () => {
             // ignore?
         }
     }
-    instanceTransformers
-        .filter((transformer) => transformer._transient)
-        .forEach((transformer) => transformer.redraw());
+    if (!helpers.global.stopTransient) {
+        instanceTransformers
+            .filter((transformer) => transformer._transient)
+            .forEach((transformer) => transformer.redraw());
+    }
     requestAnimationFrame(transientCleaner);
 };
 requestAnimationFrame(transientCleaner);

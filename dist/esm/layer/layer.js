@@ -149,7 +149,7 @@ export default class Layer {
     postUpdate() {
         this._postUpdate && this._postUpdate.call(this, this);
     }
-    query(options) {
+    picking(options) {
         return [];
     }
     // _use(service: InteractionService, options?: any) {

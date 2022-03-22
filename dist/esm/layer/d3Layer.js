@@ -78,7 +78,7 @@ export default class D3Layer extends Layer {
     select(selector) {
         return this._graphic.querySelectorAll(selector);
     }
-    query(options) {
+    picking(options) {
         if (options.baseOn === helpers.QueryType.Shape) {
             return this._shapeQuery(options);
         }

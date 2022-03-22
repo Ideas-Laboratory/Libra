@@ -103,7 +103,7 @@ export default class D3Layer extends Layer<SVGElement> {
     return this._graphic.querySelectorAll(selector);
   }
 
-  query(options: helpers.ArbitraryQuery) {
+  picking(options: helpers.ArbitraryQuery) {
     if (options.baseOn === helpers.QueryType.Shape) {
       return this._shapeQuery(options);
     } else if (options.baseOn === helpers.QueryType.Data) {

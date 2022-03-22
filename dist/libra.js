@@ -331,6 +331,9 @@ function deepClone(obj) {
   const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
   return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }
+var global = {
+  stopTransient: false
+};
 
 // dist/esm/interactor/actions.jsgf.js
 var actions_jsgf_default = `#JSGF V1.0;
@@ -452,7 +455,9 @@ var Interactor = class {
           console.error(e);
         }
       }
+      return true;
     }
+    return false;
   }
   preUse(instrument) {
     this._preUse && this._preUse.call(this, this, instrument);
@@ -503,22 +508,9 @@ Interactor.register("MousePositionInteractor", {
   state: "start",
   actions: [
     {
-      action: "enter",
-      events: ["mouseenter"],
-      transition: [["start", "running"]]
-    },
-    {
       action: "hover",
       events: ["mousemove"],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "leave",
-      events: ["mouseleave"],
-      transition: [
-        ["running", "start"],
-        ["start", "start"]
-      ]
+      transition: [["start", "start"]]
     }
   ]
 });
@@ -741,7 +733,7 @@ var Layer = class {
   postUpdate() {
     this._postUpdate && this._postUpdate.call(this, this);
   }
-  query(options) {
+  picking(options) {
     return [];
   }
   getLayerFromQueue(siblingLayerName) {
@@ -3323,7 +3315,7 @@ var D3Layer = class extends Layer {
   select(selector) {
     return this._graphic.querySelectorAll(selector);
   }
-  query(options) {
+  picking(options) {
     if (options.baseOn === QueryType.Shape) {
       return this._shapeQuery(options);
     } else if (options.baseOn === QueryType.Data) {
@@ -3479,7 +3471,9 @@ var transientCleaner = () => {
     } catch (e) {
     }
   }
-  instanceTransformers.filter((transformer) => transformer._transient).forEach((transformer) => transformer.redraw());
+  if (!global.stopTransient) {
+    instanceTransformers.filter((transformer) => transformer._transient).forEach((transformer) => transformer.redraw());
+  }
   requestAnimationFrame(transientCleaner);
 };
 requestAnimationFrame(transientCleaner);
@@ -3712,7 +3706,7 @@ var SelectionService = class extends InteractionService {
       }
       this._nextTick = requestAnimationFrame(async () => {
         this._oldResult = this._result;
-        this._result = layer.query({
+        this._result = layer.picking({
           ...this._userOptions.query,
           ...this._sharedVar
         });
@@ -4137,6 +4131,7 @@ var Instrument = class {
     this._on = deepClone(options.on ?? {});
     this._interactors = [];
     this._layers = [];
+    this._layerInteractors = new Map();
     this._services = options.services ?? [];
     this._serviceInstances = [];
     this._sharedVar = options.sharedVar ?? {};
@@ -4244,33 +4239,6 @@ var Instrument = class {
     } else {
       this._interactors.push(interactor);
     }
-    interactor.setActions(interactor.getActions().map((action) => ({
-      ...action,
-      sideEffect: async (options2) => {
-        action.sideEffect && action.sideEffect(options2);
-        if (this._on[action.action]) {
-          for (let command of this._on[action.action]) {
-            try {
-              if (command instanceof Command2) {
-                await command.execute({
-                  ...options2,
-                  self: this,
-                  instrument: this
-                });
-              } else {
-                await command({
-                  ...options2,
-                  self: this,
-                  instrument: this
-                });
-              }
-            } catch (e) {
-              console.error(e);
-            }
-          }
-        }
-      }
-    })));
     this._layers.forEach((layer) => {
       let layr;
       if (layer instanceof Layer2) {
@@ -4278,7 +4246,39 @@ var Instrument = class {
       } else {
         layr = layer.layer;
       }
-      interactor.getAcceptEvents().forEach((event) => {
+      if (!this._layerInteractors.has(layr)) {
+        this._layerInteractors.set(layr, []);
+      }
+      const copyInteractor = Interactor2.initialize(interactor._baseName, interactor._userOptions);
+      this._layerInteractors.get(layr).push(copyInteractor);
+      copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
+        ...action,
+        sideEffect: async (options2) => {
+          action.sideEffect && action.sideEffect(options2);
+          if (this._on[action.action]) {
+            for (let command of this._on[action.action]) {
+              try {
+                if (command instanceof Command2) {
+                  await command.execute({
+                    ...options2,
+                    self: this,
+                    instrument: this
+                  });
+                } else {
+                  await command({
+                    ...options2,
+                    self: this,
+                    instrument: this
+                  });
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          }
+        }
+      })));
+      copyInteractor.getAcceptEvents().forEach((event) => {
         if (!EventDispatcher.has(layr.getContainerGraphic())) {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
@@ -4286,13 +4286,19 @@ var Instrument = class {
           layr.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layr, event));
           EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
         }
-        EventDispatcher.get(layr.getContainerGraphic()).get(event).push([interactor, layr]);
+        EventDispatcher.get(layr.getContainerGraphic()).get(event).push([
+          copyInteractor,
+          layr,
+          layer instanceof Layer2 ? null : layer.options
+        ]);
       });
     });
     interactor.postUse(this);
   }
   attach(layer, options) {
-    this.preAttach(layer);
+    if (this._layers.find((l) => l instanceof Layer2 ? l === layer : l.layer === layer))
+      return;
+    this.preAttach(layer, options ?? null);
     if (arguments.length >= 2) {
       this._layers.push({ layer, options });
     } else {
@@ -4332,7 +4338,7 @@ var Instrument = class {
   watchSharedVar(sharedName, handler) {
     this.on(`update:${sharedName}`, handler);
   }
-  preAttach(layer) {
+  preAttach(layer, options) {
     this._preAttach && this._preAttach.call(this, this, layer);
     this._interactors.forEach((interactor) => {
       let inter;
@@ -4341,7 +4347,39 @@ var Instrument = class {
       } else {
         inter = interactor.interactor;
       }
-      inter.getAcceptEvents().forEach((event) => {
+      if (!this._layerInteractors.has(layer)) {
+        this._layerInteractors.set(layer, []);
+      }
+      const copyInteractor = Interactor2.initialize(inter._baseName, inter._userOptions);
+      this._layerInteractors.get(layer).push(copyInteractor);
+      copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
+        ...action,
+        sideEffect: async (options2) => {
+          action.sideEffect && action.sideEffect(options2);
+          if (this._on[action.action]) {
+            for (let command of this._on[action.action]) {
+              try {
+                if (command instanceof Command2) {
+                  await command.execute({
+                    ...options2,
+                    self: this,
+                    instrument: this
+                  });
+                } else {
+                  await command({
+                    ...options2,
+                    self: this,
+                    instrument: this
+                  });
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          }
+        }
+      })));
+      copyInteractor.getAcceptEvents().forEach((event) => {
         if (!EventDispatcher.has(layer.getContainerGraphic())) {
           EventDispatcher.set(layer.getContainerGraphic(), new Map());
         }
@@ -4349,13 +4387,14 @@ var Instrument = class {
           layer.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layer, event));
           EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
         }
-        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([inter, layer]);
+        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([copyInteractor, layer, options]);
       });
     });
   }
   async _dispatch(layer, event, e) {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     if (eventHandling) {
       let existingEventIndex = EventQueue.findIndex((e2) => e2.instrument === this && e2.layer === layer && e2.eventType === event);
       if (existingEventIndex >= 0) {
@@ -4365,23 +4404,38 @@ var Instrument = class {
       return;
     }
     eventHandling = true;
-    const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([interactor, layr]) => layr._order >= 0);
+    const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([_, layr]) => layr._order >= 0);
     layers.sort((a, b) => b[1]._order - a[1]._order);
-    e.handledLayers = [];
-    for (let [inter, layr] of layers) {
-      e.handled = false;
+    let handled = false;
+    for (let [inter, layr, layerOption] of layers) {
+      if (e instanceof MouseEvent) {
+        if (layerOption && layerOption.pointerEvents === "all" || layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
+        } else {
+          const query = layr.picking({
+            baseOn: QueryType.Shape,
+            type: ShapeQueryType.Point,
+            x: e.clientX,
+            y: e.clientY
+          });
+          if (query.length <= 0)
+            continue;
+        }
+      }
       try {
-        await inter.dispatch(e, layr);
+        let flag = await inter.dispatch(e, layr);
+        if (flag && e instanceof MouseEvent) {
+          handled = true;
+          break;
+        }
       } catch (e2) {
         console.error(e2);
         break;
       }
-      if (e.handled == true) {
-        e.handledLayers.push(layr._name);
-        if (e.passThrough == false) {
-          break;
-        }
-      }
+    }
+    if (!handled && e instanceof MouseEvent) {
+      global.stopTransient = true;
+    } else {
+      global.stopTransient = false;
     }
     eventHandling = false;
     if (EventQueue.length) {

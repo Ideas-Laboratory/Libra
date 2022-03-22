@@ -465,3 +465,7 @@ export function deepClone(obj) {
     propertyObject
   );
 }
+
+export const global = {
+  stopTransient: false,
+};

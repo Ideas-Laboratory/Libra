@@ -32,7 +32,7 @@ export default class SelectionService extends InteractionService {
             }
             this._nextTick = requestAnimationFrame(async () => {
                 this._oldResult = this._result;
-                this._result = layer.query({
+                this._result = layer.picking({
                     ...this._userOptions.query,
                     ...this._sharedVar,
                 });

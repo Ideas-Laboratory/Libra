@@ -41,7 +41,7 @@ const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
 const instanceInstruments: Instrument[] = [];
 const EventDispatcher: Map<
   HTMLElement,
-  Map<string, [Interactor, Layer<any>][]>
+  Map<string, [Interactor, Layer<any>, any][]>
 > = new Map();
 const EventQueue: {
   instrument: Instrument;
@@ -69,6 +69,7 @@ export default class Instrument {
   _serviceInstances: InteractionService[];
   _interactors: (Interactor | { interactor: Interactor; options: any })[];
   _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
+  _layerInteractors: Map<Layer<any>, Interactor[]>;
   _sharedVar: { [varName: string]: any };
   _transformers: GraphicalTransformer[] = [];
   _preInitialize?: (instrument: Instrument) => void;
@@ -88,6 +89,7 @@ export default class Instrument {
     this._on = helpers.deepClone(options.on ?? {});
     this._interactors = [];
     this._layers = [];
+    this._layerInteractors = new Map();
     this._services = options.services ?? [];
     this._serviceInstances = [];
     this._sharedVar = options.sharedVar ?? {};
@@ -228,35 +230,7 @@ export default class Instrument {
     } else {
       this._interactors.push(interactor);
     }
-    interactor.setActions(
-      interactor.getActions().map((action) => ({
-        ...action,
-        sideEffect: async (options) => {
-          action.sideEffect && action.sideEffect(options);
-          if (this._on[action.action]) {
-            for (let command of this._on[action.action]) {
-              try {
-                if (command instanceof Command) {
-                  await command.execute({
-                    ...options,
-                    self: this,
-                    instrument: this,
-                  });
-                } else {
-                  await command({
-                    ...options,
-                    self: this,
-                    instrument: this,
-                  });
-                }
-              } catch (e) {
-                console.error(e);
-              }
-            }
-          }
-        },
-      }))
-    );
+
     this._layers.forEach((layer) => {
       let layr: Layer<any>;
       if (layer instanceof Layer) {
@@ -264,7 +238,44 @@ export default class Instrument {
       } else {
         layr = layer.layer;
       }
-      interactor.getAcceptEvents().forEach((event) => {
+      if (!this._layerInteractors.has(layr)) {
+        this._layerInteractors.set(layr, []);
+      }
+      const copyInteractor = Interactor.initialize(
+        interactor._baseName,
+        interactor._userOptions
+      );
+      this._layerInteractors.get(layr).push(copyInteractor);
+      copyInteractor.setActions(
+        copyInteractor.getActions().map((action) => ({
+          ...action,
+          sideEffect: async (options) => {
+            action.sideEffect && action.sideEffect(options);
+            if (this._on[action.action]) {
+              for (let command of this._on[action.action]) {
+                try {
+                  if (command instanceof Command) {
+                    await command.execute({
+                      ...options,
+                      self: this,
+                      instrument: this,
+                    });
+                  } else {
+                    await command({
+                      ...options,
+                      self: this,
+                      instrument: this,
+                    });
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+            }
+          },
+        }))
+      );
+      copyInteractor.getAcceptEvents().forEach((event) => {
         if (!EventDispatcher.has(layr.getContainerGraphic())) {
           EventDispatcher.set(layr.getContainerGraphic(), new Map());
         }
@@ -276,14 +287,24 @@ export default class Instrument {
         }
         EventDispatcher.get(layr.getContainerGraphic())
           .get(event)
-          .push([interactor, layr]);
+          .push([
+            copyInteractor,
+            layr,
+            layer instanceof Layer ? null : layer.options,
+          ]);
       });
     });
     interactor.postUse(this);
   }
 
   attach(layer: Layer<any>, options?: any) {
-    this.preAttach(layer);
+    if (
+      this._layers.find((l) =>
+        l instanceof Layer ? l === layer : l.layer === layer
+      )
+    )
+      return; // Reject for duplicated attach
+    this.preAttach(layer, options ?? null);
     if (arguments.length >= 2) {
       this._layers.push({ layer, options });
     } else {
@@ -331,7 +352,7 @@ export default class Instrument {
     this.on(`update:${sharedName}`, handler);
   }
 
-  preAttach(layer: Layer<any>) {
+  preAttach(layer: Layer<any>, options: any) {
     this._preAttach && this._preAttach.call(this, this, layer);
     this._interactors.forEach((interactor) => {
       let inter: Interactor;
@@ -340,7 +361,44 @@ export default class Instrument {
       } else {
         inter = interactor.interactor;
       }
-      inter.getAcceptEvents().forEach((event) => {
+      if (!this._layerInteractors.has(layer)) {
+        this._layerInteractors.set(layer, []);
+      }
+      const copyInteractor = Interactor.initialize(
+        inter._baseName,
+        inter._userOptions
+      );
+      this._layerInteractors.get(layer).push(copyInteractor);
+      copyInteractor.setActions(
+        copyInteractor.getActions().map((action) => ({
+          ...action,
+          sideEffect: async (options) => {
+            action.sideEffect && action.sideEffect(options);
+            if (this._on[action.action]) {
+              for (let command of this._on[action.action]) {
+                try {
+                  if (command instanceof Command) {
+                    await command.execute({
+                      ...options,
+                      self: this,
+                      instrument: this,
+                    });
+                  } else {
+                    await command({
+                      ...options,
+                      self: this,
+                      instrument: this,
+                    });
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+            }
+          },
+        }))
+      );
+      copyInteractor.getAcceptEvents().forEach((event) => {
         if (!EventDispatcher.has(layer.getContainerGraphic())) {
           EventDispatcher.set(layer.getContainerGraphic(), new Map());
         }
@@ -352,7 +410,7 @@ export default class Instrument {
         }
         EventDispatcher.get(layer.getContainerGraphic())
           .get(event)
-          .push([inter, layer]);
+          .push([copyInteractor, layer, options]);
       });
     });
   }
@@ -360,6 +418,7 @@ export default class Instrument {
   async _dispatch(layer: Layer<any>, event: string, e: Event) {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     if (eventHandling) {
       let existingEventIndex = EventQueue.findIndex(
         (e) =>
@@ -374,23 +433,46 @@ export default class Instrument {
     eventHandling = true;
     const layers = EventDispatcher.get(layer.getContainerGraphic())
       .get(event)
-      .filter(([interactor, layr]) => layr._order >= 0);
+      .filter(([_, layr]) => layr._order >= 0);
     layers.sort((a, b) => b[1]._order - a[1]._order);
-    (e as any).handledLayers = [];
-    for (let [inter, layr] of layers) {
-      (e as any).handled = false;
+    let handled = false;
+    for (let [inter, layr, layerOption] of layers) {
+      if (e instanceof MouseEvent) {
+        if (
+          (layerOption && layerOption.pointerEvents === "all") ||
+          layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+            "backgroundlayer" ||
+          layr._name.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+            "bglayer"
+        ) {
+          // Default is `all` for BGLayer
+        } else {
+          // Default is `visiblePainted`
+          const query = layr.picking({
+            baseOn: helpers.QueryType.Shape,
+            type: helpers.ShapeQueryType.Point,
+            x: e.clientX,
+            y: e.clientY,
+          });
+          if (query.length <= 0) continue;
+        }
+      }
       try {
-        await inter.dispatch(e, layr);
+        let flag = await inter.dispatch(e, layr);
+        if (flag && e instanceof MouseEvent) {
+          handled = true;
+          break;
+        }
       } catch (e) {
         console.error(e);
         break;
       }
-      if ((e as any).handled == true) {
-        (e as any).handledLayers.push(layr._name);
-        if ((e as any).passThrough == false) {
-          break;
-        }
-      }
+    }
+    if (!handled && e instanceof MouseEvent) {
+      // default fallback of BGLayer
+      helpers.global.stopTransient = true;
+    } else {
+      helpers.global.stopTransient = false;
     }
     eventHandling = false;
     if (EventQueue.length) {

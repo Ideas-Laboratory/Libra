@@ -274,3 +274,6 @@ export function deepClone(obj) {
     const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
     return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }
+export const global = {
+    stopTransient: false,
+};

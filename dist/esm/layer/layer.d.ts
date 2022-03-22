@@ -42,7 +42,7 @@ export default class Layer<T> {
     join(rightTable: any[], joinKey: string): any[];
     preUpdate(): void;
     postUpdate(): void;
-    query(options: helpers.ArbitraryQuery): T[];
+    picking(options: helpers.ArbitraryQuery): T[];
     getLayerFromQueue(siblingLayerName: string): Layer<T>;
     setLayersOrder(layerNameOrderKVPairs: {
         [key: string]: number;

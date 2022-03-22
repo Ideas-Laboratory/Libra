@@ -131,7 +131,9 @@ export default class Interactor {
                     console.error(e);
                 }
             }
+            return true;
         }
+        return false;
     }
     preUse(instrument) {
         this._preUse && this._preUse.call(this, this, instrument);

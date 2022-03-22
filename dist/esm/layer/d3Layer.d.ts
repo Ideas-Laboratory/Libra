@@ -18,7 +18,7 @@ export default class D3Layer extends Layer<SVGElement> {
     getVisualElements(): SVGElement[];
     cloneVisualElements(element: Element, deep?: boolean): Element;
     select(selector: string): NodeListOf<Element>;
-    query(options: helpers.ArbitraryQuery): SVGElement[];
+    picking(options: helpers.ArbitraryQuery): SVGElement[];
     _isElementInLayer(elem: Element): SVGElement[];
     _shapeQuery(options: helpers.ShapeBasedQuery): SVGElement[];
     _dataQuery(options: helpers.DataBasedQuery): SVGElement[];

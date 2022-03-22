@@ -140,7 +140,7 @@ export default class Interactor {
     );
   }
 
-  async dispatch(event: string | Event, layer?: Layer<any>): Promise<void> {
+  async dispatch(event: string | Event, layer?: Layer<any>): Promise<boolean> {
     const moveAction = this._actions.find((action) => {
       const events = action.eventStreams.map((es) => es.type);
       let inculdeEvent = false;
@@ -206,7 +206,9 @@ export default class Interactor {
           console.error(e);
         }
       }
+      return true;
     }
+    return false;
   }
 
   preUse(instrument: Instrument) {

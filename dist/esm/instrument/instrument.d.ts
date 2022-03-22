@@ -54,6 +54,7 @@ export default class Instrument {
         layer: Layer<any>;
         options: any;
     })[];
+    _layerInteractors: Map<Layer<any>, Interactor[]>;
     _sharedVar: {
         [varName: string]: any;
     };
@@ -73,7 +74,7 @@ export default class Instrument {
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): void;
     watchSharedVar(sharedName: string, handler: Command): void;
-    preAttach(layer: Layer<any>): void;
+    preAttach(layer: Layer<any>, options: any): void;
     _dispatch(layer: Layer<any>, event: string, e: Event): Promise<void>;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;

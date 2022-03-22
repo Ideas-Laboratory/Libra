@@ -134,3 +134,6 @@ export declare type BetweenEventStream = (EventStream & {
     stream: BetweenEventStream[];
 };
 export declare function deepClone(obj: any): any;
+export declare const global: {
+    stopTransient: boolean;
+};

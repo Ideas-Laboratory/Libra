@@ -231,7 +231,7 @@ export default class Layer<T> {
   postUpdate() {
     this._postUpdate && this._postUpdate.call(this, this);
   }
-  query(options: helpers.ArbitraryQuery): T[] {
+  picking(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
   // _use(service: InteractionService, options?: any) {

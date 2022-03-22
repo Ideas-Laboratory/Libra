@@ -47,7 +47,7 @@ export declare class Layer<T> {
   redraw(data: any, scale: helpers.Transformation, selection: T[]): void;
   preUpdate(): void;
   postUpdate(): void;
-  query(options: helpers.ArbitraryQuery): T[];
+  picking(options: helpers.ArbitraryQuery): T[];
   use(service: string | InteractionService, options?: any);
   isInstanceOf(name: string): boolean;
 }
