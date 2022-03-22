@@ -59,6 +59,9 @@ export default class Instrument {
         [varName: string]: any;
     };
     _transformers: GraphicalTransformer[];
+    _linkCache: {
+        [linkProp: string]: any;
+    };
     _preInitialize?: (instrument: Instrument) => void;
     _postInitialize?: (instrument: Instrument) => void;
     _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;

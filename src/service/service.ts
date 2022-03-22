@@ -42,6 +42,7 @@ export default class InteractionService {
   //   )[];
   // };
   _sharedVar: { [key: string]: any };
+  _linkCache: { [linkProp: string]: any } = {};
   _preInitialize?: (service: InteractionService) => void;
   _postInitialize?: (service: InteractionService) => void;
   _preUpdate?: (service: InteractionService) => void;
@@ -153,6 +154,14 @@ export default class InteractionService {
   }
 
   postUpdate() {
+    const linkProps =
+      this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+    if (this._sharedVar.linking) {
+      for (let prop of linkProps) {
+        if (this._linkCache[prop] === this._sharedVar[prop]) continue;
+        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+      }
+    }
     this._postUpdate && this._postUpdate.call(this, this);
   }
 

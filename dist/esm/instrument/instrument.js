@@ -12,6 +12,7 @@ let eventHandling = false;
 export default class Instrument {
     constructor(baseName, options) {
         this._transformers = [];
+        this._linkCache = {};
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -248,6 +249,14 @@ export default class Instrument {
                     });
                 }
             });
+        }
+        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+        if (this._sharedVar.linking) {
+            for (let prop of linkProps) {
+                if (this._linkCache[prop] === this._sharedVar[prop])
+                    continue;
+                this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+            }
         }
     }
     watchSharedVar(sharedName, handler) {

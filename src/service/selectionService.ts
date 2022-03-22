@@ -26,6 +26,7 @@ export default class SelectionService extends InteractionService {
     if (
       options &&
       options.layer &&
+      this._layerInstances.length !== 0 &&
       !this._layerInstances.includes(options.layer)
     ) {
       return;
@@ -69,9 +70,7 @@ export default class SelectionService extends InteractionService {
                 k--;
               }
             }
-            resultNodes.push(
-              layer.cloneVisualElements(node, true)
-            );
+            resultNodes.push(layer.cloneVisualElements(node, true));
             refNodes.push(node);
           }
         });
@@ -86,7 +85,7 @@ export default class SelectionService extends InteractionService {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),
             selectionResult: this._result.map((node) =>
-              layer.cloneVisualElements(node)
+              layer.cloneVisualElements(node, false)
             ),
           });
         });

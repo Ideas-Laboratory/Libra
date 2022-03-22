@@ -32,6 +32,9 @@ export default class InteractionService {
     _sharedVar: {
         [key: string]: any;
     };
+    _linkCache: {
+        [linkProp: string]: any;
+    };
     _preInitialize?: (service: InteractionService) => void;
     _postInitialize?: (service: InteractionService) => void;
     _preUpdate?: (service: InteractionService) => void;

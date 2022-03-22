@@ -72,6 +72,7 @@ export default class Instrument {
   _layerInteractors: Map<Layer<any>, Interactor[]>;
   _sharedVar: { [varName: string]: any };
   _transformers: GraphicalTransformer[] = [];
+  _linkCache: { [linkProp: string]: any } = {};
   _preInitialize?: (instrument: Instrument) => void;
   _postInitialize?: (instrument: Instrument) => void;
   _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
@@ -345,6 +346,15 @@ export default class Instrument {
           });
         }
       });
+    }
+
+    const linkProps =
+      this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+    if (this._sharedVar.linking) {
+      for (let prop of linkProps) {
+        if (this._linkCache[prop] === this._sharedVar[prop]) continue;
+        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+      }
     }
   }
 

@@ -19,6 +19,7 @@ export default class SelectionService extends InteractionService {
     async setSharedVar(sharedName, value, options) {
         if (options &&
             options.layer &&
+            this._layerInstances.length !== 0 &&
             !this._layerInstances.includes(options.layer)) {
             return;
         }
@@ -74,7 +75,7 @@ export default class SelectionService extends InteractionService {
                 this._transformers.forEach((transformer) => {
                     transformer.setSharedVars({
                         layer: layer.getLayerFromQueue("selectionLayer"),
-                        selectionResult: this._result.map((node) => layer.cloneVisualElements(node)),
+                        selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false)),
                     });
                 });
             }

@@ -4,6 +4,7 @@ const registeredServices = {};
 export const instanceServices = [];
 export default class InteractionService {
     constructor(baseName, options) {
+        this._linkCache = {};
         this._transformers = [];
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
@@ -96,6 +97,14 @@ export default class InteractionService {
         this._preUpdate && this._preUpdate.call(this, this);
     }
     postUpdate() {
+        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+        if (this._sharedVar.linking) {
+            for (let prop of linkProps) {
+                if (this._linkCache[prop] === this._sharedVar[prop])
+                    continue;
+                this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+            }
+        }
         this._postUpdate && this._postUpdate.call(this, this);
     }
     preAttach(instrument) {

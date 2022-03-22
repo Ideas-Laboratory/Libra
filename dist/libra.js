@@ -3600,6 +3600,7 @@ var registeredServices = {};
 var instanceServices = [];
 var InteractionService = class {
   constructor(baseName2, options) {
+    this._linkCache = {};
     this._transformers = [];
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
@@ -3640,6 +3641,14 @@ var InteractionService = class {
     this._preUpdate && this._preUpdate.call(this, this);
   }
   postUpdate() {
+    const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+    if (this._sharedVar.linking) {
+      for (let prop of linkProps) {
+        if (this._linkCache[prop] === this._sharedVar[prop])
+          continue;
+        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+      }
+    }
     this._postUpdate && this._postUpdate.call(this, this);
   }
   preAttach(instrument) {
@@ -3694,7 +3703,7 @@ var SelectionService = class extends InteractionService {
     }));
   }
   async setSharedVar(sharedName, value, options) {
-    if (options && options.layer && !this._layerInstances.includes(options.layer)) {
+    if (options && options.layer && this._layerInstances.length !== 0 && !this._layerInstances.includes(options.layer)) {
       return;
     }
     this.preUpdate();
@@ -3741,7 +3750,7 @@ var SelectionService = class extends InteractionService {
         this._transformers.forEach((transformer) => {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),
-            selectionResult: this._result.map((node) => layer.cloneVisualElements(node))
+            selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false))
           });
         });
       }
@@ -4100,6 +4109,7 @@ var eventHandling = false;
 var Instrument = class {
   constructor(baseName2, options) {
     this._transformers = [];
+    this._linkCache = {};
     options.preInitialize && options.preInitialize.call(this, this);
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -4314,6 +4324,14 @@ var Instrument = class {
         }
       });
     }
+    const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+    if (this._sharedVar.linking) {
+      for (let prop of linkProps) {
+        if (this._linkCache[prop] === this._sharedVar[prop])
+          continue;
+        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+      }
+    }
   }
   watchSharedVar(sharedName, handler) {
     this.on(`update:${sharedName}`, handler);
@@ -4496,7 +4514,7 @@ Instrument.register("ClickInstrument", {
   constructor: Instrument,
   interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
   on: {
-    dragend: [
+    dragstart: [
       async (options) => {
         let { event, layer, instrument } = options;
         if (event.changedTouches)
@@ -4506,9 +4524,33 @@ Instrument.register("ClickInstrument", {
         services.setSharedVar("y", event.clientY, { layer });
         await Promise.all(instrument.services.results);
         if (instrument.getSharedVar("highlightAttrValues")) {
-          instrument.transformers.setSharedVar("highlightAttrValues", instrument.getSharedVar("highlightAttrValues"));
+          instrument.transformers.setSharedVars({
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            selector: instrument.getSharedVar("selector") || "*"
+          });
         }
         instrument.emit("click", {
+          ...options,
+          self: options.instrument
+        });
+      }
+    ],
+    dragend: [
+      async (options) => {
+        let { event, layer, instrument } = options;
+        if (event.changedTouches)
+          event = event.changedTouches[0];
+        const services = instrument.services.find("SelectionService");
+        services.setSharedVar("x", 0, { layer });
+        services.setSharedVar("y", 0, { layer });
+        await Promise.all(instrument.services.results);
+        if (instrument.getSharedVar("highlightAttrValues")) {
+          instrument.transformers.setSharedVars({
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            selector: instrument.getSharedVar("selector") || "*"
+          });
+        }
+        instrument.emit("clickend", {
           ...options,
           self: options.instrument
         });
@@ -4529,11 +4571,14 @@ Instrument.register("ClickInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    instrument.services.add("SurfacePointSelectionService", { layer });
+    instrument.services.add("SurfacePointSelectionService", {
+      layer,
+      sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
+    });
     instrument.transformers.add("HighlightSelection", {
       transient: true,
       layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: {} }
+      sharedVar: { highlightAttrValues: {}, selector: "*" }
     });
   }
 });
@@ -4597,37 +4642,14 @@ Instrument.register("BrushInstrument", {
             const width = Math.abs(event.clientX - startx);
             const height = Math.abs(event.clientY - starty);
             const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+            instrument.transformers.setSharedVars({
               x: x - baseBBox.left,
               y: y - baseBBox.top,
               width,
-              height
+              height,
+              highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+              selector: instrument.getSharedVar("selector") || "*"
             });
-          },
-          async ({ instrument }) => {
-            instrument.transformers.find("HighlightSelection").setSharedVars({
-              highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
-            });
-          }
-        ]
-      })
-    ],
-    dragend: [
-      Command.initialize("clearOrPersistant", {
-        execute: async ({ event, layer, instrument }) => {
-        },
-        feedback: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            if (!instrument.getSharedVar("persistant")) {
-              instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-                x: 0,
-                y: 0,
-                width: 0,
-                height: 0
-              });
-            }
           }
         ]
       })
@@ -4645,7 +4667,7 @@ Instrument.register("BrushInstrument", {
         services.setSharedVar("currenty", event.clientY, { layer });
         services.setSharedVar("endx", event.clientX, { layer });
         services.setSharedVar("endy", event.clientY, { layer });
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+        instrument.transformers.setSharedVars({
           x: 0,
           y: 0,
           width: 0,
@@ -4655,7 +4677,10 @@ Instrument.register("BrushInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    instrument.services.add("RectSelectionService", { layer });
+    instrument.services.add("RectSelectionService", {
+      layer,
+      sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
+    });
     instrument.transformers.add("TransientRectangleTransformer", {
       transient: true,
       layer: layer.getLayerFromQueue("transientLayer"),
@@ -4670,7 +4695,7 @@ Instrument.register("BrushInstrument", {
     }).add("HighlightSelection", {
       transient: true,
       layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: {} }
+      sharedVar: { highlightAttrValues: {}, selector: "*" }
     });
   }
 });
@@ -4726,23 +4751,6 @@ Instrument.register("BrushXInstrument", {
             instrument.transformers.find("HighlightSelection").setSharedVars({
               highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
             });
-          }
-        ]
-      })
-    ],
-    dragend: [
-      Command.initialize("clearOrPersistant", {
-        execute: async ({ event, layer, instrument }) => {
-        },
-        feedback: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            if (!instrument.getSharedVar("persistant")) {
-              instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-                width: 0
-              });
-            }
           }
         ]
       })
@@ -4840,29 +4848,6 @@ Instrument.register("BrushYInstrument", {
             instrument.transformers.find("HighlightSelection").setSharedVars({
               highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
             });
-          }
-        ]
-      })
-    ],
-    dragend: [
-      Command.initialize("clearOrPersistant", {
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          if (!instrument.getSharedVar("persistant")) {
-            const services = instrument.services.find("SelectionService");
-            services.setSharedVar("height", -1, { layer });
-          }
-        },
-        feedback: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            if (!instrument.getSharedVar("persistant")) {
-              instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-                height: 0
-              });
-            }
           }
         ]
       })
@@ -5043,30 +5028,6 @@ Instrument.register("DataBrushInstrument", {
         ]
       })
     ],
-    dragend: [
-      Command.initialize("clearOrPersistant", {
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          if (!instrument.getSharedVar("persistant")) {
-            const services = instrument.services.find("SelectionService");
-            services.setSharedVar("width", -1, { layer });
-          }
-        },
-        feedback: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            if (!instrument.getSharedVar("persistant")) {
-              instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-                width: 0,
-                height: 0
-              });
-            }
-          }
-        ]
-      })
-    ],
     dragabort: [
       async ({ event, layer, instrument }) => {
         if (event.changedTouches)
@@ -5155,7 +5116,7 @@ Instrument.register("DataBrushXInstrument", {
           const width = Math.abs(event.clientX - startx);
           const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
           const services = instrument.services.find("QuantitativeSelectionService");
-          console.log(services);
+          instrument.setSharedVar("extent", newExtent);
           services.setSharedVar("extent", newExtent);
           await Promise.all(instrument.services.results);
         },
@@ -5175,29 +5136,6 @@ Instrument.register("DataBrushXInstrument", {
             instrument.transformers.find("HighlightSelection").setSharedVars({
               highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
             });
-          }
-        ]
-      })
-    ],
-    dragend: [
-      Command.initialize("clearOrPersistant", {
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          if (!instrument.getSharedVar("persistant")) {
-            const services = instrument.services.find("SelectionService");
-            services.setSharedVar("width", -1, { layer });
-          }
-        },
-        feedback: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            if (!instrument.getSharedVar("persistant")) {
-              instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-                width: 0
-              });
-            }
           }
         ]
       })
