@@ -8,6 +8,8 @@ export default class SelectionService extends InteractionService {
   _result: any = [];
   // _nextTick: number = 0;
   _transformers: GraphicalTransformer[] = [];
+  _currentDimension = [];
+  _
 
   constructor(baseName: string, options: any) {
     super(baseName, options);
@@ -217,6 +219,11 @@ export default class SelectionService extends InteractionService {
       this._name === name
     );
   }
+
+  /** Cross filter */
+  dimension() {}
+
+  filter() {}
 
   get results() {
     // if (this._nextTick) {
