@@ -277,9 +277,20 @@ Instrument.register("BrushXInstrument", {
 
           const x = Math.min(startx, event.clientX);
           const width = Math.abs(event.clientX - startx);
+          const layerOffsetX = layer.getGraphic().getBoundingClientRect().left;
 
           // selection, currently service use client coordinates, but coordinates relative to the layer maybe more appropriate.
           const services = instrument.services.find("SelectionService");
+
+          const scaleX = instrument.getSharedVar("scaleX");
+          if (scaleX && scaleX.invert) {
+            const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(
+              scaleX.invert
+            );
+            
+            instrument.setSharedVar("extent", newExtent);
+          }
+
           services.setSharedVar("x", x, { layer });
           services.setSharedVar("width", width, {
             layer,

@@ -8,6 +8,7 @@ export default class SelectionService extends InteractionService {
         this._result = [];
         // _nextTick: number = 0;
         this._transformers = [];
+        this._currentDimension = [];
         this._transformers.push(GraphicalTransformer.initialize("SelectionTransformer", {
             transient: true,
             sharedVar: {
@@ -200,6 +201,9 @@ export default class SelectionService extends InteractionService {
             this._baseName === name ||
             this._name === name);
     }
+    /** Cross filter */
+    dimension() { }
+    filter() { }
     get results() {
         // if (this._nextTick) {
         //   return new Promise((res) => {

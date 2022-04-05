@@ -57,9 +57,12 @@ export default class GraphicalTransformer {
             transformer: this,
         });
         if (transient) {
-            postDrawElements = layer.getVisualElements();
-            const topLevelElements = postDrawElements.filter((el) => !postDrawElements.find((e) => e !== el && e.contains(el)));
-            const transientElements = topLevelElements.filter((el) => !preDrawElements.includes(el));
+            // postDrawElements = layer.getVisualElements();
+            // const topLevelElements = postDrawElements.filter(
+            //   (el) => !postDrawElements.find((e) => e !== el && e.contains(el))
+            // );
+            postDrawElements = Array.prototype.slice.call(layer.getGraphic().childNodes);
+            const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
             transientQueue = transientQueue.concat(transientElements);
         }
     }

@@ -3515,9 +3515,8 @@ var GraphicalTransformer = class {
       transformer: this
     });
     if (transient) {
-      postDrawElements = layer.getVisualElements();
-      const topLevelElements = postDrawElements.filter((el) => !postDrawElements.find((e) => e !== el && e.contains(el)));
-      const transientElements = topLevelElements.filter((el) => !preDrawElements.includes(el));
+      postDrawElements = Array.prototype.slice.call(layer.getGraphic().childNodes);
+      const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
       transientQueue = transientQueue.concat(transientElements);
     }
   }
@@ -3694,6 +3693,7 @@ var SelectionService = class extends InteractionService {
     this._oldResult = [];
     this._result = [];
     this._transformers = [];
+    this._currentDimension = [];
     this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
       transient: true,
       sharedVar: {
@@ -3761,6 +3761,10 @@ var SelectionService = class extends InteractionService {
   }
   isInstanceOf(name) {
     return name === "SelectionService" || this._baseName === name || this._name === name;
+  }
+  dimension() {
+  }
+  filter() {
   }
   get results() {
     return this._result;
@@ -4728,7 +4732,13 @@ Instrument.register("BrushXInstrument", {
           const startx = instrument.getSharedVar("startx");
           const x = Math.min(startx, event.clientX);
           const width = Math.abs(event.clientX - startx);
+          const layerOffsetX = layer.getGraphic().getBoundingClientRect().left;
           const services = instrument.services.find("SelectionService");
+          const scaleX = instrument.getSharedVar("scaleX");
+          if (scaleX && scaleX.invert) {
+            const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
+            instrument.setSharedVar("extent", newExtent);
+          }
           services.setSharedVar("x", x, { layer });
           services.setSharedVar("width", width, {
             layer
