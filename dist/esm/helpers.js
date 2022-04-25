@@ -46,7 +46,12 @@ export function makeFindableList(list, typing, addFunc) {
                 return target[p];
             }
             else {
-                if (target.length && target[0][p] instanceof Function) {
+                if (!target.length) {
+                    const f = () => { };
+                    f[Symbol.iterator] = function* () { };
+                    return f;
+                }
+                else if (target[0][p] instanceof Function) {
                     return function () {
                         return target.map((t) => t[p].apply(t, arguments));
                     };

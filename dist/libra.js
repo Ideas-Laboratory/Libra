@@ -115,7 +115,13 @@ function makeFindableList(list, typing, addFunc) {
       } else if (p in target) {
         return target[p];
       } else {
-        if (target.length && target[0][p] instanceof Function) {
+        if (!target.length) {
+          const f = () => {
+          };
+          f[Symbol.iterator] = function* () {
+          };
+          return f;
+        } else if (target[0][p] instanceof Function) {
           return function() {
             return target.map((t) => t[p].apply(t, arguments));
           };
@@ -3623,7 +3629,7 @@ var InteractionService = class {
     options.postInitialize && options.postInitialize.call(this, this);
   }
   getSharedVar(sharedName, options) {
-    if (options && options.layer && !this._layerInstances.includes(options.layer)) {
+    if (options && options.layer && this._layerInstances.length && !this._layerInstances.includes(options.layer)) {
       return void 0;
     }
     if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
@@ -5238,8 +5244,6 @@ Instrument.register("DragInstrument", {
         instrument.services.find("SelectionService").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x", { layer });
           let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          service.setSharedVar("x", 0, { layer });
-          service.setSharedVar("y", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("offsetx", offsetX, { layer });
@@ -5272,7 +5276,10 @@ Instrument.register("DragInstrument", {
     ]
   },
   preAttach: (instrument, layer) => {
-    instrument.services.find("SelectionService", "SurfacePointSelectionService");
+    instrument.services.add("SurfacePointSelectionService", {
+      layer,
+      sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
+    });
   }
 });
 Instrument.register("SpeechInstrument", {

@@ -287,7 +287,7 @@ Instrument.register("BrushXInstrument", {
             const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(
               scaleX.invert
             );
-            
+
             instrument.setSharedVar("extent", newExtent);
           }
 
@@ -917,8 +917,8 @@ Instrument.register("DragInstrument", {
         instrument.services.find("SelectionService").forEach((service) => {
           let offsetX = event.clientX - service.getSharedVar("x", { layer });
           let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          service.setSharedVar("x", 0, { layer });
-          service.setSharedVar("y", 0, { layer });
+          // service.setSharedVar("x", 0, { layer });
+          // service.setSharedVar("y", 0, { layer });
           service.setSharedVar("currentx", event.clientX, { layer });
           service.setSharedVar("currenty", event.clientY, { layer });
           service.setSharedVar("offsetx", offsetX, { layer });
@@ -951,10 +951,10 @@ Instrument.register("DragInstrument", {
   },
   preAttach: (instrument, layer) => {
     // Create default SM on layer
-    instrument.services.find(
-      "SelectionService",
-      "SurfacePointSelectionService"
-    );
+    instrument.services.add("SurfacePointSelectionService", {
+      layer,
+      sharedVar: { deepClone: instrument.getSharedVar("deepClone") },
+    });
   },
 });
 

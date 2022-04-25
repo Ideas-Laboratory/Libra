@@ -87,6 +87,7 @@ export default class InteractionService {
     if (
       options &&
       options.layer &&
+      this._layerInstances.length &&
       !this._layerInstances.includes(options.layer)
     ) {
       return undefined;

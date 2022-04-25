@@ -37,6 +37,7 @@ export default class InteractionService {
     getSharedVar(sharedName, options) {
         if (options &&
             options.layer &&
+            this._layerInstances.length &&
             !this._layerInstances.includes(options.layer)) {
             return undefined;
         }
