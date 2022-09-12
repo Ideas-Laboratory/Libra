@@ -118,7 +118,14 @@ export default class InteractionService {
         return this._baseName === name || this._name === name;
     }
     get transformers() {
-        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e));
+        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e), (e) => {
+            e.setSharedVars({
+                selectionResult: [],
+                layoutResult: null,
+                result: null,
+            });
+            this._transformers.splice(this._transformers.indexOf(e), 1);
+        });
     }
     static register(baseName, options) {
         registeredServices[baseName] = options;
@@ -128,7 +135,7 @@ export default class InteractionService {
         return true;
     }
     static initialize(baseName, options) {
-        const mergedOptions = Object.assign({}, registeredServices[baseName] ?? { constructor: InteractionService }, options ?? {}, {
+        const mergedOptions = Object.assign({ constructor: InteractionService }, registeredServices[baseName] ?? {}, options ?? {}, {
             // needs to deep merge object
             on: Object.assign({}, (registeredServices[baseName] ?? {}).on ?? {}, options?.on ?? {}),
             sharedVar: Object.assign({}, (registeredServices[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),

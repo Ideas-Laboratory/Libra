@@ -10,8 +10,9 @@ export default class D3Layer extends Layer {
         this._height = options.height;
         this._offset = options.offset;
         this._name = options.name;
-        this._graphic = d3.select(options.container).
-            append("g")
+        this._graphic = d3
+            .select(options.container)
+            .append("g")
             .call((g) => {
             if (this._name)
                 g.attr("className", this._name);
@@ -49,7 +50,10 @@ export default class D3Layer extends Layer {
         return elems;
     }
     cloneVisualElements(element, deep = false) {
-        return d3.select(element).clone(deep).node();
+        const copiedElement = d3.select(element).clone(deep).node();
+        const frag = document.createDocumentFragment();
+        frag.append(copiedElement);
+        return copiedElement;
     }
     // onObject(pointer: { x: number, y: number }): boolean {
     //   const elements = document.elementsFromPoint(pointer.x, pointer.y);
@@ -220,7 +224,9 @@ export default class D3Layer extends Layer {
         while (result.length > 0) {
             const elem = result.shift();
             resultWithSVGGElement.push(elem);
-            if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && (this._graphic !== elem.parentElement))
+            if (elem.parentElement.tagName === "g" &&
+                this._graphic.contains(elem.parentElement) &&
+                this._graphic !== elem.parentElement)
                 result.push(elem.parentElement);
         }
         return resultWithSVGGElement;
@@ -231,13 +237,18 @@ export default class D3Layer extends Layer {
         if (options.type === helpers.DataQueryType.Quantitative) {
             const { attrName, extent } = options;
             result = visualElements
-                .filter((d) => d && d[attrName] && extent[0] < d[attrName] && d[attrName] < extent[1])
+                .filter((d) => d &&
+                d[attrName] &&
+                extent[0] < d[attrName] &&
+                d[attrName] < extent[1])
                 .nodes();
         }
         if (options.type === helpers.DataQueryType.Quantitative2D) {
             const { attrNameX, extentX, attrNameY, extentY } = options;
             result = visualElements
-                .filter((d) => d && d[attrNameX] && d[attrNameY] &&
+                .filter((d) => d &&
+                d[attrNameX] &&
+                d[attrNameY] &&
                 extentX[0] < d[attrNameX] &&
                 d[attrNameX] < extentX[1] &&
                 extentY[0] < d[attrNameY] &&
@@ -246,13 +257,16 @@ export default class D3Layer extends Layer {
         }
         else if (options.type === helpers.DataQueryType.Nominal) {
             const { attrName, extent } = options;
-            result = visualElements.filter((d) => d && d[attrName] && extent.find(d[attrName])).nodes();
+            result = visualElements
+                .filter((d) => d && d[attrName] && extent.find(d[attrName]))
+                .nodes();
         }
         else if (options.type === helpers.DataQueryType.Temporal) {
             const { attrName, extent } = options;
             const dateParser = options.dateParser || ((d) => d);
             result = visualElements
-                .filter((d) => d && d[attrName] &&
+                .filter((d) => d &&
+                d[attrName] &&
                 extent[0].getTime() < dateParser(d[attrName]).getTime() &&
                 dateParser(d[attrName]).getTime() < extent[1].getTime())
                 .nodes();

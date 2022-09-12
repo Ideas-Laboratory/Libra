@@ -43,7 +43,10 @@ export default class Layer {
         return [];
     }
     cloneVisualElements(element, deep = false) {
-        return element.cloneNode(deep);
+        const copiedElement = element.cloneNode(deep);
+        const frag = document.createDocumentFragment();
+        frag.append(copiedElement);
+        return copiedElement;
     }
     // getSharedVar(sharedName: string, defaultValue?: any): any {
     //   if (sharedName in this._sharedVar) {
@@ -192,6 +195,8 @@ export default class Layer {
             });
             siblings[siblingLayerName] = layer;
             siblingLayers.set(layer, siblings);
+            const graphic = siblings[siblingLayerName].getGraphic();
+            graphic && graphic.style && (graphic.style.pointerEvents = "none");
         }
         if (!(siblingLayerName in orderLayers.get(this))) {
             orderLayers.get(this)[siblingLayerName] = 0;
@@ -242,7 +247,7 @@ export function unregister(baseName) {
     return true;
 }
 export function initialize(baseName, options) {
-    const mergedOptions = Object.assign({}, registeredLayers[baseName] ?? { constructor: Layer }, options ?? {}, {
+    const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName] ?? {}, options ?? {}, {
     // needs to deep merge object
     // transformation: Object.assign(
     //   {},

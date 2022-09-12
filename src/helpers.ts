@@ -144,33 +144,95 @@ export type CommonHandlerInput<T> = {
   [parameter: string]: any;
 };
 
+class NonsenseClass {}
+
 export function makeFindableList<T>(
   list: any,
   typing: new (...args: any[]) => T,
-  addFunc: (newElement: T) => void
+  addFunc: (newElement: T) => void,
+  removeFunc: (element: T) => void
 ) {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {
-        return (name: string, defaultValue: string) => {
-          const filteredResult = target.filter((item) =>
-            item.isInstanceOf(name)
-          );
-          if (filteredResult.length <= 0 && defaultValue) {
-            const newElement = (typing as any).initialize(defaultValue) as T;
-            addFunc(newElement);
-            filteredResult.push(newElement);
+        return function (name: string, defaultValue: string) {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.find(...arguments);
+            });
+            return makeFindableList(
+              filteredResult,
+              typing,
+              addFunc,
+              removeFunc
+            );
+          } else {
+            const filteredResult = target.filter((item) =>
+              item.isInstanceOf(name)
+            );
+            if (filteredResult.length <= 0 && defaultValue) {
+              const newElement = (typing as any).initialize(defaultValue) as T;
+              addFunc(newElement);
+              filteredResult.push(newElement);
+            }
+            return makeFindableList(
+              filteredResult,
+              typing,
+              addFunc,
+              removeFunc
+            );
           }
-          return makeFindableList(filteredResult, typing, addFunc);
         };
       } else if (p === "add") {
         return (...args: any[]) => {
           const filteredResult = target.slice();
-          const newElement = (typing as any).initialize(...args) as T;
-          addFunc(newElement);
-          filteredResult.push(newElement);
-
-          return makeFindableList(filteredResult, typing, addFunc);
+          if (typing === NonsenseClass) {
+            filteredResult.forEach((newTarget) => {
+              newTarget.add(...args);
+            });
+            return makeFindableList(
+              filteredResult,
+              typing,
+              addFunc,
+              removeFunc
+            );
+          } else {
+            const newElement = (typing as any).initialize(...args) as T;
+            addFunc(newElement);
+            filteredResult.push(newElement);
+            return makeFindableList(
+              filteredResult,
+              typing,
+              addFunc,
+              removeFunc
+            );
+          }
+        };
+      } else if (p === "remove") {
+        return (name: string) => {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.remove(name);
+            });
+            return makeFindableList(
+              filteredResult,
+              typing,
+              addFunc,
+              removeFunc
+            );
+          } else {
+            const origin = target.slice();
+            const filteredResult = origin.filter((item) =>
+              item.isInstanceOf(name)
+            );
+            filteredResult.forEach((item) => {
+              removeFunc(item);
+              origin.splice(origin.indexOf(item), 1);
+            });
+            return makeFindableList(origin, typing, addFunc, removeFunc);
+          }
         };
       } else if (p in target) {
         return target[p];
@@ -181,10 +243,20 @@ export function makeFindableList<T>(
           return f;
         } else if (target[0][p] instanceof Function) {
           return function () {
-            return target.map((t) => t[p].apply(t, arguments));
+            return makeFindableList(
+              target.map((t) => t[p].apply(t, arguments)),
+              NonsenseClass,
+              () => {},
+              () => {}
+            );
           };
         } else {
-          return target.map((t) => t[p]);
+          return makeFindableList(
+            target.map((t) => t[p]),
+            NonsenseClass,
+            () => {},
+            () => {}
+          );
         }
       }
     },
@@ -460,7 +532,6 @@ export function deepClone(obj) {
     return obj;
   }
   if (obj === null) return null;
-  console.log("obj", obj);
   const propertyObject = Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, deepClone(v)])
   );

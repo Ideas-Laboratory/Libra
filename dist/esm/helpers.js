@@ -19,27 +19,66 @@ export var DataQueryType;
     DataQueryType[DataQueryType["Nominal"] = 2] = "Nominal";
     DataQueryType[DataQueryType["Temporal"] = 3] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
-export function makeFindableList(list, typing, addFunc) {
+class NonsenseClass {
+}
+export function makeFindableList(list, typing, addFunc, removeFunc) {
     return new Proxy(list, {
         get(target, p) {
             if (p === "find") {
-                return (name, defaultValue) => {
-                    const filteredResult = target.filter((item) => item.isInstanceOf(name));
-                    if (filteredResult.length <= 0 && defaultValue) {
-                        const newElement = typing.initialize(defaultValue);
-                        addFunc(newElement);
-                        filteredResult.push(newElement);
+                return function (name, defaultValue) {
+                    if (typing === NonsenseClass) {
+                        const filteredResult = target.slice();
+                        filteredResult.forEach((newTarget) => {
+                            newTarget.find(...arguments);
+                        });
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
                     }
-                    return makeFindableList(filteredResult, typing, addFunc);
+                    else {
+                        const filteredResult = target.filter((item) => item.isInstanceOf(name));
+                        if (filteredResult.length <= 0 && defaultValue) {
+                            const newElement = typing.initialize(defaultValue);
+                            addFunc(newElement);
+                            filteredResult.push(newElement);
+                        }
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                    }
                 };
             }
             else if (p === "add") {
                 return (...args) => {
                     const filteredResult = target.slice();
-                    const newElement = typing.initialize(...args);
-                    addFunc(newElement);
-                    filteredResult.push(newElement);
-                    return makeFindableList(filteredResult, typing, addFunc);
+                    if (typing === NonsenseClass) {
+                        filteredResult.forEach((newTarget) => {
+                            newTarget.add(...args);
+                        });
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                    }
+                    else {
+                        const newElement = typing.initialize(...args);
+                        addFunc(newElement);
+                        filteredResult.push(newElement);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                    }
+                };
+            }
+            else if (p === "remove") {
+                return (name) => {
+                    if (typing === NonsenseClass) {
+                        const filteredResult = target.slice();
+                        filteredResult.forEach((newTarget) => {
+                            newTarget.remove(name);
+                        });
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                    }
+                    else {
+                        const origin = target.slice();
+                        const filteredResult = origin.filter((item) => item.isInstanceOf(name));
+                        filteredResult.forEach((item) => {
+                            removeFunc(item);
+                            origin.splice(origin.indexOf(item), 1);
+                        });
+                        return makeFindableList(origin, typing, addFunc, removeFunc);
+                    }
                 };
             }
             else if (p in target) {
@@ -53,11 +92,11 @@ export function makeFindableList(list, typing, addFunc) {
                 }
                 else if (target[0][p] instanceof Function) {
                     return function () {
-                        return target.map((t) => t[p].apply(t, arguments));
+                        return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => { }, () => { });
                     };
                 }
                 else {
-                    return target.map((t) => t[p]);
+                    return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => { }, () => { });
                 }
             }
         },
@@ -275,7 +314,6 @@ export function deepClone(obj) {
     }
     if (obj === null)
         return null;
-    console.log("obj", obj);
     const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
     return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }

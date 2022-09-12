@@ -48,22 +48,35 @@ export default class GraphicalTransformer {
             return;
         const layer = this._layer || this.getSharedVar("layer");
         transient = transient || this._transient;
-        let preDrawElements = [], postDrawElements = [];
+        let preDrawElements = [], postDrawElements = [], changedLayers = new Set([layer]);
         if (transient) {
             preDrawElements = layer.getVisualElements();
+            if (!layer._getLayerFromQueue) {
+                layer._getLayerFromQueue = layer.getLayerFromQueue;
+                layer.getLayerFromQueue = function () {
+                    const result = layer._getLayerFromQueue(...arguments);
+                    preDrawElements = preDrawElements.concat(result.getVisualElements());
+                    changedLayers.add(result);
+                    return result;
+                };
+            }
         }
         this._redraw({
             layer,
             transformer: this,
         });
         if (transient) {
-            // postDrawElements = layer.getVisualElements();
-            // const topLevelElements = postDrawElements.filter(
-            //   (el) => !postDrawElements.find((e) => e !== el && e.contains(el))
-            // );
-            postDrawElements = Array.prototype.slice.call(layer.getGraphic().childNodes);
-            const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
-            transientQueue = transientQueue.concat(transientElements);
+            layer.getLayerFromQueue = layer._getLayerFromQueue;
+            delete layer._getLayerFromQueue;
+            changedLayers.forEach((layer) => {
+                // postDrawElements = layer.getVisualElements();
+                // const topLevelElements = postDrawElements.filter(
+                //   (el) => !postDrawElements.find((e) => e !== el && e.contains(el))
+                // );
+                postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer.getGraphic().childNodes));
+                const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+                transientQueue = transientQueue.concat(transientElements);
+            });
         }
     }
     isInstanceOf(name) {
@@ -77,7 +90,7 @@ export default class GraphicalTransformer {
         return true;
     }
     static initialize(baseName, options) {
-        const mergedOptions = Object.assign({}, registeredTransformers[baseName] ?? { constructor: GraphicalTransformer }, options ?? {}, {
+        const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName] ?? {}, options ?? {}, {
             sharedVar: Object.assign({}, (registeredTransformers[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
         const transformer = new mergedOptions.constructor(baseName, mergedOptions);

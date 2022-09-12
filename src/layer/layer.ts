@@ -17,9 +17,9 @@ type LayerRegisterRequiredOption = Required<{
 type LayerPartialOption = Partial<{
   name: string;
   offset: {
-    x: number,
-    y: number
-  }
+    x: number;
+    y: number;
+  };
   // transformation: { [scaleName: string]: helpers.Transformation };
   // services: (
   //   | string
@@ -125,7 +125,10 @@ export default class Layer<T> {
     return [];
   }
   cloneVisualElements(element: Element, deep: boolean = false) {
-    return element.cloneNode(deep);
+    const copiedElement = element.cloneNode(deep);
+    const frag = document.createDocumentFragment();
+    frag.append(copiedElement);
+    return copiedElement;
   }
   // getSharedVar(sharedName: string, defaultValue?: any): any {
   //   if (sharedName in this._sharedVar) {
@@ -274,6 +277,8 @@ export default class Layer<T> {
       });
       siblings[siblingLayerName] = layer;
       siblingLayers.set(layer, siblings);
+      const graphic = siblings[siblingLayerName].getGraphic();
+      graphic && graphic.style && (graphic.style.pointerEvents = "none");
     }
     if (!(siblingLayerName in orderLayers.get(this))) {
       orderLayers.get(this)[siblingLayerName] = 0;
@@ -338,8 +343,8 @@ export function initialize<T>(
   options?: LayerInitOption
 ): Layer<T> {
   const mergedOptions = Object.assign(
-    {},
-    registeredLayers[baseName] ?? { constructor: Layer },
+    { constructor: Layer },
+    registeredLayers[baseName] ?? {},
     options ?? {},
     {
       // needs to deep merge object

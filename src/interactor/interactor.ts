@@ -236,8 +236,8 @@ export default class Interactor {
     options?: InteractorInitOption
   ): Interactor {
     const mergedOptions = Object.assign(
-      {},
-      registeredInteractors[baseName] ?? { constructor: Interactor },
+      { constructor: Interactor },
+      registeredInteractors[baseName] ?? {},
       options ?? {}
     );
     const service = new mergedOptions.constructor(

@@ -885,63 +885,44 @@ Instrument.register("DragInstrument", {
     dragstart: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", event.clientX, { layer });
-          service.setSharedVar("y", event.clientY, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        instrument.services.setSharedVar("x", event.clientX, { layer });
+        instrument.services.setSharedVar("y", event.clientY, { layer });
       },
     ],
     drag: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
-          const selectionLayer = layer.getLayerFromQueue("selectionLayer");
-          const transientLayer = layer.getLayerFromQueue("transientLayer");
-          transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${
-            selectionLayer.getGraphic().innerHTML
-          }</g>`;
-        });
+        const offsetX =
+          event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+        const offsetY =
+          event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+        instrument.setSharedVar("offsetx", offsetX, { layer });
+        instrument.setSharedVar("offsety", offsetY, { layer });
       },
     ],
     dragend: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          // service.setSharedVar("x", 0, { layer });
-          // service.setSharedVar("y", 0, { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        const offsetX =
+          event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+        const offsetY =
+          event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+        instrument.services.setSharedVar("x", 0, { layer });
+        instrument.services.setSharedVar("y", 0, { layer });
+        instrument.setSharedVar("offsetx", offsetX, { layer });
+        instrument.setSharedVar("offsety", offsetY, { layer });
       },
     ],
     dragabort: [
       (options) => {
         let { layer, event, instrument } = options;
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", 0, { layer });
-          service.setSharedVar("y", 0, { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", 0, { layer });
-          service.setSharedVar("offsety", 0, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        instrument.services.setSharedVar("x", 0, { layer });
+        instrument.services.setSharedVar("y", 0, { layer });
+        instrument.services.setSharedVar("currentx", event.clientX, { layer });
+        instrument.services.setSharedVar("currenty", event.clientY, { layer });
+        instrument.services.setSharedVar("offsetx", 0, { layer });
+        instrument.services.setSharedVar("offsety", 0, { layer });
         instrument.emit("dragconfirm", {
           ...options,
           self: options.instrument,

@@ -9,7 +9,6 @@ export default class SelectionService extends InteractionService {
   // _nextTick: number = 0;
   _transformers: GraphicalTransformer[] = [];
   _currentDimension = [];
-  _
 
   constructor(baseName: string, options: any) {
     super(baseName, options);

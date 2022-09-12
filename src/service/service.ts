@@ -182,7 +182,15 @@ export default class InteractionService {
     return helpers.makeFindableList(
       this._transformers.slice(0),
       GraphicalTransformer,
-      (e) => this._transformers.push(e)
+      (e) => this._transformers.push(e),
+      (e) => {
+        e.setSharedVars({
+          selectionResult: [],
+          layoutResult: null,
+          result: null,
+        });
+        this._transformers.splice(this._transformers.indexOf(e), 1);
+      }
     );
   }
 
@@ -198,8 +206,8 @@ export default class InteractionService {
     options?: ServiceInitOption
   ): InteractionService {
     const mergedOptions = Object.assign(
-      {},
-      registeredServices[baseName] ?? { constructor: InteractionService },
+      { constructor: InteractionService },
+      registeredServices[baseName] ?? {},
       options ?? {},
       {
         // needs to deep merge object

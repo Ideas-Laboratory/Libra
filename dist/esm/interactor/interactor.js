@@ -152,7 +152,7 @@ export default class Interactor {
         return true;
     }
     static initialize(baseName, options) {
-        const mergedOptions = Object.assign({}, registeredInteractors[baseName] ?? { constructor: Interactor }, options ?? {});
+        const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName] ?? {}, options ?? {});
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
     }

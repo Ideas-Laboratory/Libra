@@ -53,7 +53,7 @@ var Command = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredCommands[baseName2] ?? { constructor: Command }, options ?? {});
+    const mergedOptions = Object.assign({ constructor: Command }, registeredCommands[baseName2] ?? {}, options ?? {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -91,26 +91,61 @@ var DataQueryType;
   DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
   DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
-function makeFindableList(list, typing, addFunc) {
+var NonsenseClass = class {
+};
+function makeFindableList(list, typing, addFunc, removeFunc) {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {
-        return (name, defaultValue) => {
-          const filteredResult = target.filter((item) => item.isInstanceOf(name));
-          if (filteredResult.length <= 0 && defaultValue) {
-            const newElement = typing.initialize(defaultValue);
-            addFunc(newElement);
-            filteredResult.push(newElement);
+        return function(name, defaultValue) {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.find(...arguments);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+          } else {
+            const filteredResult = target.filter((item) => item.isInstanceOf(name));
+            if (filteredResult.length <= 0 && defaultValue) {
+              const newElement = typing.initialize(defaultValue);
+              addFunc(newElement);
+              filteredResult.push(newElement);
+            }
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
           }
-          return makeFindableList(filteredResult, typing, addFunc);
         };
       } else if (p === "add") {
         return (...args) => {
           const filteredResult = target.slice();
-          const newElement = typing.initialize(...args);
-          addFunc(newElement);
-          filteredResult.push(newElement);
-          return makeFindableList(filteredResult, typing, addFunc);
+          if (typing === NonsenseClass) {
+            filteredResult.forEach((newTarget) => {
+              newTarget.add(...args);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+          } else {
+            const newElement = typing.initialize(...args);
+            addFunc(newElement);
+            filteredResult.push(newElement);
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+          }
+        };
+      } else if (p === "remove") {
+        return (name) => {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.remove(name);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+          } else {
+            const origin = target.slice();
+            const filteredResult = origin.filter((item) => item.isInstanceOf(name));
+            filteredResult.forEach((item) => {
+              removeFunc(item);
+              origin.splice(origin.indexOf(item), 1);
+            });
+            return makeFindableList(origin, typing, addFunc, removeFunc);
+          }
         };
       } else if (p in target) {
         return target[p];
@@ -123,10 +158,14 @@ function makeFindableList(list, typing, addFunc) {
           return f;
         } else if (target[0][p] instanceof Function) {
           return function() {
-            return target.map((t) => t[p].apply(t, arguments));
+            return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => {
+            }, () => {
+            });
           };
         } else {
-          return target.map((t) => t[p]);
+          return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => {
+          }, () => {
+          });
         }
       }
     }
@@ -333,7 +372,6 @@ function deepClone(obj) {
   }
   if (obj === null)
     return null;
-  console.log("obj", obj);
   const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
   return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }
@@ -482,7 +520,7 @@ var Interactor = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredInteractors[baseName2] ?? { constructor: Interactor }, options ?? {});
+    const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName2] ?? {}, options ?? {});
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
   }
@@ -728,7 +766,10 @@ var Layer = class {
     return [];
   }
   cloneVisualElements(element, deep = false) {
-    return element.cloneNode(deep);
+    const copiedElement = element.cloneNode(deep);
+    const frag = document.createDocumentFragment();
+    frag.append(copiedElement);
+    return copiedElement;
   }
   join(rightTable, joinKey) {
     return [];
@@ -759,6 +800,8 @@ var Layer = class {
       });
       siblings[siblingLayerName] = layer;
       siblingLayers.set(layer, siblings);
+      const graphic = siblings[siblingLayerName].getGraphic();
+      graphic && graphic.style && (graphic.style.pointerEvents = "none");
     }
     if (!(siblingLayerName in orderLayers.get(this))) {
       orderLayers.get(this)[siblingLayerName] = 0;
@@ -800,7 +843,7 @@ function register4(baseName2, options) {
   registeredLayers[baseName2] = options;
 }
 function initialize4(baseName2, options) {
-  const mergedOptions = Object.assign({}, registeredLayers[baseName2] ?? { constructor: Layer }, options ?? {}, {});
+  const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName2] ?? {}, options ?? {}, {});
   const layer = new mergedOptions.constructor(baseName2, mergedOptions);
   return layer;
 }
@@ -3316,7 +3359,10 @@ var D3Layer = class extends Layer {
     return elems;
   }
   cloneVisualElements(element, deep = false) {
-    return select_default2(element).clone(deep).node();
+    const copiedElement = select_default2(element).clone(deep).node();
+    const frag = document.createDocumentFragment();
+    frag.append(copiedElement);
+    return copiedElement;
   }
   select(selector) {
     return this._graphic.querySelectorAll(selector);
@@ -3512,18 +3558,31 @@ var GraphicalTransformer = class {
       return;
     const layer = this._layer || this.getSharedVar("layer");
     transient = transient || this._transient;
-    let preDrawElements = [], postDrawElements = [];
+    let preDrawElements = [], postDrawElements = [], changedLayers = new Set([layer]);
     if (transient) {
       preDrawElements = layer.getVisualElements();
+      if (!layer._getLayerFromQueue) {
+        layer._getLayerFromQueue = layer.getLayerFromQueue;
+        layer.getLayerFromQueue = function() {
+          const result = layer._getLayerFromQueue(...arguments);
+          preDrawElements = preDrawElements.concat(result.getVisualElements());
+          changedLayers.add(result);
+          return result;
+        };
+      }
     }
     this._redraw({
       layer,
       transformer: this
     });
     if (transient) {
-      postDrawElements = Array.prototype.slice.call(layer.getGraphic().childNodes);
-      const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
-      transientQueue = transientQueue.concat(transientElements);
+      layer.getLayerFromQueue = layer._getLayerFromQueue;
+      delete layer._getLayerFromQueue;
+      changedLayers.forEach((layer2) => {
+        postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer2.getGraphic().childNodes));
+        const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+        transientQueue = transientQueue.concat(transientElements);
+      });
     }
   }
   isInstanceOf(name) {
@@ -3537,7 +3596,7 @@ var GraphicalTransformer = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredTransformers[baseName2] ?? { constructor: GraphicalTransformer }, options ?? {}, {
+    const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName2] ?? {}, options ?? {}, {
       sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
     });
     const transformer = new mergedOptions.constructor(baseName2, mergedOptions);
@@ -3666,7 +3725,14 @@ var InteractionService = class {
     return this._baseName === name || this._name === name;
   }
   get transformers() {
-    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e));
+    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => {
+      e.setSharedVars({
+        selectionResult: [],
+        layoutResult: null,
+        result: null
+      });
+      this._transformers.splice(this._transformers.indexOf(e), 1);
+    });
   }
   static register(baseName2, options) {
     registeredServices[baseName2] = options;
@@ -3676,7 +3742,7 @@ var InteractionService = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredServices[baseName2] ?? { constructor: InteractionService }, options ?? {}, {
+    const mergedOptions = Object.assign({ constructor: InteractionService }, registeredServices[baseName2] ?? {}, options ?? {}, {
       on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
       sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
     });
@@ -4289,7 +4355,8 @@ var Instrument = class {
         EventDispatcher.get(layr.getContainerGraphic()).get(event).push([
           copyInteractor,
           layr,
-          layer instanceof Layer2 ? null : layer.options
+          layer instanceof Layer2 ? null : layer.options,
+          this
         ]);
       });
     });
@@ -4395,7 +4462,7 @@ var Instrument = class {
           layer.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layer, event));
           EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
         }
-        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([copyInteractor, layer, options]);
+        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([copyInteractor, layer, options, this]);
       });
     });
   }
@@ -4415,7 +4482,7 @@ var Instrument = class {
     const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([_, layr]) => layr._order >= 0);
     layers.sort((a, b) => b[1]._order - a[1]._order);
     let handled = false;
-    for (let [inter, layr, layerOption] of layers) {
+    for (let [inter, layr, layerOption, instrument] of layers) {
       if (e instanceof MouseEvent) {
         if (layerOption && layerOption.pointerEvents === "all" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
         } else {
@@ -4431,19 +4498,10 @@ var Instrument = class {
       }
       try {
         let flag = await inter.dispatch(e, layr);
-        if (flag && e instanceof MouseEvent) {
-          handled = true;
-          break;
-        }
       } catch (e2) {
         console.error(e2);
         break;
       }
-    }
-    if (!handled && e instanceof MouseEvent) {
-      global.stopTransient = true;
-    } else {
-      global.stopTransient = false;
     }
     eventHandling = false;
     if (EventQueue.length) {
@@ -4452,16 +4510,20 @@ var Instrument = class {
     }
   }
   postUse(layer) {
+    const graphic = layer.getGraphic();
+    graphic && graphic.style && (graphic.style.pointerEvents = "auto");
     this._postUse && this._postUse.call(this, this, layer);
   }
   isInstanceOf(name) {
     return this._baseName === name || this._name === name;
   }
   get services() {
-    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.useService.bind(this));
+    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.useService.bind(this), () => {
+      throw new Error("Do not support dynamic change service yet");
+    });
   }
   get transformers() {
-    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e));
+    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1));
   }
   static register(baseName2, options) {
     registeredInstruments[baseName2] = options;
@@ -4471,7 +4533,7 @@ var Instrument = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({}, registeredInstruments[baseName2] ?? { constructor: Instrument }, options ?? {}, {
+    const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
       on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
@@ -5212,45 +5274,30 @@ Instrument.register("DragInstrument", {
       ({ layer, event, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", event.clientX, { layer });
-          service.setSharedVar("y", event.clientY, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        instrument.services.setSharedVar("x", event.clientX, { layer });
+        instrument.services.setSharedVar("y", event.clientY, { layer });
       }
     ],
     drag: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
-          const selectionLayer = layer.getLayerFromQueue("selectionLayer");
-          const transientLayer = layer.getLayerFromQueue("transientLayer");
-          transientLayer.getGraphic().innerHTML = `<g transform="translate(${offsetX}, ${offsetY})" opacity="0.5">${selectionLayer.getGraphic().innerHTML}</g>`;
-        });
+        const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+        const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+        instrument.setSharedVar("offsetx", offsetX, { layer });
+        instrument.setSharedVar("offsety", offsetY, { layer });
       }
     ],
     dragend: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          let offsetX = event.clientX - service.getSharedVar("x", { layer });
-          let offsetY = event.clientY - service.getSharedVar("y", { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", offsetX, { layer });
-          service.setSharedVar("offsety", offsetY, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+        const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+        instrument.services.setSharedVar("x", 0, { layer });
+        instrument.services.setSharedVar("y", 0, { layer });
+        instrument.setSharedVar("offsetx", offsetX, { layer });
+        instrument.setSharedVar("offsety", offsetY, { layer });
       }
     ],
     dragabort: [
@@ -5258,16 +5305,12 @@ Instrument.register("DragInstrument", {
         let { layer, event, instrument } = options;
         if (event.changedTouches)
           event = event.changedTouches[0];
-        instrument.services.find("SelectionService").forEach((service) => {
-          service.setSharedVar("x", 0, { layer });
-          service.setSharedVar("y", 0, { layer });
-          service.setSharedVar("currentx", event.clientX, { layer });
-          service.setSharedVar("currenty", event.clientY, { layer });
-          service.setSharedVar("offsetx", 0, { layer });
-          service.setSharedVar("offsety", 0, { layer });
-        });
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        transientLayer.getGraphic().innerHTML = "";
+        instrument.services.setSharedVar("x", 0, { layer });
+        instrument.services.setSharedVar("y", 0, { layer });
+        instrument.services.setSharedVar("currentx", event.clientX, { layer });
+        instrument.services.setSharedVar("currenty", event.clientY, { layer });
+        instrument.services.setSharedVar("offsetx", 0, { layer });
+        instrument.services.setSharedVar("offsety", 0, { layer });
         instrument.emit("dragconfirm", {
           ...options,
           self: options.instrument

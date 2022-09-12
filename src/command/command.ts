@@ -24,7 +24,7 @@ const registeredCommands: { [name: string]: CommandInitTemplate } = {};
 export const instanceCommands: Command[] = [];
 
 export default class Command {
-  // _symbol:Symbol = commandSymbol; 
+  // _symbol:Symbol = commandSymbol;
   _baseName: string;
   _name: string;
   _userOptions: CommandInitOption;
@@ -96,8 +96,8 @@ export default class Command {
   }
   static initialize(baseName: string, options?: CommandInitOption): Command {
     const mergedOptions = Object.assign(
-      {},
-      registeredCommands[baseName] ?? { constructor: Command },
+      { constructor: Command },
+      registeredCommands[baseName] ?? {},
       options ?? {}
     );
     const service = new mergedOptions.constructor(
@@ -114,7 +114,7 @@ export default class Command {
   // static[Symbol.hasInstance](instance: Command): boolean {
   //   if(instance._symbol === undefined) return false;
   //   return commandSymbol === instance._symbol;
-  // } 
+  // }
 }
 
 export const register = Command.register;

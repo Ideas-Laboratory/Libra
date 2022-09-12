@@ -41,7 +41,7 @@ const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
 const instanceInstruments: Instrument[] = [];
 const EventDispatcher: Map<
   HTMLElement,
-  Map<string, [Interactor, Layer<any>, any][]>
+  Map<string, [Interactor, Layer<any>, any, Instrument][]>
 > = new Map();
 const EventQueue: {
   instrument: Instrument;
@@ -292,6 +292,7 @@ export default class Instrument {
             copyInteractor,
             layr,
             layer instanceof Layer ? null : layer.options,
+            this,
           ]);
       });
     });
@@ -420,7 +421,7 @@ export default class Instrument {
         }
         EventDispatcher.get(layer.getContainerGraphic())
           .get(event)
-          .push([copyInteractor, layer, options]);
+          .push([copyInteractor, layer, options, this]);
       });
     });
   }
@@ -446,7 +447,7 @@ export default class Instrument {
       .filter(([_, layr]) => layr._order >= 0);
     layers.sort((a, b) => b[1]._order - a[1]._order);
     let handled = false;
-    for (let [inter, layr, layerOption] of layers) {
+    for (let [inter, layr, layerOption, instrument] of layers) {
       if (e instanceof MouseEvent) {
         if (
           (layerOption && layerOption.pointerEvents === "all") ||
@@ -469,21 +470,21 @@ export default class Instrument {
       }
       try {
         let flag = await inter.dispatch(e, layr);
-        if (flag && e instanceof MouseEvent) {
-          handled = true;
-          break;
-        }
+        // if (flag && e instanceof MouseEvent) {
+        //   handled = true;
+        //   break;
+        // }
       } catch (e) {
         console.error(e);
         break;
       }
     }
-    if (!handled && e instanceof MouseEvent) {
-      // default fallback of BGLayer
-      helpers.global.stopTransient = true;
-    } else {
-      helpers.global.stopTransient = false;
-    }
+    // if (!handled && e instanceof MouseEvent) {
+    //   // default fallback of BGLayer
+    //   helpers.global.stopTransient = true;
+    // } else {
+    //   helpers.global.stopTransient = false;
+    // }
     eventHandling = false;
     if (EventQueue.length) {
       const eventDescription = EventQueue.shift();
@@ -496,6 +497,8 @@ export default class Instrument {
   }
 
   postUse(layer: Layer<any>) {
+    const graphic = layer.getGraphic();
+    graphic && graphic.style && (graphic.style.pointerEvents = "auto");
     this._postUse && this._postUse.call(this, this, layer);
   }
 
@@ -507,7 +510,10 @@ export default class Instrument {
     return helpers.makeFindableList(
       this._serviceInstances.slice(0),
       InteractionService,
-      this.useService.bind(this)
+      this.useService.bind(this),
+      () => {
+        throw new Error("Do not support dynamic change service yet");
+      }
     );
   }
 
@@ -515,7 +521,8 @@ export default class Instrument {
     return helpers.makeFindableList(
       this._transformers.slice(0),
       GraphicalTransformer,
-      (e) => this._transformers.push(e)
+      (e) => this._transformers.push(e),
+      (e) => this._transformers.splice(this._transformers.indexOf(e), 1)
     );
   }
 
@@ -531,8 +538,8 @@ export default class Instrument {
     options?: InstrumentInitOption
   ): Instrument {
     const mergedOptions = Object.assign(
-      {},
-      registeredInstruments[baseName] ?? { constructor: Instrument },
+      { constructor: Instrument },
+      registeredInstruments[baseName] ?? {},
       options ?? {},
       {
         on: Object.assign(
