@@ -9,4 +9,4 @@ export const register = ServiceConstructor.register;
 export const initialize = ServiceConstructor.initialize;
 export const findService = ServiceConstructor.findService;
 export const instanceServices = ServiceConstructor.instanceServices;
-export const InteractionService = ServiceClass;
+export const Service = ServiceClass;

@@ -2,7 +2,7 @@ import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
-import { InteractionService, findService } from "../service";
+import { Service, findService } from "../service";
 import { GraphicalTransformer } from "../transformer";
 const registeredInstruments = {};
 const instanceInstruments = [];
@@ -395,7 +395,7 @@ export default class Instrument {
         return this._baseName === name || this._name === name;
     }
     get services() {
-        return helpers.makeFindableList(this._serviceInstances.slice(0), InteractionService, this.useService.bind(this), () => {
+        return helpers.makeFindableList(this._serviceInstances.slice(0), Service, this.useService.bind(this), () => {
             throw new Error("Do not support dynamic change service yet");
         });
     }

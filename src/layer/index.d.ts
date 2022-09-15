@@ -1,4 +1,4 @@
-import { InteractionService } from "../service";
+import { Service } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
@@ -8,8 +8,8 @@ type LayerInitOption = {
   transformation?: { [scaleName: string]: helpers.Transformation };
   services?: (
     | string
-    | InteractionService
-    | { service: string | InteractionService; options: any }
+    | Service
+    | { service: string | Service; options: any }
   )[];
   sharedVar?: { [varName: string]: any };
   redraw?: <T>(
@@ -48,7 +48,7 @@ export declare class Layer<T> {
   preUpdate(): void;
   postUpdate(): void;
   picking(options: helpers.ArbitraryQuery): T[];
-  use(service: string | InteractionService, options?: any);
+  use(service: string | Service, options?: any);
   isInstanceOf(name: string): boolean;
 }
 

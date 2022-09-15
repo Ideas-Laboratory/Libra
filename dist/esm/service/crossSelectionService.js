@@ -1,5 +1,5 @@
 import SelectionService from "./selectionService";
-import InteractionService from "./service";
+import Service from "./service";
 export default class CrossSelectionService extends SelectionService {
     constructor() {
         super(...arguments);
@@ -119,6 +119,6 @@ export default class CrossSelectionService extends SelectionService {
         })();
     }
 }
-InteractionService.register("CrossSelectionService", {
+Service.register("CrossSelectionService", {
     constructor: CrossSelectionService,
 });

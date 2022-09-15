@@ -155,12 +155,12 @@ export default class Layer {
     picking(options) {
         return [];
     }
-    // _use(service: InteractionService, options?: any) {
+    // _use(service: Service, options?: any) {
     //   service.preAttach(this);
     //   this._serviceInstances.push(service);
     //   service.postUse(this);
     // }
-    // use(service: string | InteractionService, options?: any) {
+    // use(service: string | Service, options?: any) {
     //   if (
     //     typeof service !== "string" &&
     //     this._serviceInstances.includes(service)

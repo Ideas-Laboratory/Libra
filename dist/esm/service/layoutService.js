@@ -1,5 +1,5 @@
-import InteractionService from "./service";
-export default class LayoutService extends InteractionService {
+import Service from "./service";
+export default class LayoutService extends Service {
     constructor(baseName, options) {
         super(baseName, options);
         this._oldResult = null;
@@ -65,7 +65,7 @@ export default class LayoutService extends InteractionService {
         return this._oldResult;
     }
 }
-InteractionService.LayoutService = LayoutService;
-InteractionService.register("LayoutService", {
+Service.LayoutService = LayoutService;
+Service.register("LayoutService", {
     constructor: LayoutService,
 });

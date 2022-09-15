@@ -2,7 +2,7 @@ import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
-import { InteractionService, findService } from "../service";
+import { Service, findService } from "../service";
 import { GraphicalTransformer } from "../transformer";
 
 type InstrumentInitOption = {
@@ -20,8 +20,8 @@ type InstrumentInitOption = {
   )[];
   services?: (
     | string
-    | InteractionService
-    | { service: string | InteractionService; options: any }
+    | Service
+    | { service: string | Service; options: any }
   )[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
   sharedVar?: { [varName: string]: any };
@@ -63,10 +63,10 @@ export default class Instrument {
   };
   _services: (
     | string
-    | InteractionService
-    | { service: string | InteractionService; options: any }
+    | Service
+    | { service: string | Service; options: any }
   )[];
-  _serviceInstances: InteractionService[];
+  _serviceInstances: Service[];
   _interactors: (Interactor | { interactor: Interactor; options: any })[];
   _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
   _layerInteractors: Map<Layer<any>, Interactor[]>;
@@ -198,12 +198,12 @@ export default class Instrument {
     }
   }
 
-  _use(service: InteractionService, options?: any) {
+  _use(service: Service, options?: any) {
     service.preAttach(this);
     this._serviceInstances.push(service);
     service.postUse(this);
   }
-  useService(service: string | InteractionService, options?: any) {
+  useService(service: string | Service, options?: any) {
     if (
       typeof service !== "string" &&
       this._serviceInstances.includes(service)
@@ -509,7 +509,7 @@ export default class Instrument {
   get services() {
     return helpers.makeFindableList(
       this._serviceInstances.slice(0),
-      InteractionService,
+      Service,
       this.useService.bind(this),
       () => {
         throw new Error("Do not support dynamic change service yet");

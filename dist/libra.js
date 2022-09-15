@@ -3662,7 +3662,7 @@ var GraphicalTransformer2 = GraphicalTransformer;
 // dist/esm/service/service.js
 var registeredServices = {};
 var instanceServices = [];
-var InteractionService = class {
+var Service = class {
   constructor(baseName2, options) {
     this._linkCache = {};
     this._transformers = [];
@@ -3742,7 +3742,7 @@ var InteractionService = class {
     return true;
   }
   static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: InteractionService }, registeredServices[baseName2] ?? {}, options ?? {}, {
+    const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName2] ?? {}, options ?? {}, {
       on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
       sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
     });
@@ -3753,13 +3753,13 @@ var InteractionService = class {
     return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
   }
 };
-var register6 = InteractionService.register;
-var unregister4 = InteractionService.unregister;
-var initialize6 = InteractionService.initialize;
-var findService = InteractionService.findService;
+var register6 = Service.register;
+var unregister4 = Service.unregister;
+var initialize6 = Service.initialize;
+var findService = Service.findService;
 
 // dist/esm/service/selectionService.js
-var SelectionService = class extends InteractionService {
+var SelectionService = class extends Service {
   constructor(baseName2, options) {
     super(baseName2, options);
     this._oldResult = [];
@@ -3845,11 +3845,11 @@ var SelectionService = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.SelectionService = SelectionService;
-InteractionService.register("SelectionService", {
+Service.SelectionService = SelectionService;
+Service.register("SelectionService", {
   constructor: SelectionService
 });
-InteractionService.register("SurfacePointSelectionService", {
+Service.register("SurfacePointSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
@@ -3858,7 +3858,7 @@ InteractionService.register("SurfacePointSelectionService", {
     y: 0
   }
 });
-InteractionService.register("PointSelectionService", {
+Service.register("PointSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
@@ -3867,7 +3867,7 @@ InteractionService.register("PointSelectionService", {
     y: 0
   }
 });
-InteractionService.register("RectSelectionService", {
+Service.register("RectSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
@@ -3878,7 +3878,7 @@ InteractionService.register("RectSelectionService", {
     height: 1
   }
 });
-InteractionService.register("CircleSelectionService", {
+Service.register("CircleSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
@@ -3888,7 +3888,7 @@ InteractionService.register("CircleSelectionService", {
     r: 1
   }
 });
-InteractionService.register("PolygonSelectionService", {
+Service.register("PolygonSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Shape,
@@ -3896,7 +3896,7 @@ InteractionService.register("PolygonSelectionService", {
     points: []
   }
 });
-InteractionService.register("QuantitativeSelectionService", {
+Service.register("QuantitativeSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Data,
@@ -3905,7 +3905,7 @@ InteractionService.register("QuantitativeSelectionService", {
     extent: [0, 0]
   }
 });
-InteractionService.register("Quantitative2DSelectionService", {
+Service.register("Quantitative2DSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: QueryType.Data,
@@ -4027,12 +4027,12 @@ var CrossSelectionService = class extends SelectionService {
     })();
   }
 };
-InteractionService.register("CrossSelectionService", {
+Service.register("CrossSelectionService", {
   constructor: CrossSelectionService
 });
 
 // dist/esm/service/layoutService.js
-var LayoutService = class extends InteractionService {
+var LayoutService = class extends Service {
   constructor(baseName2, options) {
     super(baseName2, options);
     this._oldResult = null;
@@ -4096,13 +4096,13 @@ var LayoutService = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.LayoutService = LayoutService;
-InteractionService.register("LayoutService", {
+Service.LayoutService = LayoutService;
+Service.register("LayoutService", {
   constructor: LayoutService
 });
 
 // dist/esm/service/algorithmService.js
-var AnalysisService = class extends InteractionService {
+var AnalysisService = class extends Service {
   constructor(baseName2, options) {
     super(baseName2, options);
     this._oldResult = null;
@@ -4166,15 +4166,15 @@ var AnalysisService = class extends InteractionService {
     return this._oldResult;
   }
 };
-InteractionService.AnalysisService = AnalysisService;
-InteractionService.register("AnalysisService", {
+Service.AnalysisService = AnalysisService;
+Service.register("AnalysisService", {
   constructor: AnalysisService
 });
 
 // dist/esm/service/index.js
 var findService2 = findService;
 var instanceServices2 = instanceServices;
-var InteractionService2 = InteractionService;
+var Service2 = Service;
 
 // dist/esm/instrument/instrument.js
 var registeredInstruments = {};
@@ -4518,7 +4518,7 @@ var Instrument = class {
     return this._baseName === name || this._name === name;
   }
   get services() {
-    return makeFindableList(this._serviceInstances.slice(0), InteractionService2, this.useService.bind(this), () => {
+    return makeFindableList(this._serviceInstances.slice(0), Service2, this.useService.bind(this), () => {
       throw new Error("Do not support dynamic change service yet");
     });
   }
@@ -5679,7 +5679,7 @@ var esm_default = {
   Instrument: Instrument2,
   Interactor: Interactor2,
   Layer: Layer2,
-  InteractionService: InteractionService2,
+  Service: Service2,
   HistoryManager,
   GraphicalTransformer: GraphicalTransformer2
 };
@@ -5688,8 +5688,8 @@ export {
   GraphicalTransformer2 as GraphicalTransformer,
   HistoryManager,
   Instrument2 as Instrument,
-  InteractionService2 as InteractionService,
   Interactor2 as Interactor,
   Layer2 as Layer,
+  Service2 as Service,
   esm_default as default
 };

@@ -3,7 +3,7 @@ declare const _default: {
     Instrument: typeof import("./instrument").default;
     Interactor: typeof import("./interactor").default;
     Layer: typeof import("./layer").default;
-    InteractionService: typeof import("./service").default;
+    Service: typeof import("./service").default;
     HistoryManager: {
         commit: (options: any) => Promise<void>;
         undo(): Promise<void>;
@@ -16,6 +16,6 @@ export { Command } from "./command";
 export { Instrument } from "./instrument";
 export { Interactor } from "./interactor";
 export { Layer } from "./layer";
-export { InteractionService } from "./service";
+export { Service } from "./service";
 export { HistoryManager } from "./history";
 export { GraphicalTransformer } from "./transformer";

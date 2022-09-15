@@ -2,7 +2,7 @@ import * as helpers from "../helpers";
 import { GraphicalTransformer } from "../transformer";
 const registeredServices = {};
 export const instanceServices = [];
-export default class InteractionService {
+export default class Service {
     constructor(baseName, options) {
         this._linkCache = {};
         this._transformers = [];
@@ -135,7 +135,7 @@ export default class InteractionService {
         return true;
     }
     static initialize(baseName, options) {
-        const mergedOptions = Object.assign({ constructor: InteractionService }, registeredServices[baseName] ?? {}, options ?? {}, {
+        const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName] ?? {}, options ?? {}, {
             // needs to deep merge object
             on: Object.assign({}, (registeredServices[baseName] ?? {}).on ?? {}, options?.on ?? {}),
             sharedVar: Object.assign({}, (registeredServices[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
@@ -147,7 +147,7 @@ export default class InteractionService {
         return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
     }
 }
-export const register = InteractionService.register;
-export const unregister = InteractionService.unregister;
-export const initialize = InteractionService.initialize;
-export const findService = InteractionService.findService;
+export const register = Service.register;
+export const unregister = Service.unregister;
+export const initialize = Service.initialize;
+export const findService = Service.findService;

@@ -1,9 +1,9 @@
-import InteractionService from "./service";
+import Service from "./service";
 import * as helpers from "../helpers";
 import * as d3 from "d3";
 import { GraphicalTransformer } from "../transformer";
 
-export default class SelectionService extends InteractionService {
+export default class SelectionService extends Service {
   _oldResult: any = [];
   _result: any = [];
   // _nextTick: number = 0;
@@ -247,13 +247,13 @@ export default class SelectionService extends InteractionService {
   }
 }
 
-(InteractionService as any).SelectionService = SelectionService;
+(Service as any).SelectionService = SelectionService;
 
-InteractionService.register("SelectionService", {
+Service.register("SelectionService", {
   constructor: SelectionService,
 });
 
-InteractionService.register("SurfacePointSelectionService", {
+Service.register("SurfacePointSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Shape,
@@ -263,7 +263,7 @@ InteractionService.register("SurfacePointSelectionService", {
   },
 });
 
-InteractionService.register("PointSelectionService", {
+Service.register("PointSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Shape,
@@ -273,7 +273,7 @@ InteractionService.register("PointSelectionService", {
   },
 });
 
-InteractionService.register("RectSelectionService", {
+Service.register("RectSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Shape,
@@ -285,7 +285,7 @@ InteractionService.register("RectSelectionService", {
   },
 });
 
-InteractionService.register("CircleSelectionService", {
+Service.register("CircleSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Shape,
@@ -296,7 +296,7 @@ InteractionService.register("CircleSelectionService", {
   },
 });
 
-InteractionService.register("PolygonSelectionService", {
+Service.register("PolygonSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Shape,
@@ -305,7 +305,7 @@ InteractionService.register("PolygonSelectionService", {
   },
 });
 
-InteractionService.register("QuantitativeSelectionService", {
+Service.register("QuantitativeSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Data,
@@ -315,7 +315,7 @@ InteractionService.register("QuantitativeSelectionService", {
   },
 });
 
-InteractionService.register("Quantitative2DSelectionService", {
+Service.register("Quantitative2DSelectionService", {
   constructor: SelectionService,
   query: {
     baseOn: helpers.QueryType.Data,

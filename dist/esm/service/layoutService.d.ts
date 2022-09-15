@@ -1,5 +1,5 @@
-import InteractionService from "./service";
-export default class LayoutService extends InteractionService {
+import Service from "./service";
+export default class LayoutService extends Service {
     _oldResult: any;
     _result: any;
     _nextTick: number;

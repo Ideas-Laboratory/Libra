@@ -2,7 +2,7 @@ import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 import { Layer } from "../layer";
-import { InteractionService } from "../service";
+import { Service } from "../service";
 import { GraphicalTransformer } from "../transformer";
 declare type InstrumentInitOption = {
     name?: string;
@@ -13,8 +13,8 @@ declare type InstrumentInitOption = {
         interactor: string | Interactor;
         options: any;
     })[];
-    services?: (string | InteractionService | {
-        service: string | InteractionService;
+    services?: (string | Service | {
+        service: string | Service;
         options: any;
     })[];
     layers?: (Layer<any> | {
@@ -41,11 +41,11 @@ export default class Instrument {
     _on: {
         [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
     };
-    _services: (string | InteractionService | {
-        service: string | InteractionService;
+    _services: (string | Service | {
+        service: string | Service;
         options: any;
     })[];
-    _serviceInstances: InteractionService[];
+    _serviceInstances: Service[];
     _interactors: (Interactor | {
         interactor: Interactor;
         options: any;
@@ -70,8 +70,8 @@ export default class Instrument {
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
     on(action: string | string[], feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
     off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
-    _use(service: InteractionService, options?: any): void;
-    useService(service: string | InteractionService, options?: any): void;
+    _use(service: Service, options?: any): void;
+    useService(service: string | Service, options?: any): void;
     useInteractor(interactor: Interactor, options?: any): void;
     attach(layer: Layer<any>, options?: any): void;
     getSharedVar(sharedName: string, options?: any): any;

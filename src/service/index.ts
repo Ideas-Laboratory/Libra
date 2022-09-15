@@ -10,5 +10,5 @@ export const register = ServiceConstructor.register;
 export const initialize = ServiceConstructor.initialize;
 export const findService = ServiceConstructor.findService;
 export const instanceServices = ServiceConstructor.instanceServices;
-export type InteractionService = ServiceClass;
-export const InteractionService = ServiceClass;
+export type Service = ServiceClass;
+export const Service = ServiceClass;

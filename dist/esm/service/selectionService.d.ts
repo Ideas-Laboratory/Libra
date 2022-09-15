@@ -1,6 +1,6 @@
-import InteractionService from "./service";
+import Service from "./service";
 import { GraphicalTransformer } from "../transformer";
-export default class SelectionService extends InteractionService {
+export default class SelectionService extends Service {
     _oldResult: any;
     _result: any;
     _transformers: GraphicalTransformer[];

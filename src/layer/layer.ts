@@ -1,4 +1,4 @@
-import { InteractionService, findService } from "../service";
+import { Service, findService } from "../service";
 import * as helpers from "../helpers";
 import { Command } from "../command";
 
@@ -23,14 +23,14 @@ type LayerPartialOption = Partial<{
   // transformation: { [scaleName: string]: helpers.Transformation };
   // services: (
   //   | string
-  //   | InteractionService
-  //   | { service: string | InteractionService; options: any }
+  //   | Service
+  //   | { service: string | Service; options: any }
   // )[];
   // sharedVar: { [varName: string]: any };
   // redraw: (
   //   sharedVars: { [name: string]: any },
   //   scales: { [name: string]: helpers.Transformation },
-  //   services: InteractionService[]
+  //   services: Service[]
   // ) => void;
   preInitialize: <T>(layer: Layer<T>) => void;
   postInitialize: <T>(layer: Layer<T>) => void;
@@ -66,10 +66,10 @@ export default class Layer<T> {
   // _transformationWatcher: { [scaleName: string]: (Function | Command)[] };
   // _services: (
   //   | string
-  //   | InteractionService
-  //   | { service: string | InteractionService; options: any }
+  //   | Service
+  //   | { service: string | Service; options: any }
   // )[];
-  // _serviceInstances: InteractionService[];
+  // _serviceInstances: Service[];
   _graphic: T;
   _container: HTMLElement;
   // _sharedVar: { [varName: string]: any };
@@ -79,7 +79,7 @@ export default class Layer<T> {
   // _redraw?: (
   //   sharedVars: { [name: string]: any },
   //   scales: { [name: string]: helpers.Transformation },
-  //   services: InteractionService[]
+  //   services: Service[]
   // ) => void;
   _preInitialize?: <T>(layer: Layer<T>) => void;
   _postInitialize?: <T>(layer: Layer<T>) => void;
@@ -237,12 +237,12 @@ export default class Layer<T> {
   picking(options: helpers.ArbitraryQuery): T[] {
     return [];
   }
-  // _use(service: InteractionService, options?: any) {
+  // _use(service: Service, options?: any) {
   //   service.preAttach(this);
   //   this._serviceInstances.push(service);
   //   service.postUse(this);
   // }
-  // use(service: string | InteractionService, options?: any) {
+  // use(service: string | Service, options?: any) {
   //   if (
   //     typeof service !== "string" &&
   //     this._serviceInstances.includes(service)
@@ -325,7 +325,7 @@ export default class Layer<T> {
   // get services() {
   //   return helpers.makeFindableList(
   //     this._serviceInstances.slice(0),
-  //     InteractionService,
+  //     Service,
   //     this.use.bind(this)
   //   );
   // }

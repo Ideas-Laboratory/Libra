@@ -12,20 +12,20 @@ declare type ServiceInitOption = {
     sharedVar?: {
         [key: string]: any;
     };
-    preInitialize?: (service: InteractionService) => void;
-    postInitialize?: (service: InteractionService) => void;
-    preUpdate?: (service: InteractionService) => void;
-    postUpdate?: (service: InteractionService) => void;
-    preAttach?: (service: InteractionService, instrument: Instrument) => void;
-    postUse?: (service: InteractionService, instrument: Instrument) => void;
+    preInitialize?: (service: Service) => void;
+    postInitialize?: (service: Service) => void;
+    preUpdate?: (service: Service) => void;
+    postUpdate?: (service: Service) => void;
+    preAttach?: (service: Service, instrument: Instrument) => void;
+    postUse?: (service: Service, instrument: Instrument) => void;
     [param: string]: any;
 };
 declare type ServiceInitTemplate = ServiceInitOption & {
     [param: string]: any;
-    constructor?: typeof InteractionService;
+    constructor?: typeof Service;
 };
-export declare const instanceServices: InteractionService[];
-export default class InteractionService {
+export declare const instanceServices: Service[];
+export default class Service {
     _baseName: string;
     _name: string;
     _userOptions: ServiceInitOption;
@@ -35,12 +35,12 @@ export default class InteractionService {
     _linkCache: {
         [linkProp: string]: any;
     };
-    _preInitialize?: (service: InteractionService) => void;
-    _postInitialize?: (service: InteractionService) => void;
-    _preUpdate?: (service: InteractionService) => void;
-    _postUpdate?: (service: InteractionService) => void;
-    _preAttach?: (service: InteractionService, instrument: Instrument) => void;
-    _postUse?: (service: InteractionService, instrument: Instrument) => void;
+    _preInitialize?: (service: Service) => void;
+    _postInitialize?: (service: Service) => void;
+    _preUpdate?: (service: Service) => void;
+    _postUpdate?: (service: Service) => void;
+    _preAttach?: (service: Service, instrument: Instrument) => void;
+    _postUse?: (service: Service, instrument: Instrument) => void;
     _layerInstances: Layer<any>[];
     _transformers: GraphicalTransformer[];
     constructor(baseName: string, options: ServiceInitOption);
@@ -54,11 +54,11 @@ export default class InteractionService {
     get transformers(): any;
     static register(baseName: string, options: ServiceInitTemplate): void;
     static unregister(baseName: string): boolean;
-    static initialize(baseName: string, options?: ServiceInitOption): InteractionService;
-    static findService(baseNameOrRealName: string): InteractionService[];
+    static initialize(baseName: string, options?: ServiceInitOption): Service;
+    static findService(baseNameOrRealName: string): Service[];
 }
-export declare const register: typeof InteractionService.register;
-export declare const unregister: typeof InteractionService.unregister;
-export declare const initialize: typeof InteractionService.initialize;
-export declare const findService: typeof InteractionService.findService;
+export declare const register: typeof Service.register;
+export declare const unregister: typeof Service.unregister;
+export declare const initialize: typeof Service.initialize;
+export declare const findService: typeof Service.findService;
 export {};
