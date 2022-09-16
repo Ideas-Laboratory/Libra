@@ -489,85 +489,34 @@ Instrument.register("BrushYInstrument", {
   },
 });
 
-Instrument.register("HelperBarInstrument", {
+Instrument.register("HelperLineInstrument", {
   constructor: Instrument,
-
+  sharedVar: { orientation: ["horizontal"] },
   interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
       ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBar = transientLayer.getGraphic().querySelector("line");
-        helperBar.setAttribute(
-          "transform",
-          `translate(${event.offsetX - 50}, 0)`
-        );
-        instrument.setSharedVar("barX", event.offsetX - 50, {});
+        instrument.transformers.setSharedVars({
+          x: event.offsetX,
+          y: event.offsetY,
+        });
+        instrument.setSharedVar("x", event.offsetX, {});
+        instrument.setSharedVar("y", event.offsetY, {});
       },
     ],
   },
   preAttach: function (instrument, layer) {
-    const height = (layer as any)._height;
-    const startPos = instrument.getSharedVar("startPos");
-    const transientLayer = layer.getLayerFromQueue("transientLayer");
-    const helperBar = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "line"
-    );
-    helperBar.setAttribute("x1", startPos);
-    helperBar.setAttribute("y1", "0");
-    helperBar.setAttribute("x2", startPos);
-    helperBar.setAttribute("y2", height);
-    helperBar.setAttribute("stroke", `black`);
-    helperBar.setAttribute("stroke-width", `1px`);
-    (transientLayer.getGraphic() as SVGGElement).append(helperBar);
-  },
-});
-
-Instrument.register("HelperBarYaxisInstrument", {
-  constructor: Instrument,
-  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
-  on: {
-    hover: [
-      ({ event, layer, instrument }) => {
-        if (event.changedTouches) event = event.changedTouches[0];
-        const barX = d3.pointer(event, layer.getGraphic())[0];
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBarYaxis = transientLayer
-          .getGraphic()
-          .querySelector("line");
-        const helperBarYaxis2 = transientLayer
-          .getGraphic()
-          .querySelector("line");
-        helperBarYaxis.setAttribute("transform", `translate(0, ${barX})`);
-        helperBarYaxis2.setAttribute("transform", `translate(0, ${barX})`);
-        instrument.setSharedVar("barX", barX, {});
+    instrument.transformers.add("HelperLineTransformer", {
+      layer: layer.getLayerFromQueue("transientLayer"),
+      sharedVar: {
+        orientation: instrument.getSharedVar("orientation"),
+        style: instrument.getSharedVar("style") || {},
+        tooltip: instrument.getSharedVar("tooltip"),
+        scaleX: instrument.getSharedVar("scaleX"),
+        scaleY: instrument.getSharedVar("scaleY"),
       },
-    ],
-  },
-  preAttach: function (instrument, layer) {
-    // const width = layer.getSharedVar("width", 600);
-    const transientLayer = layer.getLayerFromQueue("transientLayer");
-    const helperBarYaxis = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "line"
-    );
-    helperBarYaxis.setAttribute("x1", "0");
-    helperBarYaxis.setAttribute("y1", "0");
-    // helperBarYaxis.setAttribute("x2", `${width}`);
-    helperBarYaxis.setAttribute("y2", "0");
-    helperBarYaxis.setAttribute("stroke", `blue`);
-    helperBarYaxis.setAttribute("stroke-width", `1px`);
-    transientLayer.getGraphic().append(helperBarYaxis);
-    // const helperBarYaxis2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    // helperBarYaxis2.setAttribute("x1", "0");
-    // helperBarYaxis2.setAttribute("y1", "0");
-    // helperBarYaxis2.setAttribute("x2", `${width}`);
-    // helperBarYaxis2.setAttribute("y2", "0");
-    // helperBarYaxis2.setAttribute("stroke", `green`);
-    // helperBarYaxis2.setAttribute("stroke-width", `1px`);
-    // transientLayer.getGraphic().append(helperBarYaxis2);
+    });
   },
 });
 

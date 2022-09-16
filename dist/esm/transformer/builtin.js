@@ -73,3 +73,94 @@ GraphicalTransformer.register("SelectionTransformer", {
             .forEach((resultNode) => layer.getGraphic().appendChild(resultNode));
     },
 });
+GraphicalTransformer.register("HelperLineTransformer", {
+    constructor: GraphicalTransformer,
+    transient: true,
+    sharedVar: {
+        orientation: ["horizontal", "vertical"],
+        style: {},
+    },
+    redraw({ layer, transformer }) {
+        const mainLayer = layer.getLayerFromQueue("mainLayer");
+        const orientation = transformer.getSharedVar("orientation");
+        const style = transformer.getSharedVar("style");
+        const x = transformer.getSharedVar("x");
+        const y = transformer.getSharedVar("y");
+        const tooltipConfig = transformer.getSharedVar("tooltip");
+        const scaleX = transformer.getSharedVar("scaleX");
+        const scaleY = transformer.getSharedVar("scaleY");
+        const tooltipQueue = [];
+        let tooltipOffsetX = 0;
+        let tooltipOffsetY = 0;
+        if (tooltipConfig) {
+            if (typeof tooltipConfig === "object" && tooltipConfig.prefix) {
+                tooltipQueue.push(tooltipConfig.prefix);
+            }
+            if (scaleX && scaleX.invert && typeof x === "number") {
+                tooltipQueue.push(scaleX.invert(x - (layer._offset?.x ?? 0)));
+            }
+            if (scaleY && scaleY.invert && typeof y === "number") {
+                tooltipQueue.push(scaleY.invert(y - (layer._offset?.y ?? 0)));
+            }
+            if (typeof tooltipConfig === "object" && tooltipConfig.suffix) {
+                tooltipQueue.push(tooltipConfig.suffix);
+            }
+            if (typeof tooltipConfig === "object" && tooltipConfig.offset) {
+                if (typeof tooltipConfig.offset.x === "number") {
+                    tooltipOffsetX = tooltipConfig.offset.x;
+                }
+                if (typeof tooltipConfig.offset.y === "number") {
+                    tooltipOffsetY = tooltipConfig.offset.y;
+                }
+                if (typeof tooltipConfig.offset.x === "function" &&
+                    typeof x === "number") {
+                    tooltipOffsetX = tooltipConfig.offset.x(x - (layer._offset?.x ?? 0));
+                }
+                if (typeof tooltipConfig.offset.y === "function" &&
+                    typeof y === "number") {
+                    tooltipOffsetY = tooltipConfig.offset.y(y - (layer._offset?.y ?? 0));
+                }
+            }
+        }
+        const tooltip = tooltipQueue.join(" ");
+        if (orientation.includes("horizontal") && typeof y === "number") {
+            const line = d3
+                .select(layer.getGraphic())
+                .append("line")
+                .attr("x1", 0)
+                .attr("x2", mainLayer.getGraphic().getBoundingClientRect().width)
+                .attr("y1", y - (layer._offset?.y ?? 0))
+                .attr("y2", y - (layer._offset?.y ?? 0))
+                .attr("stroke-width", 1)
+                .attr("stroke", "#000");
+            if (style) {
+                Object.entries(style).forEach(([key, value]) => {
+                    line.attr(key, value);
+                });
+            }
+        }
+        if (orientation.includes("vertical") && typeof x === "number") {
+            const line = d3
+                .select(layer.getGraphic())
+                .append("line")
+                .attr("y1", 0)
+                .attr("y2", mainLayer.getGraphic().getBoundingClientRect().height)
+                .attr("x1", x - (layer._offset?.x ?? 0))
+                .attr("x2", x - (layer._offset?.x ?? 0))
+                .attr("stroke-width", 1)
+                .attr("stroke", "#000");
+            if (style) {
+                Object.entries(style).forEach(([key, value]) => {
+                    line.attr(key, value);
+                });
+            }
+        }
+        if (tooltip) {
+            d3.select(layer.getGraphic())
+                .append("text")
+                .attr("x", x - (layer._offset?.x ?? 0))
+                .attr("y", y - (layer._offset?.y ?? 0))
+                .text(tooltip);
+        }
+    },
+});

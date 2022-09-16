@@ -454,36 +454,38 @@ Instrument.register("BrushYInstrument", {
         });
     },
 });
-Instrument.register("HelperBarInstrument", {
+Instrument.register("HelperLineInstrument", {
     constructor: Instrument,
+    sharedVar: { orientation: ["horizontal"] },
     interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
     on: {
         hover: [
             ({ event, layer, instrument }) => {
                 if (event.changedTouches)
                     event = event.changedTouches[0];
-                const transientLayer = layer.getLayerFromQueue("transientLayer");
-                const helperBar = transientLayer.getGraphic().querySelector("line");
-                helperBar.setAttribute("transform", `translate(${event.offsetX - 50}, 0)`);
-                instrument.setSharedVar("barX", event.offsetX - 50, {});
+                instrument.transformers.setSharedVars({
+                    x: event.offsetX,
+                    y: event.offsetY,
+                });
+                instrument.setSharedVar("x", event.offsetX, {});
+                instrument.setSharedVar("y", event.offsetY, {});
             },
         ],
     },
     preAttach: function (instrument, layer) {
-        const height = layer._height;
-        const startPos = instrument.getSharedVar("startPos");
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        helperBar.setAttribute("x1", startPos);
-        helperBar.setAttribute("y1", "0");
-        helperBar.setAttribute("x2", startPos);
-        helperBar.setAttribute("y2", height);
-        helperBar.setAttribute("stroke", `black`);
-        helperBar.setAttribute("stroke-width", `1px`);
-        transientLayer.getGraphic().append(helperBar);
+        instrument.transformers.add("HelperLineTransformer", {
+            layer: layer.getLayerFromQueue("transientLayer"),
+            sharedVar: {
+                orientation: instrument.getSharedVar("orientation"),
+                style: instrument.getSharedVar("style") || {},
+                tooltip: instrument.getSharedVar("tooltip"),
+                scaleX: instrument.getSharedVar("scaleX"),
+                scaleY: instrument.getSharedVar("scaleY"),
+            },
+        });
     },
 });
-Instrument.register("HelperBarYaxisInstrument", {
+Instrument.register("HelperLineYaxisInstrument", {
     constructor: Instrument,
     interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
     on: {

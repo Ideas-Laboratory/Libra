@@ -3655,6 +3655,75 @@ GraphicalTransformer.register("SelectionTransformer", {
     transformer.getSharedVar("selectionResult").forEach((resultNode) => layer.getGraphic().appendChild(resultNode));
   }
 });
+GraphicalTransformer.register("HelperLineTransformer", {
+  constructor: GraphicalTransformer,
+  transient: true,
+  sharedVar: {
+    orientation: ["horizontal", "vertical"],
+    style: {}
+  },
+  redraw({ layer, transformer }) {
+    const mainLayer = layer.getLayerFromQueue("mainLayer");
+    const orientation = transformer.getSharedVar("orientation");
+    const style = transformer.getSharedVar("style");
+    const x = transformer.getSharedVar("x");
+    const y = transformer.getSharedVar("y");
+    const tooltipConfig = transformer.getSharedVar("tooltip");
+    const scaleX = transformer.getSharedVar("scaleX");
+    const scaleY = transformer.getSharedVar("scaleY");
+    const tooltipQueue = [];
+    let tooltipOffsetX = 0;
+    let tooltipOffsetY = 0;
+    if (tooltipConfig) {
+      if (typeof tooltipConfig === "object" && tooltipConfig.prefix) {
+        tooltipQueue.push(tooltipConfig.prefix);
+      }
+      if (scaleX && scaleX.invert && typeof x === "number") {
+        tooltipQueue.push(scaleX.invert(x - (layer._offset?.x ?? 0)));
+      }
+      if (scaleY && scaleY.invert && typeof y === "number") {
+        tooltipQueue.push(scaleY.invert(y - (layer._offset?.y ?? 0)));
+      }
+      if (typeof tooltipConfig === "object" && tooltipConfig.suffix) {
+        tooltipQueue.push(tooltipConfig.suffix);
+      }
+      if (typeof tooltipConfig === "object" && tooltipConfig.offset) {
+        if (typeof tooltipConfig.offset.x === "number") {
+          tooltipOffsetX = tooltipConfig.offset.x;
+        }
+        if (typeof tooltipConfig.offset.y === "number") {
+          tooltipOffsetY = tooltipConfig.offset.y;
+        }
+        if (typeof tooltipConfig.offset.x === "function" && typeof x === "number") {
+          tooltipOffsetX = tooltipConfig.offset.x(x - (layer._offset?.x ?? 0));
+        }
+        if (typeof tooltipConfig.offset.y === "function" && typeof y === "number") {
+          tooltipOffsetY = tooltipConfig.offset.y(y - (layer._offset?.y ?? 0));
+        }
+      }
+    }
+    const tooltip = tooltipQueue.join(" ");
+    if (orientation.includes("horizontal") && typeof y === "number") {
+      const line = select_default2(layer.getGraphic()).append("line").attr("x1", 0).attr("x2", mainLayer.getGraphic().getBoundingClientRect().width).attr("y1", y - (layer._offset?.y ?? 0)).attr("y2", y - (layer._offset?.y ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
+      if (style) {
+        Object.entries(style).forEach(([key, value]) => {
+          line.attr(key, value);
+        });
+      }
+    }
+    if (orientation.includes("vertical") && typeof x === "number") {
+      const line = select_default2(layer.getGraphic()).append("line").attr("y1", 0).attr("y2", mainLayer.getGraphic().getBoundingClientRect().height).attr("x1", x - (layer._offset?.x ?? 0)).attr("x2", x - (layer._offset?.x ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
+      if (style) {
+        Object.entries(style).forEach(([key, value]) => {
+          line.attr(key, value);
+        });
+      }
+    }
+    if (tooltip) {
+      select_default2(layer.getGraphic()).append("text").attr("x", x - (layer._offset?.x ?? 0)).attr("y", y - (layer._offset?.y ?? 0)).text(tooltip);
+    }
+  }
+});
 
 // dist/esm/transformer/index.js
 var GraphicalTransformer2 = GraphicalTransformer;
@@ -4484,7 +4553,14 @@ var Instrument = class {
     let handled = false;
     for (let [inter, layr, layerOption, instrument] of layers) {
       if (e instanceof MouseEvent) {
-        if (layerOption && layerOption.pointerEvents === "all" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
+        if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
+        } else if (layerOption && layerOption.pointerEvents === "all") {
+          const maybeD3Layer = layr;
+          if (maybeD3Layer._offset) {
+            if (e.offsetX < maybeD3Layer._offset.x || e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width || e.offsetY < maybeD3Layer._offset.y || e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height) {
+              continue;
+            }
+          }
         } else {
           const query = layr.picking({
             baseOn: QueryType.Shape,
@@ -4534,7 +4610,8 @@ var Instrument = class {
   }
   static initialize(baseName2, options) {
     const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
-      on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {})
+      on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+      sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
@@ -4971,36 +5048,38 @@ Instrument.register("BrushYInstrument", {
     });
   }
 });
-Instrument.register("HelperBarInstrument", {
+Instrument.register("HelperLineInstrument", {
   constructor: Instrument,
+  sharedVar: { orientation: ["horizontal"] },
   interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {
     hover: [
       ({ event, layer, instrument }) => {
         if (event.changedTouches)
           event = event.changedTouches[0];
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBar = transientLayer.getGraphic().querySelector("line");
-        helperBar.setAttribute("transform", `translate(${event.offsetX - 50}, 0)`);
-        instrument.setSharedVar("barX", event.offsetX - 50, {});
+        instrument.transformers.setSharedVars({
+          x: event.offsetX,
+          y: event.offsetY
+        });
+        instrument.setSharedVar("x", event.offsetX, {});
+        instrument.setSharedVar("y", event.offsetY, {});
       }
     ]
   },
   preAttach: function(instrument, layer) {
-    const height = layer._height;
-    const startPos = instrument.getSharedVar("startPos");
-    const transientLayer = layer.getLayerFromQueue("transientLayer");
-    const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    helperBar.setAttribute("x1", startPos);
-    helperBar.setAttribute("y1", "0");
-    helperBar.setAttribute("x2", startPos);
-    helperBar.setAttribute("y2", height);
-    helperBar.setAttribute("stroke", `black`);
-    helperBar.setAttribute("stroke-width", `1px`);
-    transientLayer.getGraphic().append(helperBar);
+    instrument.transformers.add("HelperLineTransformer", {
+      layer: layer.getLayerFromQueue("transientLayer"),
+      sharedVar: {
+        orientation: instrument.getSharedVar("orientation"),
+        style: instrument.getSharedVar("style") || {},
+        tooltip: instrument.getSharedVar("tooltip"),
+        scaleX: instrument.getSharedVar("scaleX"),
+        scaleY: instrument.getSharedVar("scaleY")
+      }
+    });
   }
 });
-Instrument.register("HelperBarYaxisInstrument", {
+Instrument.register("HelperLineYaxisInstrument", {
   constructor: Instrument,
   interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
   on: {

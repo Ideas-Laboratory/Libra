@@ -18,11 +18,7 @@ type InstrumentInitOption = {
     | Interactor
     | { interactor: string | Interactor; options: any }
   )[];
-  services?: (
-    | string
-    | Service
-    | { service: string | Service; options: any }
-  )[];
+  services?: (string | Service | { service: string | Service; options: any })[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
   sharedVar?: { [varName: string]: any };
   preInitialize?: (instrument: Instrument) => void;
@@ -61,11 +57,7 @@ export default class Instrument {
       | Command
     )[];
   };
-  _services: (
-    | string
-    | Service
-    | { service: string | Service; options: any }
-  )[];
+  _services: (string | Service | { service: string | Service; options: any })[];
   _serviceInstances: Service[];
   _interactors: (Interactor | { interactor: Interactor; options: any })[];
   _layers: (Layer<any> | { layer: Layer<any>; options: any })[];
@@ -450,13 +442,24 @@ export default class Instrument {
     for (let [inter, layr, layerOption, instrument] of layers) {
       if (e instanceof MouseEvent) {
         if (
-          (layerOption && layerOption.pointerEvents === "all") ||
           layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
             "backgroundlayer" ||
           layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
             "bglayer"
         ) {
           // Default is `all` for BGLayer
+        } else if (layerOption && layerOption.pointerEvents === "all") {
+          const maybeD3Layer = layr as any;
+          if (maybeD3Layer._offset) {
+            if (
+              e.offsetX < maybeD3Layer._offset.x ||
+              e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width ||
+              e.offsetY < maybeD3Layer._offset.y ||
+              e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height
+            ) {
+              continue;
+            }
+          }
         } else {
           // Default is `visiblePainted`
           const query = layr.picking({
@@ -546,6 +549,11 @@ export default class Instrument {
           {},
           (registeredInstruments[baseName] ?? {}).on ?? {},
           options?.on ?? {}
+        ),
+        sharedVar: Object.assign(
+          {},
+          (registeredInstruments[baseName] ?? {}).sharedVar ?? {},
+          options?.sharedVar ?? {}
         ),
       }
     );

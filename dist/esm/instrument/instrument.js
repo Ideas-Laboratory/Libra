@@ -343,12 +343,22 @@ export default class Instrument {
         let handled = false;
         for (let [inter, layr, layerOption, instrument] of layers) {
             if (e instanceof MouseEvent) {
-                if ((layerOption && layerOption.pointerEvents === "all") ||
-                    layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
-                        "backgroundlayer" ||
+                if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
+                    "backgroundlayer" ||
                     layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
                         "bglayer") {
                     // Default is `all` for BGLayer
+                }
+                else if (layerOption && layerOption.pointerEvents === "all") {
+                    const maybeD3Layer = layr;
+                    if (maybeD3Layer._offset) {
+                        if (e.offsetX < maybeD3Layer._offset.x ||
+                            e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width ||
+                            e.offsetY < maybeD3Layer._offset.y ||
+                            e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height) {
+                            continue;
+                        }
+                    }
                 }
                 else {
                     // Default is `visiblePainted`
@@ -412,6 +422,7 @@ export default class Instrument {
     static initialize(baseName, options) {
         const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName] ?? {}, options ?? {}, {
             on: Object.assign({}, (registeredInstruments[baseName] ?? {}).on ?? {}, options?.on ?? {}),
+            sharedVar: Object.assign({}, (registeredInstruments[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;
