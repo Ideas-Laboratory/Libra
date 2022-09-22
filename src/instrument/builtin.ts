@@ -1107,7 +1107,7 @@ Instrument.register("PanXInstrument", {
   },
 });
 
-Instrument.register("ZoomInstrument", {
+Instrument.register("GeometricZoomInstrument", {
   constructor: Instrument,
   interactors: ["MouseWheelInteractor"],
   on: {
@@ -1324,6 +1324,269 @@ Instrument.register("ZoomInstrument", {
         // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
       },
     ],
+  },
+});
+
+Instrument.register("SemanticZoomInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseWheelInteractor"],
+  sharedVar: {
+    currentLevel: 0,
+  },
+  on: {
+    wheel: [
+      ({ layer, instrument, event }) => {
+        const layerGraphic = layer.getGraphic();
+        const layerRoot = d3.select(layerGraphic);
+        const transformers = instrument.transformers;
+
+        const scaleLevels = instrument.getSharedVar("scaleLevels");
+        let currentLevel = instrument.getSharedVar("currentLevel");
+
+        currentLevel += Math.sign(event.deltaY);
+
+        instrument.setSharedVar("currentLevel", currentLevel);
+
+        if (typeof scaleLevels === "object") {
+          const closestLevel = Object.keys(scaleLevels).reduce(function (
+            prev,
+            curr
+          ) {
+            return Math.abs(parseInt(curr) - currentLevel) <
+              Math.abs(parseInt(prev) - currentLevel)
+              ? curr
+              : prev;
+          });
+
+          transformers.setSharedVars(scaleLevels[closestLevel]);
+        }
+
+        instrument.setSharedVar("currentx", event.offsetX);
+        instrument.setSharedVar("currenty", event.offsetY);
+        let delta = event.deltaY;
+        instrument.setSharedVar("delta", delta);
+        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+          defaultValue: 0,
+        });
+        cumulativeDelta += delta;
+        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+        delta /= 1000;
+
+        const [x, y] = d3.pointer(event, layerGraphic);
+        const offsetX = instrument.getSharedVar("centroidX") || x;
+        const offsetY = instrument.getSharedVar("centroidY") || y;
+
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          const sy = transformer.getSharedVar("scaleY");
+          if (fixRange) {
+            if (sx) {
+              const offsetXDomain = sx.invert(offsetX);
+              sx.domain(
+                sx
+                  .domain()
+                  .map((d) => d - offsetXDomain)
+                  .map((d) => d * Math.exp(-delta))
+                  .map((d) => d + offsetXDomain)
+              );
+              transformers.forEach((transformer) =>
+                transformer.setSharedVar("scaleX", sx)
+              );
+            }
+            if (sy) {
+              const offsetYDomain = sy.invert(offsetY);
+              sy.domain(
+                sy
+                  .domain()
+                  .map((d) => d - offsetYDomain)
+                  .map((d) => d * Math.exp(-delta))
+                  .map((d) => d + offsetYDomain)
+              );
+              transformers.forEach((transformer) =>
+                transformer.setSharedVar("scaleY", sy)
+              );
+            }
+          } else {
+            if (sx) {
+              const newRangeX = sx
+                .range()
+                .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            if (sy) {
+              const newRangeY = sy
+                .range()
+                .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+              sy.range(newRangeY);
+              transformer.setSharedVar("scaleY", sy);
+            }
+          }
+        });
+
+        // if (fixRange) {
+        //   if (sx) {
+        //     const scaleX = sx
+        //       .copy()
+        //       .domain(
+        //         sx.range().map((x) => (x - offsetX) * Math.exp(delta) + offsetX)
+        //       )
+        //       .range(sx.domain());
+        //     if (scaleX.clamp) scaleX.clamp(false);
+        //     scaleX.domain(sx.range().map((x) => scaleX(x))).range(sx.range());
+        //     transformers.forEach((transformer) => transformer.setSharedVar("scaleX", scaleX));
+        //   }
+        //   if (sy) {
+        //     const scaleY = sy
+        //       .copy()
+        //       .domain(
+        //         sy.range().map((y) => (y - offsetY) * Math.exp(delta) + offsetY)
+        //       )
+        //       .range(sy.domain());
+        //     if (scaleY.clamp) scaleY.clamp(false);
+        //     scaleY.domain(sy.range().map((y) => scaleY(y))).range(sy.range());
+        //     transformers.forEach((transformer) => transformer.setSharedVar("scaleY", scaleY));
+        //   }
+        // }
+        // else {
+        //   if (sx) {
+        //     const proxyRaw = (
+        //       raw: Transformation & { $origin: Transformation }
+        //     ) =>
+        //       new Proxy(raw, {
+        //         get(target, path) {
+        //           if (path in target) return target[path];
+        //           if (path === "range")
+        //             return (...args) =>
+        //               (target.$origin as any)
+        //                 .range(
+        //                   ...args.map(
+        //                     (x) => (x - offsetX) / Math.exp(delta) + offsetX
+        //                   )
+        //                 )
+        //                 .map((x) => (x - offsetX) * Math.exp(delta) + offsetX);
+        //           if (path === "bandwidth" && "bandwidth" in target.$origin) {
+        //             return () =>
+        //               (target.$origin as any).bandwidth() * Math.exp(delta);
+        //           }
+        //           return target.$origin[path];
+        //         },
+        //         apply(target, thisArg, argArray) {
+        //           return target.apply(thisArg, argArray);
+        //         },
+        //         has(target, path) {
+        //           return path in target || path in target.$origin;
+        //         },
+        //       });
+        //     const scaleXRaw = (domain) =>
+        //       (scaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) + offsetX;
+        //     scaleXRaw.invert = (range) =>
+        //       scaleXRaw.$origin.invert(
+        //         (range - offsetX) / Math.exp(delta) + offsetX
+        //       );
+        //     scaleXRaw.$origin = sx;
+        //     scaleXRaw.copy = () => {
+        //       const anotherScaleXRaw = (domain) =>
+        //         (anotherScaleXRaw.$origin(domain) - offsetX) * Math.exp(delta) +
+        //         offsetX;
+        //       Object.assign(anotherScaleXRaw, scaleXRaw);
+        //       anotherScaleXRaw.$origin = sx.copy();
+        //       anotherScaleXRaw.invert = (range) =>
+        //         anotherScaleXRaw.$origin.invert(
+        //           (range - offsetX) / Math.exp(delta) + offsetX
+        //         );
+        //       return proxyRaw(anotherScaleXRaw as any);
+        //     };
+        //     const scaleX = proxyRaw(scaleXRaw);
+        //     transformer.setTransformation("scaleX", scaleX);
+        //   }
+        //   if (sy) {
+        //     const proxyRaw = (
+        //       raw: Transformation & { $origin: Transformation }
+        //     ) =>
+        //       new Proxy(raw, {
+        //         get(target, path) {
+        //           if (path in target) return target[path];
+        //           if (path === "range")
+        //             return (...args) =>
+        //               (target.$origin as any)
+        //                 .range(...args)
+        //                 .map((y) => (y - offsetY) * Math.exp(delta) + offsetY);
+        //           if (path === "bandwidth" && "bandwidth" in target.$origin) {
+        //             return () =>
+        //               (target.$origin as any).bandwidth() * Math.exp(delta);
+        //           }
+        //           return target.$origin[path];
+        //         },
+        //         apply(target, thisArg, argArray) {
+        //           return target.apply(thisArg, argArray);
+        //         },
+        //         has(target, path) {
+        //           return path in target || path in target.$origin;
+        //         },
+        //       });
+        //     const scaleYRaw = (domain) =>
+        //       (scaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) + offsetY;
+        //     scaleYRaw.invert = (range) =>
+        //       scaleYRaw.$origin.invert(
+        //         (range - offsetY) / Math.exp(delta) + offsetY
+        //       );
+        //     scaleYRaw.$origin = sy;
+        //     scaleYRaw.copy = () => {
+        //       const anotherScaleYRaw = (domain) =>
+        //         (anotherScaleYRaw.$origin(domain) - offsetY) * Math.exp(delta) +
+        //         offsetY;
+        //       Object.assign(anotherScaleYRaw, scaleYRaw);
+        //       anotherScaleYRaw.invert = (range) =>
+        //         anotherScaleYRaw.$origin.invert(
+        //           (range - offsetY) / Math.exp(delta) + offsetY
+        //         );
+        //       anotherScaleYRaw.$origin = sy.copy();
+        //       return proxyRaw(anotherScaleYRaw as any);
+        //     };
+        //     const scaleY = proxyRaw(scaleYRaw);
+        //     transformer.setTransformation("scaleY", scaleY);
+        //   }
+        // }
+      },
+    ],
+    abort: [
+      ({ layer, event, instrument, transformer }) => {
+        // const sx = transformer.getTransformation("$$scaleX");
+        // const sy = transformer.getTransformation("$$scaleY");
+        // instrument.setSharedVar("delta", 0);
+        // instrument.setSharedVar("currentx", event.offsetX);
+        // instrument.setSharedVar("currenty", event.offsetY);
+        // if (sx) {
+        //   transformer.setTransformation("scaleX", sx);
+        // }
+        // if (sy) {
+        //   transformer.setTransformation("scaleY", sy);
+        // }
+        // layer.getLayerFromQueue("selectionLayer").getGraphic().innerHTML = "";
+        // layer.getLayerFromQueue("transientLayer").getGraphic().innerHTML = "";
+      },
+    ],
+  },
+  postUse(instrument, layer) {
+    const scaleLevels = instrument.getSharedVar("scaleLevels");
+    const transformers = instrument.transformers;
+    const currentLevel = instrument.getSharedVar("currentLevel");
+
+    if (typeof scaleLevels === "object") {
+      const closestLevel = Object.keys(scaleLevels).reduce(function (
+        prev,
+        curr
+      ) {
+        return Math.abs(parseInt(curr) - currentLevel) <
+          Math.abs(parseInt(prev) - currentLevel)
+          ? curr
+          : prev;
+      });
+
+      transformers.setSharedVars(scaleLevels[closestLevel]);
+    }
   },
 });
 

@@ -5528,7 +5528,7 @@ Instrument.register("PanXInstrument", {
     ]
   }
 });
-Instrument.register("ZoomInstrument", {
+Instrument.register("GeometricZoomInstrument", {
   constructor: Instrument,
   interactors: ["MouseWheelInteractor"],
   on: {
@@ -5584,6 +5584,88 @@ Instrument.register("ZoomInstrument", {
       ({ layer, event, instrument, transformer }) => {
       }
     ]
+  }
+});
+Instrument.register("SemanticZoomInstrument", {
+  constructor: Instrument,
+  interactors: ["MouseWheelInteractor"],
+  sharedVar: {
+    currentLevel: 0
+  },
+  on: {
+    wheel: [
+      ({ layer, instrument, event }) => {
+        const layerGraphic = layer.getGraphic();
+        const layerRoot = select_default2(layerGraphic);
+        const transformers = instrument.transformers;
+        const scaleLevels = instrument.getSharedVar("scaleLevels");
+        let currentLevel = instrument.getSharedVar("currentLevel");
+        currentLevel += Math.sign(event.deltaY);
+        instrument.setSharedVar("currentLevel", currentLevel);
+        if (typeof scaleLevels === "object") {
+          const closestLevel = Object.keys(scaleLevels).reduce(function(prev, curr) {
+            return Math.abs(parseInt(curr) - currentLevel) < Math.abs(parseInt(prev) - currentLevel) ? curr : prev;
+          });
+          transformers.setSharedVars(scaleLevels[closestLevel]);
+        }
+        instrument.setSharedVar("currentx", event.offsetX);
+        instrument.setSharedVar("currenty", event.offsetY);
+        let delta = event.deltaY;
+        instrument.setSharedVar("delta", delta);
+        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+          defaultValue: 0
+        });
+        cumulativeDelta += delta;
+        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+        delta /= 1e3;
+        const [x, y] = pointer_default(event, layerGraphic);
+        const offsetX = instrument.getSharedVar("centroidX") || x;
+        const offsetY = instrument.getSharedVar("centroidY") || y;
+        const fixRange = instrument.getSharedVar("fixRange") ?? false;
+        transformers.forEach((transformer) => {
+          const sx = transformer.getSharedVar("scaleX");
+          const sy = transformer.getSharedVar("scaleY");
+          if (fixRange) {
+            if (sx) {
+              const offsetXDomain = sx.invert(offsetX);
+              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+            }
+            if (sy) {
+              const offsetYDomain = sy.invert(offsetY);
+              sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
+              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
+            }
+          } else {
+            if (sx) {
+              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+              sx.range(newRangeX);
+              transformer.setSharedVar("scaleX", sx);
+            }
+            if (sy) {
+              const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
+              sy.range(newRangeY);
+              transformer.setSharedVar("scaleY", sy);
+            }
+          }
+        });
+      }
+    ],
+    abort: [
+      ({ layer, event, instrument, transformer }) => {
+      }
+    ]
+  },
+  postUse(instrument, layer) {
+    const scaleLevels = instrument.getSharedVar("scaleLevels");
+    const transformers = instrument.transformers;
+    const currentLevel = instrument.getSharedVar("currentLevel");
+    if (typeof scaleLevels === "object") {
+      const closestLevel = Object.keys(scaleLevels).reduce(function(prev, curr) {
+        return Math.abs(parseInt(curr) - currentLevel) < Math.abs(parseInt(prev) - currentLevel) ? curr : prev;
+      });
+      transformers.setSharedVars(scaleLevels[closestLevel]);
+    }
   }
 });
 Instrument.register("ZoomXInstrument", {
