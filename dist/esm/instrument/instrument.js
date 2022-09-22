@@ -28,6 +28,7 @@ export default class Instrument {
         this._services = options.services ?? [];
         this._serviceInstances = [];
         this._sharedVar = options.sharedVar ?? {};
+        this._transformers = options.transformers ?? [];
         if (options.interactors) {
             options.interactors.forEach((interactor) => {
                 if (typeof interactor === "string") {

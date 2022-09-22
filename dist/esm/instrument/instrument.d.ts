@@ -17,6 +17,7 @@ declare type InstrumentInitOption = {
         service: string | Service;
         options: any;
     })[];
+    transformers?: GraphicalTransformer[];
     layers?: (Layer<any> | {
         layer: Layer<any>;
         options: any;

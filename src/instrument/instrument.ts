@@ -19,6 +19,7 @@ type InstrumentInitOption = {
     | { interactor: string | Interactor; options: any }
   )[];
   services?: (string | Service | { service: string | Service; options: any })[];
+  transformers?: GraphicalTransformer[];
   layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
   sharedVar?: { [varName: string]: any };
   preInitialize?: (instrument: Instrument) => void;
@@ -86,6 +87,7 @@ export default class Instrument {
     this._services = options.services ?? [];
     this._serviceInstances = [];
     this._sharedVar = options.sharedVar ?? {};
+    this._transformers = options.transformers ?? [];
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
         if (typeof interactor === "string") {

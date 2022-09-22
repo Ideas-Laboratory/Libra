@@ -18,6 +18,8 @@ export default class SelectionService extends Service {
         sharedVar: {
           selectionResult: [],
           layer: null,
+          highlightColor: options?.sharedVar?.highlightColor,
+          highlightAttrValues: options?.sharedVar?.highlightAttrValues,
         },
       })
     );
