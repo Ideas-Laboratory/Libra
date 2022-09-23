@@ -77,6 +77,9 @@ export default class SelectionService extends Service {
             refNodes.push(node);
           }
         });
+        this._services.forEach((service) => {
+          service.setSharedVar("selectionResult", resultNodes);
+        });
         this._transformers.forEach((transformer) => {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),
@@ -84,6 +87,12 @@ export default class SelectionService extends Service {
           });
         });
       } else {
+        this._services.forEach((service) => {
+          service.setSharedVar(
+            "selectionResult",
+            this._result.map((node) => layer.cloneVisualElements(node, false))
+          );
+        });
         this._transformers.forEach((transformer) => {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),

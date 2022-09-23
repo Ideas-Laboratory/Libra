@@ -12,6 +12,8 @@ declare type ServiceInitOption = {
     sharedVar?: {
         [key: string]: any;
     };
+    transformers?: GraphicalTransformer[];
+    services?: Service[];
     preInitialize?: (service: Service) => void;
     postInitialize?: (service: Service) => void;
     preUpdate?: (service: Service) => void;
@@ -43,6 +45,7 @@ export default class Service {
     _postUse?: (service: Service, instrument: Instrument) => void;
     _layerInstances: Layer<any>[];
     _transformers: GraphicalTransformer[];
+    _services: Service[];
     constructor(baseName: string, options: ServiceInitOption);
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
@@ -52,6 +55,7 @@ export default class Service {
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;
     get transformers(): any;
+    get services(): any;
     static register(baseName: string, options: ServiceInitTemplate): void;
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: ServiceInitOption): Service;

@@ -28,6 +28,9 @@ export default class AnalysisService extends Service {
             ...this._userOptions.params,
             ...this._sharedVar,
           });
+          this._services.forEach((service) => {
+            service.setSharedVar("result", this._result);
+          });
           this._transformers.forEach((transformer) => {
             transformer.setSharedVars({
               result: this._result,

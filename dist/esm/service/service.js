@@ -6,12 +6,15 @@ export default class Service {
     constructor(baseName, options) {
         this._linkCache = {};
         this._transformers = [];
+        this._services = [];
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
         this._name = options.name ?? baseName;
         // this._on = options.on ?? {};
         this._sharedVar = {};
+        this._transformers = options.transformers ?? [];
+        this._services = options.services ?? [];
         this._layerInstances = [];
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -127,6 +130,18 @@ export default class Service {
             this._transformers.splice(this._transformers.indexOf(e), 1);
         });
     }
+    get services() {
+        return helpers.makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
+            Object.entries({
+                selectionResult: [],
+                layoutResult: null,
+                result: null,
+            }).forEach(([k, v]) => {
+                e.setSharedVar(k, v);
+            });
+            this._services.splice(this._services.indexOf(e), 1);
+        });
+    }
     static register(baseName, options) {
         registeredServices[baseName] = options;
     }
@@ -139,6 +154,7 @@ export default class Service {
             // needs to deep merge object
             on: Object.assign({}, (registeredServices[baseName] ?? {}).on ?? {}, options?.on ?? {}),
             sharedVar: Object.assign({}, (registeredServices[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
+            params: Object.assign({}, (registeredServices[baseName] ?? {}).params ?? {}, options?.params ?? {}),
         });
         const service = new mergedOptions.constructor(baseName, mergedOptions);
         return service;

@@ -14,6 +14,8 @@ type ServiceInitOption = {
   };
   layer?: Layer<any>;
   sharedVar?: { [key: string]: any };
+  transformers?: GraphicalTransformer[];
+  services?: Service[];
   preInitialize?: (service: Service) => void;
   postInitialize?: (service: Service) => void;
   preUpdate?: (service: Service) => void;
@@ -51,6 +53,7 @@ export default class Service {
   _postUse?: (service: Service, instrument: Instrument) => void;
   _layerInstances: Layer<any>[];
   _transformers: GraphicalTransformer[] = [];
+  _services: Service[] = [];
 
   constructor(baseName: string, options: ServiceInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
@@ -59,6 +62,8 @@ export default class Service {
     this._name = options.name ?? baseName;
     // this._on = options.on ?? {};
     this._sharedVar = {};
+    this._transformers = options.transformers ?? [];
+    this._services = options.services ?? [];
     this._layerInstances = [];
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -194,6 +199,24 @@ export default class Service {
     );
   }
 
+  get services() {
+    return helpers.makeFindableList(
+      this._services.slice(0),
+      Service,
+      (e) => this._services.push(e),
+      (e) => {
+        Object.entries({
+          selectionResult: [],
+          layoutResult: null,
+          result: null,
+        }).forEach(([k, v]) => {
+          e.setSharedVar(k, v);
+        });
+        this._services.splice(this._services.indexOf(e), 1);
+      }
+    );
+  }
+
   static register(baseName: string, options: ServiceInitTemplate): void {
     registeredServices[baseName] = options;
   }
@@ -201,10 +224,7 @@ export default class Service {
     delete registeredServices[baseName];
     return true;
   }
-  static initialize(
-    baseName: string,
-    options?: ServiceInitOption
-  ): Service {
+  static initialize(baseName: string, options?: ServiceInitOption): Service {
     const mergedOptions = Object.assign(
       { constructor: Service },
       registeredServices[baseName] ?? {},
@@ -220,6 +240,11 @@ export default class Service {
           {},
           (registeredServices[baseName] ?? {}).sharedVar ?? {},
           options?.sharedVar ?? {}
+        ),
+        params: Object.assign(
+          {},
+          (registeredServices[baseName] ?? ({} as any)).params ?? {},
+          options?.params ?? {}
         ),
       }
     );

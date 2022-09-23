@@ -5,9 +5,6 @@ export default class LayoutService extends Service {
         this._oldResult = null;
         this._result = null;
         this._nextTick = 0;
-        Object.entries(options.params || {}).forEach((entry) => {
-            this.setSharedVar(entry[0], entry[1]);
-        });
     }
     async setSharedVar(sharedName, value, options) {
         this.preUpdate();
@@ -22,6 +19,9 @@ export default class LayoutService extends Service {
                     this._result = await this._userOptions.layout({
                         ...(this._userOptions.params ?? {}),
                         ...this._sharedVar,
+                    });
+                    this._services.forEach((service) => {
+                        service.setSharedVar("layoutResult", this._result);
                     });
                     this._transformers.forEach((transformer) => {
                         transformer.setSharedVars({

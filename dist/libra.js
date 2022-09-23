@@ -3748,11 +3748,14 @@ var Service = class {
   constructor(baseName2, options) {
     this._linkCache = {};
     this._transformers = [];
+    this._services = [];
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName2;
     this._userOptions = options;
     this._name = options.name ?? baseName2;
     this._sharedVar = {};
+    this._transformers = options.transformers ?? [];
+    this._services = options.services ?? [];
     this._layerInstances = [];
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -3816,6 +3819,18 @@ var Service = class {
       this._transformers.splice(this._transformers.indexOf(e), 1);
     });
   }
+  get services() {
+    return makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
+      Object.entries({
+        selectionResult: [],
+        layoutResult: null,
+        result: null
+      }).forEach(([k, v]) => {
+        e.setSharedVar(k, v);
+      });
+      this._services.splice(this._services.indexOf(e), 1);
+    });
+  }
   static register(baseName2, options) {
     registeredServices[baseName2] = options;
   }
@@ -3826,7 +3841,8 @@ var Service = class {
   static initialize(baseName2, options) {
     const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName2] ?? {}, options ?? {}, {
       on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
-      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
+      params: Object.assign({}, (registeredServices[baseName2] ?? {}).params ?? {}, options?.params ?? {})
     });
     const service = new mergedOptions.constructor(baseName2, mergedOptions);
     return service;
@@ -3896,6 +3912,9 @@ var SelectionService = class extends Service {
             refNodes.push(node);
           }
         });
+        this._services.forEach((service) => {
+          service.setSharedVar("selectionResult", resultNodes);
+        });
         this._transformers.forEach((transformer) => {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),
@@ -3903,6 +3922,9 @@ var SelectionService = class extends Service {
           });
         });
       } else {
+        this._services.forEach((service) => {
+          service.setSharedVar("selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
+        });
         this._transformers.forEach((transformer) => {
           transformer.setSharedVars({
             layer: layer.getLayerFromQueue("selectionLayer"),
@@ -4122,9 +4144,6 @@ var LayoutService = class extends Service {
     this._oldResult = null;
     this._result = null;
     this._nextTick = 0;
-    Object.entries(options.params || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
   }
   async setSharedVar(sharedName, value, options) {
     this.preUpdate();
@@ -4139,6 +4158,9 @@ var LayoutService = class extends Service {
           this._result = await this._userOptions.layout({
             ...this._userOptions.params ?? {},
             ...this._sharedVar
+          });
+          this._services.forEach((service) => {
+            service.setSharedVar("layoutResult", this._result);
           });
           this._transformers.forEach((transformer) => {
             transformer.setSharedVars({
@@ -4209,6 +4231,9 @@ var AnalysisService = class extends Service {
           this._result = await this._userOptions.algorithm({
             ...this._userOptions.params,
             ...this._sharedVar
+          });
+          this._services.forEach((service) => {
+            service.setSharedVar("result", this._result);
           });
           this._transformers.forEach((transformer) => {
             transformer.setSharedVars({
