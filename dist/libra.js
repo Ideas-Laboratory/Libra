@@ -4156,6 +4156,7 @@ var LayoutService = class extends Service {
         this._oldResult = this._result;
         try {
           this._result = await this._userOptions.layout({
+            self: this,
             ...this._userOptions.params ?? {},
             ...this._sharedVar
           });
@@ -4214,9 +4215,6 @@ var AnalysisService = class extends Service {
     this._oldResult = null;
     this._result = null;
     this._nextTick = 0;
-    Object.entries(options.params || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
   }
   async setSharedVar(sharedName, value, options) {
     this.preUpdate();
@@ -4229,6 +4227,7 @@ var AnalysisService = class extends Service {
         this._oldResult = this._result;
         try {
           this._result = await this._userOptions.algorithm({
+            self: this,
             ...this._userOptions.params,
             ...this._sharedVar
           });
@@ -4594,8 +4593,8 @@ var Instrument = class {
     let handled = false;
     for (let [inter, layr, layerOption, instrument] of layers) {
       if (e instanceof MouseEvent) {
-        if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer") {
-        } else if (layerOption && layerOption.pointerEvents === "all") {
+        if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer" || layerOption && layerOption.pointerEvents === "all") {
+        } else if (!layerOption || layerOption.pointerEvents === "viewport") {
           const maybeD3Layer = layr;
           if (maybeD3Layer._offset) {
             if (e.offsetX < maybeD3Layer._offset.x || e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width || e.offsetY < maybeD3Layer._offset.y || e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height) {
@@ -4701,10 +4700,12 @@ Instrument.register("ClickInstrument", {
         let { event, layer, instrument } = options;
         if (event.changedTouches)
           event = event.changedTouches[0];
+        instrument.setSharedVar("x", event.clientX);
+        instrument.setSharedVar("y", event.clientY);
         const services = instrument.services.find("SelectionService");
         services.setSharedVar("x", event.clientX, { layer });
         services.setSharedVar("y", event.clientY, { layer });
-        instrument.emit("click", {
+        instrument.emit("clickstart", {
           ...options,
           self: options.instrument
         });
@@ -4718,10 +4719,21 @@ Instrument.register("ClickInstrument", {
         const services = instrument.services.find("SelectionService");
         services.setSharedVar("x", 0, { layer });
         services.setSharedVar("y", 0, { layer });
-        instrument.emit("clickend", {
-          ...options,
-          self: options.instrument
-        });
+        if (event.clientX === instrument.getSharedVar("x") && event.clientY === instrument.getSharedVar("y")) {
+          instrument.setSharedVar("x", 0);
+          instrument.setSharedVar("y", 0);
+          instrument.emit("click", {
+            ...options,
+            self: options.instrument
+          });
+        } else {
+          instrument.setSharedVar("x", 0);
+          instrument.setSharedVar("y", 0);
+          instrument.emit("clickabort", {
+            ...options,
+            self: options.instrument
+          });
+        }
       }
     ],
     dragabort: [

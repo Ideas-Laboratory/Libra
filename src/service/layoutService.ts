@@ -20,6 +20,7 @@ export default class LayoutService extends Service {
         this._oldResult = this._result;
         try {
           this._result = await this._userOptions.layout({
+            self: this,
             ...(this._userOptions.params ?? {}),
             ...this._sharedVar,
           });

@@ -9,9 +9,6 @@ export default class AnalysisService extends Service {
 
   constructor(baseName: string, options: any) {
     super(baseName, options);
-    Object.entries(options.params || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
   }
 
   async setSharedVar(sharedName: string, value: any, options?: any) {
@@ -25,6 +22,7 @@ export default class AnalysisService extends Service {
         this._oldResult = this._result;
         try {
           this._result = await this._userOptions.algorithm({
+            self: this,
             ...this._userOptions.params,
             ...this._sharedVar,
           });

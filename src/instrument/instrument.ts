@@ -447,10 +447,12 @@ export default class Instrument {
           layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
             "backgroundlayer" ||
           layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") ===
-            "bglayer"
+            "bglayer" ||
+          (layerOption && layerOption.pointerEvents === "all")
         ) {
           // Default is `all` for BGLayer
-        } else if (layerOption && layerOption.pointerEvents === "all") {
+        } else if (!layerOption || layerOption.pointerEvents === "viewport") {
+          // Default is `viewport` for layers
           const maybeD3Layer = layr as any;
           if (maybeD3Layer._offset) {
             if (
@@ -463,7 +465,7 @@ export default class Instrument {
             }
           }
         } else {
-          // Default is `visiblePainted`
+          // Others is `visiblePainted`
           const query = layr.picking({
             baseOn: helpers.QueryType.Shape,
             type: helpers.ShapeQueryType.Point,

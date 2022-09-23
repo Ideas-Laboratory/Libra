@@ -36,10 +36,12 @@ Instrument.register("ClickInstrument", {
                 let { event, layer, instrument } = options;
                 if (event.changedTouches)
                     event = event.changedTouches[0];
+                instrument.setSharedVar("x", event.clientX);
+                instrument.setSharedVar("y", event.clientY);
                 const services = instrument.services.find("SelectionService");
                 services.setSharedVar("x", event.clientX, { layer: layer });
                 services.setSharedVar("y", event.clientY, { layer: layer });
-                instrument.emit("click", {
+                instrument.emit("clickstart", {
                     ...options,
                     self: options.instrument,
                 });
@@ -53,10 +55,23 @@ Instrument.register("ClickInstrument", {
                 const services = instrument.services.find("SelectionService");
                 services.setSharedVar("x", 0, { layer: layer });
                 services.setSharedVar("y", 0, { layer: layer });
-                instrument.emit("clickend", {
-                    ...options,
-                    self: options.instrument,
-                });
+                if (event.clientX === instrument.getSharedVar("x") &&
+                    event.clientY === instrument.getSharedVar("y")) {
+                    instrument.setSharedVar("x", 0);
+                    instrument.setSharedVar("y", 0);
+                    instrument.emit("click", {
+                        ...options,
+                        self: options.instrument,
+                    });
+                }
+                else {
+                    instrument.setSharedVar("x", 0);
+                    instrument.setSharedVar("y", 0);
+                    instrument.emit("clickabort", {
+                        ...options,
+                        self: options.instrument,
+                    });
+                }
             },
         ],
         dragabort: [

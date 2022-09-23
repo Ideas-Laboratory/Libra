@@ -5,9 +5,6 @@ export default class AnalysisService extends Service {
         this._oldResult = null;
         this._result = null;
         this._nextTick = 0;
-        Object.entries(options.params || {}).forEach((entry) => {
-            this.setSharedVar(entry[0], entry[1]);
-        });
     }
     async setSharedVar(sharedName, value, options) {
         this.preUpdate();
@@ -20,6 +17,7 @@ export default class AnalysisService extends Service {
                 this._oldResult = this._result;
                 try {
                     this._result = await this._userOptions.algorithm({
+                        self: this,
                         ...this._userOptions.params,
                         ...this._sharedVar,
                     });
