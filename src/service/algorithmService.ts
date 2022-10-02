@@ -14,14 +14,14 @@ export default class AnalysisService extends Service {
   async setSharedVar(sharedName: string, value: any, options?: any) {
     this.preUpdate();
     this._sharedVar[sharedName] = value;
-    if (this._userOptions.algorithm && this._userOptions.params) {
+    if (this._userOptions.evaluate && this._userOptions.params) {
       if (this._nextTick) {
         return;
       }
       this._nextTick = requestAnimationFrame(async () => {
         this._oldResult = this._result;
         try {
-          this._result = await this._userOptions.algorithm({
+          this._result = await this._userOptions.evaluate({
             self: this,
             ...this._userOptions.params,
             ...this._sharedVar,
