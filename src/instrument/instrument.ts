@@ -35,7 +35,7 @@ type InstrumentInitTemplate = InstrumentInitOption & {
 };
 
 const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
-const instanceInstruments: Instrument[] = [];
+export const instanceInstruments: Instrument[] = [];
 const EventDispatcher: Map<
   HTMLElement,
   Map<string, [Interactor, Layer<any>, any, Instrument][]>
@@ -520,7 +520,8 @@ export default class Instrument {
       this.useService.bind(this),
       () => {
         throw new Error("Do not support dynamic change service yet");
-      }
+      },
+      this
     );
   }
 
@@ -529,7 +530,8 @@ export default class Instrument {
       this._transformers.slice(0),
       GraphicalTransformer,
       (e) => this._transformers.push(e),
-      (e) => this._transformers.splice(this._transformers.indexOf(e), 1)
+      (e) => this._transformers.splice(this._transformers.indexOf(e), 1),
+      this
     );
   }
 
@@ -561,8 +563,9 @@ export default class Instrument {
         ),
       }
     );
-    const service = new mergedOptions.constructor(baseName, mergedOptions);
-    return service;
+    const instrument = new mergedOptions.constructor(baseName, mergedOptions);
+    instanceInstruments.push(instrument);
+    return instrument;
   }
   static findInstrument(baseNameOrRealName: string): Instrument[] {
     return instanceInstruments.filter((instrument) =>

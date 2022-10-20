@@ -50,7 +50,6 @@ export default class Command {
     this._postInitialize = options.postInitialize ?? null;
     this._preExecute = options.preExecute ?? null;
     this._postExecute = options.postExecute ?? null;
-    instanceCommands.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
@@ -100,11 +99,12 @@ export default class Command {
       registeredCommands[baseName] ?? {},
       options ?? {}
     );
-    const service = new mergedOptions.constructor(
+    const command = new mergedOptions.constructor(
       baseName,
       mergedOptions as CommandInitTemplate
     );
-    return service;
+    instanceCommands.push(command);
+    return command;
   }
   static findCommand(baseNameOrRealName: string): Command[] {
     return instanceCommands.filter((command) =>

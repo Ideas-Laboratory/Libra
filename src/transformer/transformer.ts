@@ -16,7 +16,7 @@ type TransformerInitTemplate = TransformerInitOption & {
 };
 
 const registeredTransformers: { [name: string]: TransformerInitTemplate } = {};
-const instanceTransformers: GraphicalTransformer[] = [];
+export const instanceTransformers: GraphicalTransformer[] = [];
 
 let transientQueue = [];
 const transientCleaner = () => {
@@ -58,8 +58,6 @@ export default class GraphicalTransformer {
     this._transient = options.transient ?? false;
 
     this.redraw();
-
-    instanceTransformers.push(this);
   }
 
   getSharedVar(name: string) {

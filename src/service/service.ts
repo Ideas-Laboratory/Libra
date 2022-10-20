@@ -195,7 +195,8 @@ export default class Service {
           result: null,
         });
         this._transformers.splice(this._transformers.indexOf(e), 1);
-      }
+      },
+      this
     );
   }
 
@@ -213,7 +214,8 @@ export default class Service {
           e.setSharedVar(k, v);
         });
         this._services.splice(this._services.indexOf(e), 1);
-      }
+      },
+      this
     );
   }
 

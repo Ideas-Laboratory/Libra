@@ -2,6 +2,7 @@ import { Command } from ".";
 import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
+import { AllRecordingComponents, tryRegisterDynamicInstance } from "./history";
 
 export enum QueryType {
   Shape,
@@ -146,17 +147,20 @@ export type CommonHandlerInput<T> = {
 
 class NonsenseClass {}
 
-export function makeFindableList<T>(
+export function makeFindableList<T extends AllRecordingComponents>(
   list: any,
-  typing: new (...args: any[]) => T,
+  typing:
+    | { new (...args: any[]): NonsenseClass }
+    | { initialize(...args: any[]): T },
   addFunc: (newElement: T) => void,
-  removeFunc: (element: T) => void
+  removeFunc: (element: T) => void,
+  self: AllRecordingComponents
 ) {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {
         return function (name: string, defaultValue: string) {
-          if (typing === NonsenseClass) {
+          if (!("initialize" in typing)) {
             const filteredResult = target.slice();
             filteredResult.forEach((newTarget) => {
               newTarget.find(...arguments);
@@ -165,29 +169,32 @@ export function makeFindableList<T>(
               filteredResult,
               typing,
               addFunc,
-              removeFunc
+              removeFunc,
+              self
             );
           } else {
             const filteredResult = target.filter((item) =>
               item.isInstanceOf(name)
             );
             if (filteredResult.length <= 0 && defaultValue) {
-              const newElement = (typing as any).initialize(defaultValue) as T;
+              const newElement = typing.initialize(defaultValue) as T;
               addFunc(newElement);
               filteredResult.push(newElement);
+              tryRegisterDynamicInstance(self, newElement);
             }
             return makeFindableList(
               filteredResult,
               typing,
               addFunc,
-              removeFunc
+              removeFunc,
+              self
             );
           }
         };
       } else if (p === "add") {
         return (...args: any[]) => {
           const filteredResult = target.slice();
-          if (typing === NonsenseClass) {
+          if (!("initialize" in typing)) {
             filteredResult.forEach((newTarget) => {
               newTarget.add(...args);
             });
@@ -195,17 +202,20 @@ export function makeFindableList<T>(
               filteredResult,
               typing,
               addFunc,
-              removeFunc
+              removeFunc,
+              self
             );
           } else {
-            const newElement = (typing as any).initialize(...args) as T;
+            const newElement = typing.initialize(...args) as T;
             addFunc(newElement);
             filteredResult.push(newElement);
+            tryRegisterDynamicInstance(self, newElement);
             return makeFindableList(
               filteredResult,
               typing,
               addFunc,
-              removeFunc
+              removeFunc,
+              self
             );
           }
         };
@@ -220,7 +230,8 @@ export function makeFindableList<T>(
               filteredResult,
               typing,
               addFunc,
-              removeFunc
+              removeFunc,
+              self
             );
           } else {
             const origin = target.slice();
@@ -231,7 +242,7 @@ export function makeFindableList<T>(
               removeFunc(item);
               origin.splice(origin.indexOf(item), 1);
             });
-            return makeFindableList(origin, typing, addFunc, removeFunc);
+            return makeFindableList(origin, typing, addFunc, removeFunc, self);
           }
         };
       } else if (p in target) {
@@ -247,7 +258,8 @@ export function makeFindableList<T>(
               target.map((t) => t[p].apply(t, arguments)),
               NonsenseClass,
               () => {},
-              () => {}
+              () => {},
+              self
             );
           };
         } else {
@@ -255,7 +267,8 @@ export function makeFindableList<T>(
             target.map((t) => t[p]),
             NonsenseClass,
             () => {},
-            () => {}
+            () => {},
+            self
           );
         }
       }

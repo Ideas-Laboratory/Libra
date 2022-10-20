@@ -42,7 +42,7 @@ const SGL =
   (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
 
 const registeredInteractors: { [name: string]: InteractorInitTemplate } = {};
-const instanceInteractors: Interactor[] = [];
+export const instanceInteractors: Interactor[] = [];
 
 export default class Interactor {
   _baseName: string;
@@ -70,7 +70,6 @@ export default class Interactor {
     this._postInitialize = options.postInitialize ?? null;
     this._preUse = options.preUse ?? null;
     this._postUse = options.postUse ?? null;
-    instanceInteractors.push(this);
     options.postInitialize && options.postInitialize.call(this, this);
   }
 
@@ -240,11 +239,12 @@ export default class Interactor {
       registeredInteractors[baseName] ?? {},
       options ?? {}
     );
-    const service = new mergedOptions.constructor(
+    const interactor = new mergedOptions.constructor(
       baseName,
       mergedOptions as InteractorInitTemplate
     );
-    return service;
+    instanceInteractors.push(interactor);
+    return interactor;
   }
   static findInteractor(baseNameOrRealName: string): Interactor[] {
     return instanceInteractors.filter((instrument) =>
