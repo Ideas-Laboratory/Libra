@@ -14,7 +14,6 @@ export default class Command {
         this._postInitialize = options.postInitialize ?? null;
         this._preExecute = options.preExecute ?? null;
         this._postExecute = options.postExecute ?? null;
-        instanceCommands.push(this);
         options.postInitialize && options.postInitialize.call(this, this);
     }
     undo() {
@@ -54,8 +53,9 @@ export default class Command {
     }
     static initialize(baseName, options) {
         const mergedOptions = Object.assign({ constructor: Command }, registeredCommands[baseName] ?? {}, options ?? {});
-        const service = new mergedOptions.constructor(baseName, mergedOptions);
-        return service;
+        const command = new mergedOptions.constructor(baseName, mergedOptions);
+        instanceCommands.push(command);
+        return command;
     }
     static findCommand(baseNameOrRealName) {
         return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));

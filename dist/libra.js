@@ -1,862 +1,223 @@
+var __defProp = Object.defineProperty;
+var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[Object.keys(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  __markAsModule(target);
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
 // dist/esm/command/command.js
-var registeredCommands = {};
-var instanceCommands = [];
-var Command = class {
-  constructor(baseName2, options) {
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._feedback = options.feedback ?? [];
-    this._undo = options.undo ?? null;
-    this._redo = options.redo ?? null;
-    this._execute = options.execute ?? null;
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preExecute = options.preExecute ?? null;
-    this._postExecute = options.postExecute ?? null;
-    instanceCommands.push(this);
-    options.postInitialize && options.postInitialize.call(this, this);
-  }
-  undo() {
-    this._undo && this._undo.call(this);
-  }
-  redo() {
-    this._redo && this._redo.call(this);
-  }
-  async execute(options) {
-    try {
-      this.preExecute();
-      this._execute && await this._execute.call(this, options);
-      this.postExecute();
-      for (let feedback of this._feedback) {
-        await feedback.call(this, options);
+var registeredCommands, instanceCommands, Command, register, unregister, initialize, findCommand;
+var init_command = __esm({
+  "dist/esm/command/command.js"() {
+    registeredCommands = {};
+    instanceCommands = [];
+    Command = class {
+      constructor(baseName2, options) {
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._feedback = options.feedback ?? [];
+        this._undo = options.undo ?? null;
+        this._redo = options.redo ?? null;
+        this._execute = options.execute ?? null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preExecute = options.preExecute ?? null;
+        this._postExecute = options.postExecute ?? null;
+        options.postInitialize && options.postInitialize.call(this, this);
       }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  preExecute() {
-    this._preExecute && this._preExecute.call(this, this);
-  }
-  postExecute() {
-    this._postExecute && this._postExecute.call(this, this);
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  static register(baseName2, options) {
-    registeredCommands[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredCommands[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: Command }, registeredCommands[baseName2] ?? {}, options ?? {});
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findCommand(baseNameOrRealName) {
-    return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register = Command.register;
-var unregister = Command.unregister;
-var initialize = Command.initialize;
-var findCommand = Command.findCommand;
-
-// dist/esm/command/index.js
-var Command2 = Command;
-
-// dist/esm/helpers.js
-var QueryType;
-(function(QueryType2) {
-  QueryType2[QueryType2["Shape"] = 0] = "Shape";
-  QueryType2[QueryType2["Data"] = 1] = "Data";
-  QueryType2[QueryType2["Attr"] = 2] = "Attr";
-})(QueryType || (QueryType = {}));
-var ShapeQueryType;
-(function(ShapeQueryType2) {
-  ShapeQueryType2[ShapeQueryType2["SurfacePoint"] = 0] = "SurfacePoint";
-  ShapeQueryType2[ShapeQueryType2["Point"] = 1] = "Point";
-  ShapeQueryType2[ShapeQueryType2["Circle"] = 2] = "Circle";
-  ShapeQueryType2[ShapeQueryType2["Rect"] = 3] = "Rect";
-  ShapeQueryType2[ShapeQueryType2["Polygon"] = 4] = "Polygon";
-})(ShapeQueryType || (ShapeQueryType = {}));
-var DataQueryType;
-(function(DataQueryType2) {
-  DataQueryType2[DataQueryType2["Quantitative"] = 0] = "Quantitative";
-  DataQueryType2[DataQueryType2["Quantitative2D"] = 1] = "Quantitative2D";
-  DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
-  DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
-})(DataQueryType || (DataQueryType = {}));
-var NonsenseClass = class {
-};
-function makeFindableList(list, typing, addFunc, removeFunc) {
-  return new Proxy(list, {
-    get(target, p) {
-      if (p === "find") {
-        return function(name, defaultValue) {
-          if (typing === NonsenseClass) {
-            const filteredResult = target.slice();
-            filteredResult.forEach((newTarget) => {
-              newTarget.find(...arguments);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
-          } else {
-            const filteredResult = target.filter((item) => item.isInstanceOf(name));
-            if (filteredResult.length <= 0 && defaultValue) {
-              const newElement = typing.initialize(defaultValue);
-              addFunc(newElement);
-              filteredResult.push(newElement);
-            }
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
-          }
-        };
-      } else if (p === "add") {
-        return (...args) => {
-          const filteredResult = target.slice();
-          if (typing === NonsenseClass) {
-            filteredResult.forEach((newTarget) => {
-              newTarget.add(...args);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
-          } else {
-            const newElement = typing.initialize(...args);
-            addFunc(newElement);
-            filteredResult.push(newElement);
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
-          }
-        };
-      } else if (p === "remove") {
-        return (name) => {
-          if (typing === NonsenseClass) {
-            const filteredResult = target.slice();
-            filteredResult.forEach((newTarget) => {
-              newTarget.remove(name);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc);
-          } else {
-            const origin = target.slice();
-            const filteredResult = origin.filter((item) => item.isInstanceOf(name));
-            filteredResult.forEach((item) => {
-              removeFunc(item);
-              origin.splice(origin.indexOf(item), 1);
-            });
-            return makeFindableList(origin, typing, addFunc, removeFunc);
-          }
-        };
-      } else if (p in target) {
-        return target[p];
-      } else {
-        if (!target.length) {
-          const f = () => {
-          };
-          f[Symbol.iterator] = function* () {
-          };
-          return f;
-        } else if (target[0][p] instanceof Function) {
-          return function() {
-            return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => {
-            }, () => {
-            });
-          };
-        } else {
-          return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => {
-          }, () => {
-          });
-        }
+      undo() {
+        this._undo && this._undo.call(this);
       }
-    }
-  });
-}
-function getTransform(elem) {
-  try {
-    const transform2 = elem.getAttribute("transform").split("(")[1].split(")")[0].split(",").map((i) => parseFloat(i));
-    return transform2;
-  } catch (e) {
-    return [0, 0];
-  }
-}
-function parseEventSelector(selector) {
-  return parseMerge(selector.trim()).map(parseSelector);
-}
-var VIEW = "view";
-var LBRACK = "[";
-var RBRACK = "]";
-var LBRACE = "{";
-var RBRACE = "}";
-var COLON = ":";
-var COMMA = ",";
-var NAME = "@";
-var GT = ">";
-var ILLEGAL = /[[\]{}]/;
-var DEFAULT_SOURCE = VIEW;
-var DEFAULT_MARKS = {
-  "*": 1,
-  arc: 1,
-  area: 1,
-  group: 1,
-  image: 1,
-  line: 1,
-  path: 1,
-  rect: 1,
-  rule: 1,
-  shape: 1,
-  symbol: 1,
-  text: 1,
-  trail: 1
-};
-var MARKS = DEFAULT_MARKS;
-function isMarkType(type2) {
-  return MARKS.hasOwnProperty(type2);
-}
-function find(s, i, endChar, pushChar, popChar) {
-  let count = 0, c;
-  const n = s.length;
-  for (; i < n; ++i) {
-    c = s[i];
-    if (!count && c === endChar)
-      return i;
-    else if (popChar && popChar.indexOf(c) >= 0)
-      --count;
-    else if (pushChar && pushChar.indexOf(c) >= 0)
-      ++count;
-  }
-  return i;
-}
-function parseMerge(s) {
-  const output = [], n = s.length;
-  let start2 = 0, i = 0;
-  while (i < n) {
-    i = find(s, i, COMMA, LBRACK + LBRACE, RBRACK + RBRACE);
-    output.push(s.substring(start2, i).trim());
-    start2 = ++i;
-  }
-  if (output.length === 0) {
-    throw "Empty event selector: " + s;
-  }
-  return output;
-}
-function parseSelector(s) {
-  return s[0] === "[" ? parseBetween(s) : parseStream(s);
-}
-function parseBetween(s) {
-  const n = s.length;
-  let i = 1, b, stream;
-  i = find(s, i, RBRACK, LBRACK, RBRACK);
-  if (i === n) {
-    throw "Empty between selector: " + s;
-  }
-  b = parseMerge(s.substring(1, i));
-  if (b.length !== 2) {
-    throw "Between selector must have two elements: " + s;
-  }
-  s = s.slice(i + 1).trim();
-  if (s[0] !== GT) {
-    throw "Expected '>' after between selector: " + s;
-  }
-  const bt = b.map(parseSelector);
-  stream = parseSelector(s.slice(1).trim());
-  if (stream.between) {
-    return {
-      between: bt,
-      stream
-    };
-  } else {
-    stream.between = bt;
-  }
-  return stream;
-}
-function parseStream(s) {
-  const stream = {
-    source: DEFAULT_SOURCE,
-    type: ""
-  }, source = [];
-  let throttle = [0, 0], markname = 0, start2 = 0, n = s.length, i = 0, j, filter2;
-  if (s[n - 1] === RBRACE) {
-    i = s.lastIndexOf(LBRACE);
-    if (i >= 0) {
-      try {
-        throttle = parseThrottle(s.substring(i + 1, n - 1));
-      } catch (e) {
-        throw "Invalid throttle specification: " + s;
+      redo() {
+        this._redo && this._redo.call(this);
       }
-      s = s.slice(0, i).trim();
-      n = s.length;
-    } else
-      throw "Unmatched right brace: " + s;
-    i = 0;
-  }
-  if (!n)
-    throw s;
-  if (s[0] === NAME)
-    markname = ++i;
-  j = find(s, i, COLON);
-  if (j < n) {
-    source.push(s.substring(start2, j).trim());
-    start2 = i = ++j;
-  }
-  i = find(s, i, LBRACK);
-  if (i === n) {
-    source.push(s.substring(start2, n).trim());
-  } else {
-    source.push(s.substring(start2, i).trim());
-    filter2 = [];
-    start2 = ++i;
-    if (start2 === n)
-      throw "Unmatched left bracket: " + s;
-  }
-  while (i < n) {
-    i = find(s, i, RBRACK);
-    if (i === n)
-      throw "Unmatched left bracket: " + s;
-    filter2.push(s.substring(start2, i).trim());
-    if (i < n - 1 && s[++i] !== LBRACK)
-      throw "Expected left bracket: " + s;
-    start2 = ++i;
-  }
-  if (!(n = source.length) || ILLEGAL.test(source[n - 1])) {
-    throw "Invalid event selector: " + s;
-  }
-  if (n > 1) {
-    stream.type = source[1];
-    if (markname) {
-      stream.markname = source[0].slice(1);
-    } else if (isMarkType(source[0])) {
-      stream.marktype = source[0];
-    } else {
-      stream.source = source[0];
-    }
-  } else {
-    stream.type = source[0];
-  }
-  if (stream.type.slice(-1) === "!") {
-    stream.consume = true;
-    stream.type = stream.type.slice(0, -1);
-  }
-  if (filter2 != null)
-    stream.filter = filter2;
-  if (throttle[0])
-    stream.throttle = throttle[0];
-  if (throttle[1])
-    stream.debounce = throttle[1];
-  return stream;
-}
-function parseThrottle(s) {
-  const a = s.split(COMMA);
-  if (!s.length || a.length > 2)
-    throw s;
-  return a.map(function(_) {
-    const x = +_;
-    if (x !== x)
-      throw s;
-    return x;
-  });
-}
-function deepClone(obj) {
-  if (obj instanceof Array) {
-    return obj.map(deepClone);
-  }
-  if ([
-    "string",
-    "number",
-    "boolean",
-    "undefined",
-    "bigint",
-    "symbol",
-    "function"
-  ].includes(typeof obj)) {
-    return obj;
-  }
-  if (obj === null)
-    return null;
-  const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
-  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
-}
-var global = {
-  stopTransient: false
-};
-
-// dist/esm/interactor/actions.jsgf.js
-var actions_jsgf_default = `#JSGF V1.0;
-
-grammar actions;
-
-public <action> = start | stop | pause | resume | play | delete | add | insert | create | remove | drag | move | drag | brush;`;
-
-// dist/esm/interactor/interactor.js
-var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-var registeredInteractors = {};
-var instanceInteractors = [];
-var Interactor = class {
-  constructor(baseName2, options) {
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._state = options.state;
-    this._actions = deepClone(options.actions ?? []).map(transferInteractorInnerAction);
-    this._modalities = {};
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preUse = options.preUse ?? null;
-    this._postUse = options.postUse ?? null;
-    instanceInteractors.push(this);
-    options.postInitialize && options.postInitialize.call(this, this);
-  }
-  enableModality(modal) {
-    switch (modal) {
-      case "speech":
-        if (this._modalities["speech"])
-          break;
-        const recognition = new SR();
-        this._modalities["speech"] = recognition;
-        const speechRecognitionList = new SGL();
-        speechRecognitionList.addFromString(actions_jsgf_default);
-        recognition.grammars = speechRecognitionList;
-        recognition.lang = "en-US";
-        break;
-    }
-  }
-  disableModality(modal) {
-    switch (modal) {
-      case "speech":
-        if (this._modalities["speech"]) {
-          this._modalities.speech.onresult = null;
-          this._modalities.speech.onend = null;
-          this._modalities["speech"].abort();
-          this._modalities["speech"] = null;
-        }
-        break;
-    }
-  }
-  getActions() {
-    return this._actions.slice(0);
-  }
-  setActions(actions) {
-    const mergeActions = actions.concat(this._actions);
-    this._actions = mergeActions.filter((action, i) => i === mergeActions.findIndex((a) => a.action === action.action));
-  }
-  _parseEvent(event) {
-    const flatStream = (stream) => "stream" in stream ? stream.between.concat(stream.stream).flatMap(flatStream) : "between" in stream ? stream.between.concat([{ type: stream.type }]).flatMap(flatStream) : stream.type;
-    return parseEventSelector(event).flatMap(flatStream);
-  }
-  getAcceptEvents() {
-    return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
-  }
-  async dispatch(event, layer) {
-    const moveAction = this._actions.find((action) => {
-      const events = action.eventStreams.map((es) => es.type);
-      let inculdeEvent = false;
-      if (events.includes("*"))
-        inculdeEvent = true;
-      if (event instanceof Event) {
-        inculdeEvent = action.eventStreams.filter((es) => es.type === event.type).some((es) => es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true);
-      } else {
-        if (events.includes(event))
-          inculdeEvent = true;
-      }
-      return inculdeEvent && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*"));
-    });
-    if (moveAction) {
-      if (event instanceof Event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*");
-      if (moveTransition) {
-        this._state = moveTransition[1];
-      }
-      if (this._state.startsWith("speech:")) {
-        this.enableModality("speech");
+      async execute(options) {
         try {
-          this._modalities.speech.start();
-        } catch {
-        }
-        this._modalities.speech.onresult = (e) => {
-          const result = e.results[e.resultIndex][0];
-          this.dispatch(result.transcript, layer);
-        };
-        this._modalities.speech.onend = (e) => {
-          this._modalities.speech.start();
-        };
-      } else {
-        this.disableModality("speech");
-      }
-      if (moveAction.sideEffect) {
-        try {
-          await moveAction.sideEffect({
-            self: this,
-            layer,
-            instrument: null,
-            interactor: this,
-            event
-          });
+          this.preExecute();
+          this._execute && await this._execute.call(this, options);
+          this.postExecute();
+          for (let feedback of this._feedback) {
+            await feedback.call(this, options);
+          }
         } catch (e) {
           console.error(e);
         }
       }
-      return true;
-    }
-    return false;
-  }
-  preUse(instrument) {
-    this._preUse && this._preUse.call(this, this, instrument);
-  }
-  postUse(instrument) {
-    this._postUse && this._postUse.call(this, this, instrument);
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  static register(baseName2, options) {
-    registeredInteractors[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredInteractors[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName2] ?? {}, options ?? {});
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findInteractor(baseNameOrRealName) {
-    return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
-  }
-};
-function transferInteractorInnerAction(originAction) {
-  const eventStreams = originAction.events.map((evtSelector) => parseEventSelector(evtSelector)[0]);
-  return {
-    ...originAction,
-    eventStreams: eventStreams.map((es) => transferEventStream(es))
-  };
-}
-function transferEventStream(es) {
-  return es.filter ? {
-    ...es,
-    filterFuncs: es.filter ? es.filter.map((f) => new Function("event", `return ${f}`)) : []
-  } : { ...es };
-}
-var register2 = Interactor.register;
-var unregister2 = Interactor.unregister;
-var initialize2 = Interactor.initialize;
-var findInteractor = Interactor.findInteractor;
-
-// dist/esm/interactor/builtin.js
-Interactor.register("MousePositionInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "hover",
-      events: ["mousemove"],
-      transition: [["start", "start"]]
-    }
-  ]
-});
-Interactor.register("TouchPositionInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "enter",
-      events: ["touchstart"],
-      transition: [["start", "running"]]
-    },
-    {
-      action: "hover",
-      events: ["touchmove"],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "leave",
-      events: ["touchend"],
-      transition: [
-        ["running", "start"],
-        ["start", "start"]
-      ]
-    }
-  ]
-});
-Interactor.register("MouseTraceInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "dragstart",
-      events: ["mousedown"],
-      transition: [["start", "drag"]]
-    },
-    {
-      action: "drag",
-      events: ["mousemove"],
-      transition: [["drag", "drag"]]
-    },
-    {
-      action: "dragend",
-      events: ["mouseup[event.button==0]"],
-      transition: [["drag", "start"]]
-    },
-    {
-      action: "dragabort",
-      events: ["mouseup[event.button==2]", "contextmenu"],
-      transition: [
-        ["drag", "start"],
-        ["start", "start"]
-      ]
-    }
-  ]
-});
-Interactor.register("TouchTraceInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "dragstart",
-      events: ["touchstart"],
-      transition: [["start", "drag"]]
-    },
-    {
-      action: "drag",
-      events: ["touchmove"],
-      transition: [["drag", "drag"]]
-    },
-    {
-      action: "dragend",
-      events: ["touchend"],
-      transition: [["drag", "start"]]
-    }
-  ]
-});
-Interactor.register("SpeechControlInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "enableSpeech",
-      events: ["click"],
-      transition: [["*", "speech:ready"]]
-    },
-    {
-      action: "disableSpeech",
-      events: ["mouseup[event.button==2]", "contextmenu"],
-      transition: [["*", "start"]]
-    },
-    {
-      action: "speech",
-      events: ["*"],
-      transition: [["*", "speech:ready"]]
-    }
-  ]
-});
-Interactor.register("KeyboardPositionInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "begin",
-      events: ["keydown[event.key===' ']"],
-      transition: [["start", "running"]]
-    },
-    {
-      action: "up",
-      events: [
-        "keypress[event.key==='w' || event.key==='W']",
-        "keydown[event.key==='ArrowUp']{100}"
-      ],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "left",
-      events: [
-        "keypress[event.key==='a' || event.key==='A']",
-        "keydown[event.key==='ArrowLeft']{100}"
-      ],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "down",
-      events: [
-        "keypress[event.key==='s' || event.key==='S']",
-        "keydown[event.key==='ArrowDown']{100}"
-      ],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "right",
-      events: [
-        "keypress[event.key==='d' || event.key==='D']",
-        "keydown[event.key==='ArrowRight']{100}"
-      ],
-      transition: [["running", "running"]]
-    }
-  ]
-});
-Interactor.register("MouseWheelInteractor", {
-  constructor: Interactor,
-  state: "start",
-  actions: [
-    {
-      action: "enter",
-      events: ["mouseenter"],
-      transition: [["start", "running"]]
-    },
-    {
-      action: "wheel",
-      events: ["wheel", "mousewheel"],
-      transition: [["running", "running"]]
-    },
-    {
-      action: "leave",
-      events: ["mouseleave"],
-      transition: [
-        ["running", "start"],
-        ["start", "start"]
-      ]
-    },
-    {
-      action: "abort",
-      events: ["mouseup[event.button==2]", "contextmenu"],
-      transition: [
-        ["running", "running"],
-        ["start", "start"]
-      ]
-    }
-  ]
-});
-
-// dist/esm/interactor/index.js
-var register3 = Interactor.register;
-var initialize3 = Interactor.initialize;
-var findInteractor2 = Interactor.findInteractor;
-var Interactor2 = Interactor;
-
-// dist/esm/layer/layer.js
-var registeredLayers = {};
-var instanceLayers = [];
-var siblingLayers = new Map();
-var orderLayers = new Map();
-var Layer = class {
-  constructor(baseName2, options) {
-    this._nextTick = 0;
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._container = options.container;
-    this._order = 0;
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preUpdate = options.preUpdate ?? null;
-    this._postUpdate = options.postUpdate ?? null;
-    instanceLayers.push(this);
-    this._postInitialize && this._postInitialize.call(this, this);
-  }
-  getGraphic() {
-    return this._graphic;
-  }
-  getContainerGraphic() {
-    return this._container;
-  }
-  getVisualElements() {
-    return [];
-  }
-  cloneVisualElements(element, deep = false) {
-    const copiedElement = element.cloneNode(deep);
-    const frag = document.createDocumentFragment();
-    frag.append(copiedElement);
-    return copiedElement;
-  }
-  join(rightTable, joinKey) {
-    return [];
-  }
-  preUpdate() {
-    this._preUpdate && this._preUpdate.call(this, this);
-  }
-  postUpdate() {
-    this._postUpdate && this._postUpdate.call(this, this);
-  }
-  picking(options) {
-    return [];
-  }
-  getLayerFromQueue(siblingLayerName) {
-    if (!siblingLayers.has(this)) {
-      siblingLayers.set(this, { [this._name]: this });
-    }
-    if (!orderLayers.has(this)) {
-      orderLayers.set(this, { [this._name]: 0 });
-    }
-    const siblings = siblingLayers.get(this);
-    if (!(siblingLayerName in siblings)) {
-      const layer = Layer.initialize(this._baseName, {
-        ...this._userOptions,
-        name: siblingLayerName,
-        redraw() {
-        }
-      });
-      siblings[siblingLayerName] = layer;
-      siblingLayers.set(layer, siblings);
-      const graphic = siblings[siblingLayerName].getGraphic();
-      graphic && graphic.style && (graphic.style.pointerEvents = "none");
-    }
-    if (!(siblingLayerName in orderLayers.get(this))) {
-      orderLayers.get(this)[siblingLayerName] = 0;
-    }
-    return siblings[siblingLayerName];
-  }
-  setLayersOrder(layerNameOrderKVPairs) {
-    if (!siblingLayers.has(this)) {
-      siblingLayers.set(this, { [this._name]: this });
-    }
-    if (!orderLayers.has(this)) {
-      orderLayers.set(this, { [this._name]: 0 });
-    }
-    const orders = orderLayers.get(this);
-    const frag = document.createDocumentFragment();
-    Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
-      orders[layerName] = order;
-    });
-    Object.entries(orders).sort((a, b) => a[1] - b[1]).forEach(([layerName, order]) => {
-      orders[layerName] = order;
-      orderLayers.set(this.getLayerFromQueue(layerName), orders);
-      if (order >= 0) {
-        const graphic = this.getLayerFromQueue(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.display = "initial");
-      } else {
-        const graphic = this.getLayerFromQueue(layerName).getGraphic();
-        graphic && graphic.style && (graphic.style.display = "none");
+      preExecute() {
+        this._preExecute && this._preExecute.call(this, this);
       }
-      this.getLayerFromQueue(layerName)._order = order;
-      frag.append(this.getLayerFromQueue(layerName).getGraphic());
-    });
-    this.getContainerGraphic().appendChild(frag);
+      postExecute() {
+        this._postExecute && this._postExecute.call(this, this);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      static register(baseName2, options) {
+        registeredCommands[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredCommands[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: Command }, registeredCommands[baseName2] ?? {}, options ?? {});
+        const command = new mergedOptions.constructor(baseName2, mergedOptions);
+        instanceCommands.push(command);
+        return command;
+      }
+      static findCommand(baseNameOrRealName) {
+        return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    register = Command.register;
+    unregister = Command.unregister;
+    initialize = Command.initialize;
+    findCommand = Command.findCommand;
   }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
+});
+
+// dist/esm/command/index.js
+var instanceCommands2, Command2;
+var init_command2 = __esm({
+  "dist/esm/command/index.js"() {
+    init_command();
+    init_command();
+    instanceCommands2 = instanceCommands;
+    Command2 = Command;
   }
-};
-function register4(baseName2, options) {
-  registeredLayers[baseName2] = options;
-}
-function initialize4(baseName2, options) {
-  const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName2] ?? {}, options ?? {}, {});
-  const layer = new mergedOptions.constructor(baseName2, mergedOptions);
-  return layer;
-}
-function findLayer(baseNameOrRealName) {
-  return instanceLayers.filter((layer) => layer.isInstanceOf(baseNameOrRealName));
-}
-Layer.register = register4;
-Layer.initialize = initialize4;
-Layer.findLayer = findLayer;
+});
+
+// dist/esm/transformer/transformer.js
+var registeredTransformers, instanceTransformers, transientQueue, transientCleaner, GraphicalTransformer, register2, unregister2, initialize2, findTransformer;
+var init_transformer = __esm({
+  "dist/esm/transformer/transformer.js"() {
+    init_helpers();
+    registeredTransformers = {};
+    instanceTransformers = [];
+    transientQueue = [];
+    transientCleaner = () => {
+      let transientElement;
+      while (transientElement = transientQueue.pop()) {
+        try {
+          transientElement.remove();
+        } catch (e) {
+        }
+      }
+      if (!global.stopTransient) {
+        instanceTransformers.filter((transformer) => transformer._transient).forEach((transformer) => transformer.redraw());
+      }
+      requestAnimationFrame(transientCleaner);
+    };
+    requestAnimationFrame(transientCleaner);
+    GraphicalTransformer = class {
+      constructor(baseName2, options) {
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? this._baseName;
+        this._sharedVar = options.sharedVar ?? {};
+        this._redraw = options.redraw ?? (() => {
+        });
+        this._layer = options.layer;
+        this._transient = options.transient ?? false;
+        this.redraw();
+      }
+      getSharedVar(name) {
+        return this._sharedVar[name];
+      }
+      setSharedVar(name, value) {
+        this._sharedVar[name] = value;
+        this.redraw();
+      }
+      setSharedVars(obj) {
+        Object.entries(obj).forEach(([k, v]) => this._sharedVar[k] = v);
+        this.redraw();
+      }
+      redraw(transient = false) {
+        if (!this._layer && !this.getSharedVar("layer"))
+          return;
+        const layer = this._layer || this.getSharedVar("layer");
+        transient = transient || this._transient;
+        let preDrawElements = [], postDrawElements = [], changedLayers = new Set([layer]);
+        if (transient) {
+          preDrawElements = layer.getVisualElements();
+          if (!layer._getLayerFromQueue) {
+            layer._getLayerFromQueue = layer.getLayerFromQueue;
+            layer.getLayerFromQueue = function() {
+              const result = layer._getLayerFromQueue(...arguments);
+              preDrawElements = preDrawElements.concat(result.getVisualElements());
+              changedLayers.add(result);
+              return result;
+            };
+          }
+        }
+        this._redraw({
+          layer,
+          transformer: this
+        });
+        if (transient) {
+          layer.getLayerFromQueue = layer._getLayerFromQueue;
+          delete layer._getLayerFromQueue;
+          changedLayers.forEach((layer2) => {
+            postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer2.getGraphic().childNodes));
+            const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
+            transientQueue = transientQueue.concat(transientElements);
+          });
+        }
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      static register(baseName2, options) {
+        registeredTransformers[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredTransformers[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName2] ?? {}, options ?? {}, {
+          sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+        });
+        const transformer = new mergedOptions.constructor(baseName2, mergedOptions);
+        instanceTransformers.push(transformer);
+        return transformer;
+      }
+      static findTransformer(baseNameOrRealName) {
+        return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    register2 = GraphicalTransformer.register;
+    unregister2 = GraphicalTransformer.unregister;
+    initialize2 = GraphicalTransformer.initialize;
+    findTransformer = GraphicalTransformer.findTransformer;
+  }
+});
+
+// node_modules/d3/dist/package.js
+var init_package = __esm({
+  "node_modules/d3/dist/package.js"() {
+  }
+});
+
+// node_modules/d3-array/src/index.js
+var init_src = __esm({
+  "node_modules/d3-array/src/index.js"() {
+  }
+});
+
+// node_modules/d3-axis/src/index.js
+var init_src2 = __esm({
+  "node_modules/d3-axis/src/index.js"() {
+  }
+});
 
 // node_modules/d3-dispatch/src/dispatch.js
-var noop = { value: () => {
-} };
 function dispatch() {
   for (var i = 0, n = arguments.length, _ = {}, t; i < n; ++i) {
     if (!(t = arguments[i] + "") || t in _ || /[\s.]/.test(t))
@@ -878,49 +239,6 @@ function parseTypenames(typenames, types) {
     return { type: t, name };
   });
 }
-Dispatch.prototype = dispatch.prototype = {
-  constructor: Dispatch,
-  on: function(typename, callback) {
-    var _ = this._, T = parseTypenames(typename + "", _), t, i = -1, n = T.length;
-    if (arguments.length < 2) {
-      while (++i < n)
-        if ((t = (typename = T[i]).type) && (t = get(_[t], typename.name)))
-          return t;
-      return;
-    }
-    if (callback != null && typeof callback !== "function")
-      throw new Error("invalid callback: " + callback);
-    while (++i < n) {
-      if (t = (typename = T[i]).type)
-        _[t] = set(_[t], typename.name, callback);
-      else if (callback == null)
-        for (t in _)
-          _[t] = set(_[t], typename.name, null);
-    }
-    return this;
-  },
-  copy: function() {
-    var copy = {}, _ = this._;
-    for (var t in _)
-      copy[t] = _[t].slice();
-    return new Dispatch(copy);
-  },
-  call: function(type2, that) {
-    if ((n = arguments.length - 2) > 0)
-      for (var args = new Array(n), i = 0, n, t; i < n; ++i)
-        args[i] = arguments[i + 2];
-    if (!this._.hasOwnProperty(type2))
-      throw new Error("unknown type: " + type2);
-    for (t = this._[type2], i = 0, n = t.length; i < n; ++i)
-      t[i].value.apply(that, args);
-  },
-  apply: function(type2, that, args) {
-    if (!this._.hasOwnProperty(type2))
-      throw new Error("unknown type: " + type2);
-    for (var t = this._[type2], i = 0, n = t.length; i < n; ++i)
-      t[i].value.apply(that, args);
-  }
-};
 function get(type2, name) {
   for (var i = 0, n = type2.length, c; i < n; ++i) {
     if ((c = type2[i]).name === name) {
@@ -939,17 +257,79 @@ function set(type2, name, callback) {
     type2.push({ name, value: callback });
   return type2;
 }
-var dispatch_default = dispatch;
+var noop, dispatch_default;
+var init_dispatch = __esm({
+  "node_modules/d3-dispatch/src/dispatch.js"() {
+    noop = { value: () => {
+    } };
+    Dispatch.prototype = dispatch.prototype = {
+      constructor: Dispatch,
+      on: function(typename, callback) {
+        var _ = this._, T = parseTypenames(typename + "", _), t, i = -1, n = T.length;
+        if (arguments.length < 2) {
+          while (++i < n)
+            if ((t = (typename = T[i]).type) && (t = get(_[t], typename.name)))
+              return t;
+          return;
+        }
+        if (callback != null && typeof callback !== "function")
+          throw new Error("invalid callback: " + callback);
+        while (++i < n) {
+          if (t = (typename = T[i]).type)
+            _[t] = set(_[t], typename.name, callback);
+          else if (callback == null)
+            for (t in _)
+              _[t] = set(_[t], typename.name, null);
+        }
+        return this;
+      },
+      copy: function() {
+        var copy = {}, _ = this._;
+        for (var t in _)
+          copy[t] = _[t].slice();
+        return new Dispatch(copy);
+      },
+      call: function(type2, that) {
+        if ((n = arguments.length - 2) > 0)
+          for (var args = new Array(n), i = 0, n, t; i < n; ++i)
+            args[i] = arguments[i + 2];
+        if (!this._.hasOwnProperty(type2))
+          throw new Error("unknown type: " + type2);
+        for (t = this._[type2], i = 0, n = t.length; i < n; ++i)
+          t[i].value.apply(that, args);
+      },
+      apply: function(type2, that, args) {
+        if (!this._.hasOwnProperty(type2))
+          throw new Error("unknown type: " + type2);
+        for (var t = this._[type2], i = 0, n = t.length; i < n; ++i)
+          t[i].value.apply(that, args);
+      }
+    };
+    dispatch_default = dispatch;
+  }
+});
+
+// node_modules/d3-dispatch/src/index.js
+var init_src3 = __esm({
+  "node_modules/d3-dispatch/src/index.js"() {
+    init_dispatch();
+  }
+});
 
 // node_modules/d3-selection/src/namespaces.js
-var xhtml = "http://www.w3.org/1999/xhtml";
-var namespaces_default = {
-  svg: "http://www.w3.org/2000/svg",
-  xhtml,
-  xlink: "http://www.w3.org/1999/xlink",
-  xml: "http://www.w3.org/XML/1998/namespace",
-  xmlns: "http://www.w3.org/2000/xmlns/"
-};
+var xhtml, namespaces_default;
+var init_namespaces = __esm({
+  "node_modules/d3-selection/src/namespaces.js"() {
+    xhtml = "http://www.w3.org/1999/xhtml";
+    namespaces_default = {
+      svg: "http://www.w3.org/2000/svg",
+      xhtml,
+      xlink: "http://www.w3.org/1999/xlink",
+      xml: "http://www.w3.org/XML/1998/namespace",
+      xmlns: "http://www.w3.org/2000/xmlns/"
+    };
+  }
+});
 
 // node_modules/d3-selection/src/namespace.js
 function namespace_default(name) {
@@ -958,6 +338,11 @@ function namespace_default(name) {
     name = name.slice(i + 1);
   return namespaces_default.hasOwnProperty(prefix) ? { space: namespaces_default[prefix], local: name } : name;
 }
+var init_namespace = __esm({
+  "node_modules/d3-selection/src/namespace.js"() {
+    init_namespaces();
+  }
+});
 
 // node_modules/d3-selection/src/creator.js
 function creatorInherit(name) {
@@ -975,6 +360,12 @@ function creator_default(name) {
   var fullname = namespace_default(name);
   return (fullname.local ? creatorFixed : creatorInherit)(fullname);
 }
+var init_creator = __esm({
+  "node_modules/d3-selection/src/creator.js"() {
+    init_namespace();
+    init_namespaces();
+  }
+});
 
 // node_modules/d3-selection/src/selector.js
 function none() {
@@ -984,6 +375,10 @@ function selector_default(selector) {
     return this.querySelector(selector);
   };
 }
+var init_selector = __esm({
+  "node_modules/d3-selection/src/selector.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/select.js
 function select_default(select) {
@@ -1000,11 +395,21 @@ function select_default(select) {
   }
   return new Selection(subgroups, this._parents);
 }
+var init_select = __esm({
+  "node_modules/d3-selection/src/selection/select.js"() {
+    init_selection();
+    init_selector();
+  }
+});
 
 // node_modules/d3-selection/src/array.js
 function array_default(x) {
   return typeof x === "object" && "length" in x ? x : Array.from(x);
 }
+var init_array = __esm({
+  "node_modules/d3-selection/src/array.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selectorAll.js
 function empty() {
@@ -1015,6 +420,10 @@ function selectorAll_default(selector) {
     return this.querySelectorAll(selector);
   };
 }
+var init_selectorAll = __esm({
+  "node_modules/d3-selection/src/selectorAll.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/selectAll.js
 function arrayAll(select) {
@@ -1038,6 +447,13 @@ function selectAll_default(select) {
   }
   return new Selection(subgroups, parents);
 }
+var init_selectAll = __esm({
+  "node_modules/d3-selection/src/selection/selectAll.js"() {
+    init_selection();
+    init_array();
+    init_selectorAll();
+  }
+});
 
 // node_modules/d3-selection/src/matcher.js
 function matcher_default(selector) {
@@ -1050,12 +466,15 @@ function childMatcher(selector) {
     return node.matches(selector);
   };
 }
+var init_matcher = __esm({
+  "node_modules/d3-selection/src/matcher.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/selectChild.js
-var find2 = Array.prototype.find;
 function childFind(match) {
   return function() {
-    return find2.call(this.children, match);
+    return find.call(this.children, match);
   };
 }
 function childFirst() {
@@ -1064,9 +483,15 @@ function childFirst() {
 function selectChild_default(match) {
   return this.select(match == null ? childFirst : childFind(typeof match === "function" ? match : childMatcher(match)));
 }
+var find;
+var init_selectChild = __esm({
+  "node_modules/d3-selection/src/selection/selectChild.js"() {
+    init_matcher();
+    find = Array.prototype.find;
+  }
+});
 
 // node_modules/d3-selection/src/selection/selectChildren.js
-var filter = Array.prototype.filter;
 function children() {
   return this.children;
 }
@@ -1078,6 +503,13 @@ function childrenFilter(match) {
 function selectChildren_default(match) {
   return this.selectAll(match == null ? children : childrenFilter(typeof match === "function" ? match : childMatcher(match)));
 }
+var filter;
+var init_selectChildren = __esm({
+  "node_modules/d3-selection/src/selection/selectChildren.js"() {
+    init_matcher();
+    filter = Array.prototype.filter;
+  }
+});
 
 // node_modules/d3-selection/src/selection/filter.js
 function filter_default(match) {
@@ -1092,11 +524,21 @@ function filter_default(match) {
   }
   return new Selection(subgroups, this._parents);
 }
+var init_filter = __esm({
+  "node_modules/d3-selection/src/selection/filter.js"() {
+    init_selection();
+    init_matcher();
+  }
+});
 
 // node_modules/d3-selection/src/selection/sparse.js
 function sparse_default(update) {
   return new Array(update.length);
 }
+var init_sparse = __esm({
+  "node_modules/d3-selection/src/selection/sparse.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/enter.js
 function enter_default() {
@@ -1109,21 +551,27 @@ function EnterNode(parent, datum2) {
   this._parent = parent;
   this.__data__ = datum2;
 }
-EnterNode.prototype = {
-  constructor: EnterNode,
-  appendChild: function(child) {
-    return this._parent.insertBefore(child, this._next);
-  },
-  insertBefore: function(child, next) {
-    return this._parent.insertBefore(child, next);
-  },
-  querySelector: function(selector) {
-    return this._parent.querySelector(selector);
-  },
-  querySelectorAll: function(selector) {
-    return this._parent.querySelectorAll(selector);
+var init_enter = __esm({
+  "node_modules/d3-selection/src/selection/enter.js"() {
+    init_sparse();
+    init_selection();
+    EnterNode.prototype = {
+      constructor: EnterNode,
+      appendChild: function(child) {
+        return this._parent.insertBefore(child, this._next);
+      },
+      insertBefore: function(child, next) {
+        return this._parent.insertBefore(child, next);
+      },
+      querySelector: function(selector) {
+        return this._parent.querySelector(selector);
+      },
+      querySelectorAll: function(selector) {
+        return this._parent.querySelectorAll(selector);
+      }
+    };
   }
-};
+});
 
 // node_modules/d3-selection/src/constant.js
 function constant_default(x) {
@@ -1131,6 +579,10 @@ function constant_default(x) {
     return x;
   };
 }
+var init_constant = __esm({
+  "node_modules/d3-selection/src/constant.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/data.js
 function bindIndex(parent, group, enter, update, exit, data) {
@@ -1204,11 +656,25 @@ function data_default(value, key) {
   update._exit = exit;
   return update;
 }
+var init_data = __esm({
+  "node_modules/d3-selection/src/selection/data.js"() {
+    init_selection();
+    init_enter();
+    init_array();
+    init_constant();
+  }
+});
 
 // node_modules/d3-selection/src/selection/exit.js
 function exit_default() {
   return new Selection(this._exit || this._groups.map(sparse_default), this._parents);
 }
+var init_exit = __esm({
+  "node_modules/d3-selection/src/selection/exit.js"() {
+    init_sparse();
+    init_selection();
+  }
+});
 
 // node_modules/d3-selection/src/selection/join.js
 function join_default(onenter, onupdate, onexit) {
@@ -1222,6 +688,10 @@ function join_default(onenter, onupdate, onexit) {
     onexit(exit);
   return enter && update ? enter.merge(update).order() : update;
 }
+var init_join = __esm({
+  "node_modules/d3-selection/src/selection/join.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/merge.js
 function merge_default(selection2) {
@@ -1239,6 +709,11 @@ function merge_default(selection2) {
   }
   return new Selection(merges, this._parents);
 }
+var init_merge = __esm({
+  "node_modules/d3-selection/src/selection/merge.js"() {
+    init_selection();
+  }
+});
 
 // node_modules/d3-selection/src/selection/order.js
 function order_default() {
@@ -1253,6 +728,10 @@ function order_default() {
   }
   return this;
 }
+var init_order = __esm({
+  "node_modules/d3-selection/src/selection/order.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/sort.js
 function sort_default(compare) {
@@ -1274,6 +753,11 @@ function sort_default(compare) {
 function ascending(a, b) {
   return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
 }
+var init_sort = __esm({
+  "node_modules/d3-selection/src/selection/sort.js"() {
+    init_selection();
+  }
+});
 
 // node_modules/d3-selection/src/selection/call.js
 function call_default() {
@@ -1282,11 +766,19 @@ function call_default() {
   callback.apply(null, arguments);
   return this;
 }
+var init_call = __esm({
+  "node_modules/d3-selection/src/selection/call.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/nodes.js
 function nodes_default() {
   return Array.from(this);
 }
+var init_nodes = __esm({
+  "node_modules/d3-selection/src/selection/nodes.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/node.js
 function node_default() {
@@ -1299,6 +791,10 @@ function node_default() {
   }
   return null;
 }
+var init_node = __esm({
+  "node_modules/d3-selection/src/selection/node.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/size.js
 function size_default() {
@@ -1307,11 +803,19 @@ function size_default() {
     ++size;
   return size;
 }
+var init_size = __esm({
+  "node_modules/d3-selection/src/selection/size.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/empty.js
 function empty_default() {
   return !this.node();
 }
+var init_empty = __esm({
+  "node_modules/d3-selection/src/selection/empty.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/each.js
 function each_default(callback) {
@@ -1323,6 +827,10 @@ function each_default(callback) {
   }
   return this;
 }
+var init_each = __esm({
+  "node_modules/d3-selection/src/selection/each.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/attr.js
 function attrRemove(name) {
@@ -1371,11 +879,20 @@ function attr_default(name, value) {
   }
   return this.each((value == null ? fullname.local ? attrRemoveNS : attrRemove : typeof value === "function" ? fullname.local ? attrFunctionNS : attrFunction : fullname.local ? attrConstantNS : attrConstant)(fullname, value));
 }
+var init_attr = __esm({
+  "node_modules/d3-selection/src/selection/attr.js"() {
+    init_namespace();
+  }
+});
 
 // node_modules/d3-selection/src/window.js
 function window_default(node) {
   return node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView;
 }
+var init_window = __esm({
+  "node_modules/d3-selection/src/window.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/style.js
 function styleRemove(name) {
@@ -1403,6 +920,11 @@ function style_default(name, value, priority) {
 function styleValue(node, name) {
   return node.style.getPropertyValue(name) || window_default(node).getComputedStyle(node, null).getPropertyValue(name);
 }
+var init_style = __esm({
+  "node_modules/d3-selection/src/selection/style.js"() {
+    init_window();
+  }
+});
 
 // node_modules/d3-selection/src/selection/property.js
 function propertyRemove(name) {
@@ -1427,6 +949,10 @@ function propertyFunction(name, value) {
 function property_default(name, value) {
   return arguments.length > 1 ? this.each((value == null ? propertyRemove : typeof value === "function" ? propertyFunction : propertyConstant)(name, value)) : this.node()[name];
 }
+var init_property = __esm({
+  "node_modules/d3-selection/src/selection/property.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/classed.js
 function classArray(string) {
@@ -1439,25 +965,6 @@ function ClassList(node) {
   this._node = node;
   this._names = classArray(node.getAttribute("class") || "");
 }
-ClassList.prototype = {
-  add: function(name) {
-    var i = this._names.indexOf(name);
-    if (i < 0) {
-      this._names.push(name);
-      this._node.setAttribute("class", this._names.join(" "));
-    }
-  },
-  remove: function(name) {
-    var i = this._names.indexOf(name);
-    if (i >= 0) {
-      this._names.splice(i, 1);
-      this._node.setAttribute("class", this._names.join(" "));
-    }
-  },
-  contains: function(name) {
-    return this._names.indexOf(name) >= 0;
-  }
-};
 function classedAdd(node, names) {
   var list = classList(node), i = -1, n = names.length;
   while (++i < n)
@@ -1494,6 +1001,29 @@ function classed_default(name, value) {
   }
   return this.each((typeof value === "function" ? classedFunction : value ? classedTrue : classedFalse)(names, value));
 }
+var init_classed = __esm({
+  "node_modules/d3-selection/src/selection/classed.js"() {
+    ClassList.prototype = {
+      add: function(name) {
+        var i = this._names.indexOf(name);
+        if (i < 0) {
+          this._names.push(name);
+          this._node.setAttribute("class", this._names.join(" "));
+        }
+      },
+      remove: function(name) {
+        var i = this._names.indexOf(name);
+        if (i >= 0) {
+          this._names.splice(i, 1);
+          this._node.setAttribute("class", this._names.join(" "));
+        }
+      },
+      contains: function(name) {
+        return this._names.indexOf(name) >= 0;
+      }
+    };
+  }
+});
 
 // node_modules/d3-selection/src/selection/text.js
 function textRemove() {
@@ -1513,6 +1043,10 @@ function textFunction(value) {
 function text_default(value) {
   return arguments.length ? this.each(value == null ? textRemove : (typeof value === "function" ? textFunction : textConstant)(value)) : this.node().textContent;
 }
+var init_text = __esm({
+  "node_modules/d3-selection/src/selection/text.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/html.js
 function htmlRemove() {
@@ -1532,6 +1066,10 @@ function htmlFunction(value) {
 function html_default(value) {
   return arguments.length ? this.each(value == null ? htmlRemove : (typeof value === "function" ? htmlFunction : htmlConstant)(value)) : this.node().innerHTML;
 }
+var init_html = __esm({
+  "node_modules/d3-selection/src/selection/html.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/raise.js
 function raise() {
@@ -1541,6 +1079,10 @@ function raise() {
 function raise_default() {
   return this.each(raise);
 }
+var init_raise = __esm({
+  "node_modules/d3-selection/src/selection/raise.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/lower.js
 function lower() {
@@ -1550,6 +1092,10 @@ function lower() {
 function lower_default() {
   return this.each(lower);
 }
+var init_lower = __esm({
+  "node_modules/d3-selection/src/selection/lower.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/append.js
 function append_default(name) {
@@ -1558,6 +1104,11 @@ function append_default(name) {
     return this.appendChild(create2.apply(this, arguments));
   });
 }
+var init_append = __esm({
+  "node_modules/d3-selection/src/selection/append.js"() {
+    init_creator();
+  }
+});
 
 // node_modules/d3-selection/src/selection/insert.js
 function constantNull() {
@@ -1569,6 +1120,12 @@ function insert_default(name, before) {
     return this.insertBefore(create2.apply(this, arguments), select.apply(this, arguments) || null);
   });
 }
+var init_insert = __esm({
+  "node_modules/d3-selection/src/selection/insert.js"() {
+    init_creator();
+    init_selector();
+  }
+});
 
 // node_modules/d3-selection/src/selection/remove.js
 function remove() {
@@ -1579,6 +1136,10 @@ function remove() {
 function remove_default() {
   return this.each(remove);
 }
+var init_remove = __esm({
+  "node_modules/d3-selection/src/selection/remove.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/clone.js
 function selection_cloneShallow() {
@@ -1592,11 +1153,19 @@ function selection_cloneDeep() {
 function clone_default(deep) {
   return this.select(deep ? selection_cloneDeep : selection_cloneShallow);
 }
+var init_clone = __esm({
+  "node_modules/d3-selection/src/selection/clone.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/datum.js
 function datum_default(value) {
   return arguments.length ? this.property("__data__", value) : this.node().__data__;
 }
+var init_datum = __esm({
+  "node_modules/d3-selection/src/selection/datum.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/on.js
 function contextListener(listener) {
@@ -1669,6 +1238,10 @@ function on_default(typename, value, options) {
     this.each(on(typenames[i], value, options));
   return this;
 }
+var init_on = __esm({
+  "node_modules/d3-selection/src/selection/on.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/dispatch.js
 function dispatchEvent(node, type2, params) {
@@ -1697,6 +1270,11 @@ function dispatchFunction(type2, params) {
 function dispatch_default2(type2, params) {
   return this.each((typeof params === "function" ? dispatchFunction : dispatchConstant)(type2, params));
 }
+var init_dispatch2 = __esm({
+  "node_modules/d3-selection/src/selection/dispatch.js"() {
+    init_window();
+  }
+});
 
 // node_modules/d3-selection/src/selection/iterator.js
 function* iterator_default() {
@@ -1707,9 +1285,12 @@ function* iterator_default() {
     }
   }
 }
+var init_iterator = __esm({
+  "node_modules/d3-selection/src/selection/iterator.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/selection/index.js
-var root = [null];
 function Selection(groups, parents) {
   this._groups = groups;
   this._parents = parents;
@@ -1720,50 +1301,95 @@ function selection() {
 function selection_selection() {
   return this;
 }
-Selection.prototype = selection.prototype = {
-  constructor: Selection,
-  select: select_default,
-  selectAll: selectAll_default,
-  selectChild: selectChild_default,
-  selectChildren: selectChildren_default,
-  filter: filter_default,
-  data: data_default,
-  enter: enter_default,
-  exit: exit_default,
-  join: join_default,
-  merge: merge_default,
-  selection: selection_selection,
-  order: order_default,
-  sort: sort_default,
-  call: call_default,
-  nodes: nodes_default,
-  node: node_default,
-  size: size_default,
-  empty: empty_default,
-  each: each_default,
-  attr: attr_default,
-  style: style_default,
-  property: property_default,
-  classed: classed_default,
-  text: text_default,
-  html: html_default,
-  raise: raise_default,
-  lower: lower_default,
-  append: append_default,
-  insert: insert_default,
-  remove: remove_default,
-  clone: clone_default,
-  datum: datum_default,
-  on: on_default,
-  dispatch: dispatch_default2,
-  [Symbol.iterator]: iterator_default
-};
-var selection_default = selection;
+var root, selection_default;
+var init_selection = __esm({
+  "node_modules/d3-selection/src/selection/index.js"() {
+    init_select();
+    init_selectAll();
+    init_selectChild();
+    init_selectChildren();
+    init_filter();
+    init_data();
+    init_enter();
+    init_exit();
+    init_join();
+    init_merge();
+    init_order();
+    init_sort();
+    init_call();
+    init_nodes();
+    init_node();
+    init_size();
+    init_empty();
+    init_each();
+    init_attr();
+    init_style();
+    init_property();
+    init_classed();
+    init_text();
+    init_html();
+    init_raise();
+    init_lower();
+    init_append();
+    init_insert();
+    init_remove();
+    init_clone();
+    init_datum();
+    init_on();
+    init_dispatch2();
+    init_iterator();
+    root = [null];
+    Selection.prototype = selection.prototype = {
+      constructor: Selection,
+      select: select_default,
+      selectAll: selectAll_default,
+      selectChild: selectChild_default,
+      selectChildren: selectChildren_default,
+      filter: filter_default,
+      data: data_default,
+      enter: enter_default,
+      exit: exit_default,
+      join: join_default,
+      merge: merge_default,
+      selection: selection_selection,
+      order: order_default,
+      sort: sort_default,
+      call: call_default,
+      nodes: nodes_default,
+      node: node_default,
+      size: size_default,
+      empty: empty_default,
+      each: each_default,
+      attr: attr_default,
+      style: style_default,
+      property: property_default,
+      classed: classed_default,
+      text: text_default,
+      html: html_default,
+      raise: raise_default,
+      lower: lower_default,
+      append: append_default,
+      insert: insert_default,
+      remove: remove_default,
+      clone: clone_default,
+      datum: datum_default,
+      on: on_default,
+      dispatch: dispatch_default2,
+      [Symbol.iterator]: iterator_default
+    };
+    selection_default = selection;
+  }
+});
 
 // node_modules/d3-selection/src/select.js
 function select_default2(selector) {
   return typeof selector === "string" ? new Selection([[document.querySelector(selector)]], [document.documentElement]) : new Selection([[selector]], root);
 }
+var init_select2 = __esm({
+  "node_modules/d3-selection/src/select.js"() {
+    init_selection();
+  }
+});
 
 // node_modules/d3-selection/src/sourceEvent.js
 function sourceEvent_default(event) {
@@ -1772,6 +1398,10 @@ function sourceEvent_default(event) {
     event = sourceEvent;
   return event;
 }
+var init_sourceEvent = __esm({
+  "node_modules/d3-selection/src/sourceEvent.js"() {
+  }
+});
 
 // node_modules/d3-selection/src/pointer.js
 function pointer_default(event, node) {
@@ -1793,11 +1423,43 @@ function pointer_default(event, node) {
   }
   return [event.pageX, event.pageY];
 }
+var init_pointer = __esm({
+  "node_modules/d3-selection/src/pointer.js"() {
+    init_sourceEvent();
+  }
+});
 
 // node_modules/d3-selection/src/selectAll.js
 function selectAll_default2(selector) {
   return typeof selector === "string" ? new Selection([document.querySelectorAll(selector)], [document.documentElement]) : new Selection([selector == null ? [] : array_default(selector)], root);
 }
+var init_selectAll2 = __esm({
+  "node_modules/d3-selection/src/selectAll.js"() {
+    init_array();
+    init_selection();
+  }
+});
+
+// node_modules/d3-selection/src/index.js
+var init_src4 = __esm({
+  "node_modules/d3-selection/src/index.js"() {
+    init_matcher();
+    init_namespace();
+    init_pointer();
+    init_select2();
+    init_selectAll2();
+    init_selection();
+    init_selector();
+    init_selectorAll();
+    init_style();
+  }
+});
+
+// node_modules/d3-drag/src/index.js
+var init_src5 = __esm({
+  "node_modules/d3-drag/src/index.js"() {
+  }
+});
 
 // node_modules/d3-color/src/define.js
 function define_default(constructor, factory, prototype) {
@@ -1810,185 +1472,14 @@ function extend(parent, definition) {
     prototype[key] = definition[key];
   return prototype;
 }
+var init_define = __esm({
+  "node_modules/d3-color/src/define.js"() {
+  }
+});
 
 // node_modules/d3-color/src/color.js
 function Color() {
 }
-var darker = 0.7;
-var brighter = 1 / darker;
-var reI = "\\s*([+-]?\\d+)\\s*";
-var reN = "\\s*([+-]?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)\\s*";
-var reP = "\\s*([+-]?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)%\\s*";
-var reHex = /^#([0-9a-f]{3,8})$/;
-var reRgbInteger = new RegExp("^rgb\\(" + [reI, reI, reI] + "\\)$");
-var reRgbPercent = new RegExp("^rgb\\(" + [reP, reP, reP] + "\\)$");
-var reRgbaInteger = new RegExp("^rgba\\(" + [reI, reI, reI, reN] + "\\)$");
-var reRgbaPercent = new RegExp("^rgba\\(" + [reP, reP, reP, reN] + "\\)$");
-var reHslPercent = new RegExp("^hsl\\(" + [reN, reP, reP] + "\\)$");
-var reHslaPercent = new RegExp("^hsla\\(" + [reN, reP, reP, reN] + "\\)$");
-var named = {
-  aliceblue: 15792383,
-  antiquewhite: 16444375,
-  aqua: 65535,
-  aquamarine: 8388564,
-  azure: 15794175,
-  beige: 16119260,
-  bisque: 16770244,
-  black: 0,
-  blanchedalmond: 16772045,
-  blue: 255,
-  blueviolet: 9055202,
-  brown: 10824234,
-  burlywood: 14596231,
-  cadetblue: 6266528,
-  chartreuse: 8388352,
-  chocolate: 13789470,
-  coral: 16744272,
-  cornflowerblue: 6591981,
-  cornsilk: 16775388,
-  crimson: 14423100,
-  cyan: 65535,
-  darkblue: 139,
-  darkcyan: 35723,
-  darkgoldenrod: 12092939,
-  darkgray: 11119017,
-  darkgreen: 25600,
-  darkgrey: 11119017,
-  darkkhaki: 12433259,
-  darkmagenta: 9109643,
-  darkolivegreen: 5597999,
-  darkorange: 16747520,
-  darkorchid: 10040012,
-  darkred: 9109504,
-  darksalmon: 15308410,
-  darkseagreen: 9419919,
-  darkslateblue: 4734347,
-  darkslategray: 3100495,
-  darkslategrey: 3100495,
-  darkturquoise: 52945,
-  darkviolet: 9699539,
-  deeppink: 16716947,
-  deepskyblue: 49151,
-  dimgray: 6908265,
-  dimgrey: 6908265,
-  dodgerblue: 2003199,
-  firebrick: 11674146,
-  floralwhite: 16775920,
-  forestgreen: 2263842,
-  fuchsia: 16711935,
-  gainsboro: 14474460,
-  ghostwhite: 16316671,
-  gold: 16766720,
-  goldenrod: 14329120,
-  gray: 8421504,
-  green: 32768,
-  greenyellow: 11403055,
-  grey: 8421504,
-  honeydew: 15794160,
-  hotpink: 16738740,
-  indianred: 13458524,
-  indigo: 4915330,
-  ivory: 16777200,
-  khaki: 15787660,
-  lavender: 15132410,
-  lavenderblush: 16773365,
-  lawngreen: 8190976,
-  lemonchiffon: 16775885,
-  lightblue: 11393254,
-  lightcoral: 15761536,
-  lightcyan: 14745599,
-  lightgoldenrodyellow: 16448210,
-  lightgray: 13882323,
-  lightgreen: 9498256,
-  lightgrey: 13882323,
-  lightpink: 16758465,
-  lightsalmon: 16752762,
-  lightseagreen: 2142890,
-  lightskyblue: 8900346,
-  lightslategray: 7833753,
-  lightslategrey: 7833753,
-  lightsteelblue: 11584734,
-  lightyellow: 16777184,
-  lime: 65280,
-  limegreen: 3329330,
-  linen: 16445670,
-  magenta: 16711935,
-  maroon: 8388608,
-  mediumaquamarine: 6737322,
-  mediumblue: 205,
-  mediumorchid: 12211667,
-  mediumpurple: 9662683,
-  mediumseagreen: 3978097,
-  mediumslateblue: 8087790,
-  mediumspringgreen: 64154,
-  mediumturquoise: 4772300,
-  mediumvioletred: 13047173,
-  midnightblue: 1644912,
-  mintcream: 16121850,
-  mistyrose: 16770273,
-  moccasin: 16770229,
-  navajowhite: 16768685,
-  navy: 128,
-  oldlace: 16643558,
-  olive: 8421376,
-  olivedrab: 7048739,
-  orange: 16753920,
-  orangered: 16729344,
-  orchid: 14315734,
-  palegoldenrod: 15657130,
-  palegreen: 10025880,
-  paleturquoise: 11529966,
-  palevioletred: 14381203,
-  papayawhip: 16773077,
-  peachpuff: 16767673,
-  peru: 13468991,
-  pink: 16761035,
-  plum: 14524637,
-  powderblue: 11591910,
-  purple: 8388736,
-  rebeccapurple: 6697881,
-  red: 16711680,
-  rosybrown: 12357519,
-  royalblue: 4286945,
-  saddlebrown: 9127187,
-  salmon: 16416882,
-  sandybrown: 16032864,
-  seagreen: 3050327,
-  seashell: 16774638,
-  sienna: 10506797,
-  silver: 12632256,
-  skyblue: 8900331,
-  slateblue: 6970061,
-  slategray: 7372944,
-  slategrey: 7372944,
-  snow: 16775930,
-  springgreen: 65407,
-  steelblue: 4620980,
-  tan: 13808780,
-  teal: 32896,
-  thistle: 14204888,
-  tomato: 16737095,
-  turquoise: 4251856,
-  violet: 15631086,
-  wheat: 16113331,
-  white: 16777215,
-  whitesmoke: 16119285,
-  yellow: 16776960,
-  yellowgreen: 10145074
-};
-define_default(Color, color, {
-  copy: function(channels) {
-    return Object.assign(new this.constructor(), this, channels);
-  },
-  displayable: function() {
-    return this.rgb().displayable();
-  },
-  hex: color_formatHex,
-  formatHex: color_formatHex,
-  formatHsl: color_formatHsl,
-  formatRgb: color_formatRgb,
-  toString: color_formatRgb
-});
 function color_formatHex() {
   return this.rgb().formatHex();
 }
@@ -1998,10 +1489,10 @@ function color_formatHsl() {
 function color_formatRgb() {
   return this.rgb().formatRgb();
 }
-function color(format) {
+function color(format2) {
   var m, l;
-  format = (format + "").trim().toLowerCase();
-  return (m = reHex.exec(format)) ? (l = m[1].length, m = parseInt(m[1], 16), l === 6 ? rgbn(m) : l === 3 ? new Rgb(m >> 8 & 15 | m >> 4 & 240, m >> 4 & 15 | m & 240, (m & 15) << 4 | m & 15, 1) : l === 8 ? rgba(m >> 24 & 255, m >> 16 & 255, m >> 8 & 255, (m & 255) / 255) : l === 4 ? rgba(m >> 12 & 15 | m >> 8 & 240, m >> 8 & 15 | m >> 4 & 240, m >> 4 & 15 | m & 240, ((m & 15) << 4 | m & 15) / 255) : null) : (m = reRgbInteger.exec(format)) ? new Rgb(m[1], m[2], m[3], 1) : (m = reRgbPercent.exec(format)) ? new Rgb(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, 1) : (m = reRgbaInteger.exec(format)) ? rgba(m[1], m[2], m[3], m[4]) : (m = reRgbaPercent.exec(format)) ? rgba(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, m[4]) : (m = reHslPercent.exec(format)) ? hsla(m[1], m[2] / 100, m[3] / 100, 1) : (m = reHslaPercent.exec(format)) ? hsla(m[1], m[2] / 100, m[3] / 100, m[4]) : named.hasOwnProperty(format) ? rgbn(named[format]) : format === "transparent" ? new Rgb(NaN, NaN, NaN, 0) : null;
+  format2 = (format2 + "").trim().toLowerCase();
+  return (m = reHex.exec(format2)) ? (l = m[1].length, m = parseInt(m[1], 16), l === 6 ? rgbn(m) : l === 3 ? new Rgb(m >> 8 & 15 | m >> 4 & 240, m >> 4 & 15 | m & 240, (m & 15) << 4 | m & 15, 1) : l === 8 ? rgba(m >> 24 & 255, m >> 16 & 255, m >> 8 & 255, (m & 255) / 255) : l === 4 ? rgba(m >> 12 & 15 | m >> 8 & 240, m >> 8 & 15 | m >> 4 & 240, m >> 4 & 15 | m & 240, ((m & 15) << 4 | m & 15) / 255) : null) : (m = reRgbInteger.exec(format2)) ? new Rgb(m[1], m[2], m[3], 1) : (m = reRgbPercent.exec(format2)) ? new Rgb(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, 1) : (m = reRgbaInteger.exec(format2)) ? rgba(m[1], m[2], m[3], m[4]) : (m = reRgbaPercent.exec(format2)) ? rgba(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, m[4]) : (m = reHslPercent.exec(format2)) ? hsla(m[1], m[2] / 100, m[3] / 100, 1) : (m = reHslaPercent.exec(format2)) ? hsla(m[1], m[2] / 100, m[3] / 100, m[4]) : named.hasOwnProperty(format2) ? rgbn(named[format2]) : format2 === "transparent" ? new Rgb(NaN, NaN, NaN, 0) : null;
 }
 function rgbn(n) {
   return new Rgb(n >> 16 & 255, n >> 8 & 255, n & 255, 1);
@@ -2028,26 +1519,6 @@ function Rgb(r, g, b, opacity) {
   this.b = +b;
   this.opacity = +opacity;
 }
-define_default(Rgb, rgb, extend(Color, {
-  brighter: function(k) {
-    k = k == null ? brighter : Math.pow(brighter, k);
-    return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
-  },
-  darker: function(k) {
-    k = k == null ? darker : Math.pow(darker, k);
-    return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
-  },
-  rgb: function() {
-    return this;
-  },
-  displayable: function() {
-    return -0.5 <= this.r && this.r < 255.5 && (-0.5 <= this.g && this.g < 255.5) && (-0.5 <= this.b && this.b < 255.5) && (0 <= this.opacity && this.opacity <= 1);
-  },
-  hex: rgb_formatHex,
-  formatHex: rgb_formatHex,
-  formatRgb: rgb_formatRgb,
-  toString: rgb_formatRgb
-}));
 function rgb_formatHex() {
   return "#" + hex(this.r) + hex(this.g) + hex(this.b);
 }
@@ -2103,36 +1574,244 @@ function Hsl(h, s, l, opacity) {
   this.l = +l;
   this.opacity = +opacity;
 }
-define_default(Hsl, hsl, extend(Color, {
-  brighter: function(k) {
-    k = k == null ? brighter : Math.pow(brighter, k);
-    return new Hsl(this.h, this.s, this.l * k, this.opacity);
-  },
-  darker: function(k) {
-    k = k == null ? darker : Math.pow(darker, k);
-    return new Hsl(this.h, this.s, this.l * k, this.opacity);
-  },
-  rgb: function() {
-    var h = this.h % 360 + (this.h < 0) * 360, s = isNaN(h) || isNaN(this.s) ? 0 : this.s, l = this.l, m2 = l + (l < 0.5 ? l : 1 - l) * s, m1 = 2 * l - m2;
-    return new Rgb(hsl2rgb(h >= 240 ? h - 240 : h + 120, m1, m2), hsl2rgb(h, m1, m2), hsl2rgb(h < 120 ? h + 240 : h - 120, m1, m2), this.opacity);
-  },
-  displayable: function() {
-    return (0 <= this.s && this.s <= 1 || isNaN(this.s)) && (0 <= this.l && this.l <= 1) && (0 <= this.opacity && this.opacity <= 1);
-  },
-  formatHsl: function() {
-    var a = this.opacity;
-    a = isNaN(a) ? 1 : Math.max(0, Math.min(1, a));
-    return (a === 1 ? "hsl(" : "hsla(") + (this.h || 0) + ", " + (this.s || 0) * 100 + "%, " + (this.l || 0) * 100 + "%" + (a === 1 ? ")" : ", " + a + ")");
-  }
-}));
 function hsl2rgb(h, m1, m2) {
   return (h < 60 ? m1 + (m2 - m1) * h / 60 : h < 180 ? m2 : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60 : m1) * 255;
 }
+var darker, brighter, reI, reN, reP, reHex, reRgbInteger, reRgbPercent, reRgbaInteger, reRgbaPercent, reHslPercent, reHslaPercent, named;
+var init_color = __esm({
+  "node_modules/d3-color/src/color.js"() {
+    init_define();
+    darker = 0.7;
+    brighter = 1 / darker;
+    reI = "\\s*([+-]?\\d+)\\s*";
+    reN = "\\s*([+-]?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)\\s*";
+    reP = "\\s*([+-]?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)%\\s*";
+    reHex = /^#([0-9a-f]{3,8})$/;
+    reRgbInteger = new RegExp("^rgb\\(" + [reI, reI, reI] + "\\)$");
+    reRgbPercent = new RegExp("^rgb\\(" + [reP, reP, reP] + "\\)$");
+    reRgbaInteger = new RegExp("^rgba\\(" + [reI, reI, reI, reN] + "\\)$");
+    reRgbaPercent = new RegExp("^rgba\\(" + [reP, reP, reP, reN] + "\\)$");
+    reHslPercent = new RegExp("^hsl\\(" + [reN, reP, reP] + "\\)$");
+    reHslaPercent = new RegExp("^hsla\\(" + [reN, reP, reP, reN] + "\\)$");
+    named = {
+      aliceblue: 15792383,
+      antiquewhite: 16444375,
+      aqua: 65535,
+      aquamarine: 8388564,
+      azure: 15794175,
+      beige: 16119260,
+      bisque: 16770244,
+      black: 0,
+      blanchedalmond: 16772045,
+      blue: 255,
+      blueviolet: 9055202,
+      brown: 10824234,
+      burlywood: 14596231,
+      cadetblue: 6266528,
+      chartreuse: 8388352,
+      chocolate: 13789470,
+      coral: 16744272,
+      cornflowerblue: 6591981,
+      cornsilk: 16775388,
+      crimson: 14423100,
+      cyan: 65535,
+      darkblue: 139,
+      darkcyan: 35723,
+      darkgoldenrod: 12092939,
+      darkgray: 11119017,
+      darkgreen: 25600,
+      darkgrey: 11119017,
+      darkkhaki: 12433259,
+      darkmagenta: 9109643,
+      darkolivegreen: 5597999,
+      darkorange: 16747520,
+      darkorchid: 10040012,
+      darkred: 9109504,
+      darksalmon: 15308410,
+      darkseagreen: 9419919,
+      darkslateblue: 4734347,
+      darkslategray: 3100495,
+      darkslategrey: 3100495,
+      darkturquoise: 52945,
+      darkviolet: 9699539,
+      deeppink: 16716947,
+      deepskyblue: 49151,
+      dimgray: 6908265,
+      dimgrey: 6908265,
+      dodgerblue: 2003199,
+      firebrick: 11674146,
+      floralwhite: 16775920,
+      forestgreen: 2263842,
+      fuchsia: 16711935,
+      gainsboro: 14474460,
+      ghostwhite: 16316671,
+      gold: 16766720,
+      goldenrod: 14329120,
+      gray: 8421504,
+      green: 32768,
+      greenyellow: 11403055,
+      grey: 8421504,
+      honeydew: 15794160,
+      hotpink: 16738740,
+      indianred: 13458524,
+      indigo: 4915330,
+      ivory: 16777200,
+      khaki: 15787660,
+      lavender: 15132410,
+      lavenderblush: 16773365,
+      lawngreen: 8190976,
+      lemonchiffon: 16775885,
+      lightblue: 11393254,
+      lightcoral: 15761536,
+      lightcyan: 14745599,
+      lightgoldenrodyellow: 16448210,
+      lightgray: 13882323,
+      lightgreen: 9498256,
+      lightgrey: 13882323,
+      lightpink: 16758465,
+      lightsalmon: 16752762,
+      lightseagreen: 2142890,
+      lightskyblue: 8900346,
+      lightslategray: 7833753,
+      lightslategrey: 7833753,
+      lightsteelblue: 11584734,
+      lightyellow: 16777184,
+      lime: 65280,
+      limegreen: 3329330,
+      linen: 16445670,
+      magenta: 16711935,
+      maroon: 8388608,
+      mediumaquamarine: 6737322,
+      mediumblue: 205,
+      mediumorchid: 12211667,
+      mediumpurple: 9662683,
+      mediumseagreen: 3978097,
+      mediumslateblue: 8087790,
+      mediumspringgreen: 64154,
+      mediumturquoise: 4772300,
+      mediumvioletred: 13047173,
+      midnightblue: 1644912,
+      mintcream: 16121850,
+      mistyrose: 16770273,
+      moccasin: 16770229,
+      navajowhite: 16768685,
+      navy: 128,
+      oldlace: 16643558,
+      olive: 8421376,
+      olivedrab: 7048739,
+      orange: 16753920,
+      orangered: 16729344,
+      orchid: 14315734,
+      palegoldenrod: 15657130,
+      palegreen: 10025880,
+      paleturquoise: 11529966,
+      palevioletred: 14381203,
+      papayawhip: 16773077,
+      peachpuff: 16767673,
+      peru: 13468991,
+      pink: 16761035,
+      plum: 14524637,
+      powderblue: 11591910,
+      purple: 8388736,
+      rebeccapurple: 6697881,
+      red: 16711680,
+      rosybrown: 12357519,
+      royalblue: 4286945,
+      saddlebrown: 9127187,
+      salmon: 16416882,
+      sandybrown: 16032864,
+      seagreen: 3050327,
+      seashell: 16774638,
+      sienna: 10506797,
+      silver: 12632256,
+      skyblue: 8900331,
+      slateblue: 6970061,
+      slategray: 7372944,
+      slategrey: 7372944,
+      snow: 16775930,
+      springgreen: 65407,
+      steelblue: 4620980,
+      tan: 13808780,
+      teal: 32896,
+      thistle: 14204888,
+      tomato: 16737095,
+      turquoise: 4251856,
+      violet: 15631086,
+      wheat: 16113331,
+      white: 16777215,
+      whitesmoke: 16119285,
+      yellow: 16776960,
+      yellowgreen: 10145074
+    };
+    define_default(Color, color, {
+      copy: function(channels) {
+        return Object.assign(new this.constructor(), this, channels);
+      },
+      displayable: function() {
+        return this.rgb().displayable();
+      },
+      hex: color_formatHex,
+      formatHex: color_formatHex,
+      formatHsl: color_formatHsl,
+      formatRgb: color_formatRgb,
+      toString: color_formatRgb
+    });
+    define_default(Rgb, rgb, extend(Color, {
+      brighter: function(k) {
+        k = k == null ? brighter : Math.pow(brighter, k);
+        return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
+      },
+      darker: function(k) {
+        k = k == null ? darker : Math.pow(darker, k);
+        return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
+      },
+      rgb: function() {
+        return this;
+      },
+      displayable: function() {
+        return -0.5 <= this.r && this.r < 255.5 && (-0.5 <= this.g && this.g < 255.5) && (-0.5 <= this.b && this.b < 255.5) && (0 <= this.opacity && this.opacity <= 1);
+      },
+      hex: rgb_formatHex,
+      formatHex: rgb_formatHex,
+      formatRgb: rgb_formatRgb,
+      toString: rgb_formatRgb
+    }));
+    define_default(Hsl, hsl, extend(Color, {
+      brighter: function(k) {
+        k = k == null ? brighter : Math.pow(brighter, k);
+        return new Hsl(this.h, this.s, this.l * k, this.opacity);
+      },
+      darker: function(k) {
+        k = k == null ? darker : Math.pow(darker, k);
+        return new Hsl(this.h, this.s, this.l * k, this.opacity);
+      },
+      rgb: function() {
+        var h = this.h % 360 + (this.h < 0) * 360, s = isNaN(h) || isNaN(this.s) ? 0 : this.s, l = this.l, m2 = l + (l < 0.5 ? l : 1 - l) * s, m1 = 2 * l - m2;
+        return new Rgb(hsl2rgb(h >= 240 ? h - 240 : h + 120, m1, m2), hsl2rgb(h, m1, m2), hsl2rgb(h < 120 ? h + 240 : h - 120, m1, m2), this.opacity);
+      },
+      displayable: function() {
+        return (0 <= this.s && this.s <= 1 || isNaN(this.s)) && (0 <= this.l && this.l <= 1) && (0 <= this.opacity && this.opacity <= 1);
+      },
+      formatHsl: function() {
+        var a = this.opacity;
+        a = isNaN(a) ? 1 : Math.max(0, Math.min(1, a));
+        return (a === 1 ? "hsl(" : "hsla(") + (this.h || 0) + ", " + (this.s || 0) * 100 + "%, " + (this.l || 0) * 100 + "%" + (a === 1 ? ")" : ", " + a + ")");
+      }
+    }));
+  }
+});
+
+// node_modules/d3-color/src/index.js
+var init_src6 = __esm({
+  "node_modules/d3-color/src/index.js"() {
+    init_color();
+  }
+});
 
 // node_modules/d3-interpolate/src/basis.js
-function basis(t1, v0, v1, v2, v3) {
-  var t2 = t1 * t1, t3 = t2 * t1;
-  return ((1 - 3 * t1 + 3 * t2 - t3) * v0 + (4 - 6 * t2 + 3 * t3) * v1 + (1 + 3 * t1 + 3 * t2 - 3 * t3) * v2 + t3 * v3) / 6;
+function basis(t12, v0, v1, v2, v3) {
+  var t2 = t12 * t12, t3 = t2 * t12;
+  return ((1 - 3 * t12 + 3 * t2 - t3) * v0 + (4 - 6 * t2 + 3 * t3) * v1 + (1 + 3 * t12 + 3 * t2 - 3 * t3) * v2 + t3 * v3) / 6;
 }
 function basis_default(values) {
   var n = values.length - 1;
@@ -2141,6 +1820,10 @@ function basis_default(values) {
     return basis((t - i / n) * n, v0, v1, v2, v3);
   };
 }
+var init_basis = __esm({
+  "node_modules/d3-interpolate/src/basis.js"() {
+  }
+});
 
 // node_modules/d3-interpolate/src/basisClosed.js
 function basisClosed_default(values) {
@@ -2150,9 +1833,19 @@ function basisClosed_default(values) {
     return basis((t - i / n) * n, v0, v1, v2, v3);
   };
 }
+var init_basisClosed = __esm({
+  "node_modules/d3-interpolate/src/basisClosed.js"() {
+    init_basis();
+  }
+});
 
 // node_modules/d3-interpolate/src/constant.js
-var constant_default2 = (x) => () => x;
+var constant_default2;
+var init_constant2 = __esm({
+  "node_modules/d3-interpolate/src/constant.js"() {
+    constant_default2 = (x) => () => x;
+  }
+});
 
 // node_modules/d3-interpolate/src/color.js
 function linear(a, d) {
@@ -2174,23 +1867,13 @@ function nogamma(a, b) {
   var d = b - a;
   return d ? linear(a, d) : constant_default2(isNaN(a) ? b : a);
 }
+var init_color2 = __esm({
+  "node_modules/d3-interpolate/src/color.js"() {
+    init_constant2();
+  }
+});
 
 // node_modules/d3-interpolate/src/rgb.js
-var rgb_default = function rgbGamma(y) {
-  var color2 = gamma(y);
-  function rgb2(start2, end) {
-    var r = color2((start2 = rgb(start2)).r, (end = rgb(end)).r), g = color2(start2.g, end.g), b = color2(start2.b, end.b), opacity = nogamma(start2.opacity, end.opacity);
-    return function(t) {
-      start2.r = r(t);
-      start2.g = g(t);
-      start2.b = b(t);
-      start2.opacity = opacity(t);
-      return start2 + "";
-    };
-  }
-  rgb2.gamma = rgbGamma;
-  return rgb2;
-}(1);
 function rgbSpline(spline) {
   return function(colors) {
     var n = colors.length, r = new Array(n), g = new Array(n), b = new Array(n), i, color2;
@@ -2212,8 +1895,32 @@ function rgbSpline(spline) {
     };
   };
 }
-var rgbBasis = rgbSpline(basis_default);
-var rgbBasisClosed = rgbSpline(basisClosed_default);
+var rgb_default, rgbBasis, rgbBasisClosed;
+var init_rgb = __esm({
+  "node_modules/d3-interpolate/src/rgb.js"() {
+    init_src6();
+    init_basis();
+    init_basisClosed();
+    init_color2();
+    rgb_default = function rgbGamma(y) {
+      var color2 = gamma(y);
+      function rgb2(start2, end) {
+        var r = color2((start2 = rgb(start2)).r, (end = rgb(end)).r), g = color2(start2.g, end.g), b = color2(start2.b, end.b), opacity = nogamma(start2.opacity, end.opacity);
+        return function(t) {
+          start2.r = r(t);
+          start2.g = g(t);
+          start2.b = b(t);
+          start2.opacity = opacity(t);
+          return start2 + "";
+        };
+      }
+      rgb2.gamma = rgbGamma;
+      return rgb2;
+    }(1);
+    rgbBasis = rgbSpline(basis_default);
+    rgbBasisClosed = rgbSpline(basisClosed_default);
+  }
+});
 
 // node_modules/d3-interpolate/src/number.js
 function number_default(a, b) {
@@ -2221,10 +1928,12 @@ function number_default(a, b) {
     return a * (1 - t) + b * t;
   };
 }
+var init_number = __esm({
+  "node_modules/d3-interpolate/src/number.js"() {
+  }
+});
 
 // node_modules/d3-interpolate/src/string.js
-var reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
-var reB = new RegExp(reA.source, "g");
 function zero(b) {
   return function() {
     return b;
@@ -2270,17 +1979,16 @@ function string_default(a, b) {
     return s.join("");
   });
 }
+var reA, reB;
+var init_string = __esm({
+  "node_modules/d3-interpolate/src/string.js"() {
+    init_number();
+    reA = /[-+]?(?:\d+\.?\d*|\.?\d+)(?:[eE][-+]?\d+)?/g;
+    reB = new RegExp(reA.source, "g");
+  }
+});
 
 // node_modules/d3-interpolate/src/transform/decompose.js
-var degrees = 180 / Math.PI;
-var identity = {
-  translateX: 0,
-  translateY: 0,
-  rotate: 0,
-  skewX: 0,
-  scaleX: 1,
-  scaleY: 1
-};
 function decompose_default(a, b, c, d, e, f) {
   var scaleX, scaleY, skewX;
   if (scaleX = Math.sqrt(a * a + b * b))
@@ -2300,9 +2008,22 @@ function decompose_default(a, b, c, d, e, f) {
     scaleY
   };
 }
+var degrees, identity;
+var init_decompose = __esm({
+  "node_modules/d3-interpolate/src/transform/decompose.js"() {
+    degrees = 180 / Math.PI;
+    identity = {
+      translateX: 0,
+      translateY: 0,
+      rotate: 0,
+      skewX: 0,
+      scaleX: 1,
+      scaleY: 1
+    };
+  }
+});
 
 // node_modules/d3-interpolate/src/transform/parse.js
-var svgNode;
 function parseCss(value) {
   const m = new (typeof DOMMatrix === "function" ? DOMMatrix : WebKitCSSMatrix)(value + "");
   return m.isIdentity ? identity : decompose_default(m.a, m.b, m.c, m.d, m.e, m.f);
@@ -2318,6 +2039,12 @@ function parseSvg(value) {
   value = value.matrix;
   return decompose_default(value.a, value.b, value.c, value.d, value.e, value.f);
 }
+var svgNode;
+var init_parse = __esm({
+  "node_modules/d3-interpolate/src/transform/parse.js"() {
+    init_decompose();
+  }
+});
 
 // node_modules/d3-interpolate/src/transform/index.js
 function interpolateTransform(parse, pxComma, pxParen, degParen) {
@@ -2374,23 +2101,27 @@ function interpolateTransform(parse, pxComma, pxParen, degParen) {
     };
   };
 }
-var interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
-var interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
+var interpolateTransformCss, interpolateTransformSvg;
+var init_transform = __esm({
+  "node_modules/d3-interpolate/src/transform/index.js"() {
+    init_number();
+    init_parse();
+    interpolateTransformCss = interpolateTransform(parseCss, "px, ", "px)", "deg)");
+    interpolateTransformSvg = interpolateTransform(parseSvg, ", ", ")", ")");
+  }
+});
+
+// node_modules/d3-interpolate/src/index.js
+var init_src7 = __esm({
+  "node_modules/d3-interpolate/src/index.js"() {
+    init_number();
+    init_string();
+    init_transform();
+    init_rgb();
+  }
+});
 
 // node_modules/d3-timer/src/timer.js
-var frame = 0;
-var timeout = 0;
-var interval = 0;
-var pokeDelay = 1e3;
-var taskHead;
-var taskTail;
-var clockLast = 0;
-var clockNow = 0;
-var clockSkew = 0;
-var clock = typeof performance === "object" && performance.now ? performance : Date;
-var setFrame = typeof window === "object" && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function(f) {
-  setTimeout(f, 17);
-};
 function now() {
   return clockNow || (setFrame(clearNow), clockNow = clock.now() + clockSkew);
 }
@@ -2400,31 +2131,6 @@ function clearNow() {
 function Timer() {
   this._call = this._time = this._next = null;
 }
-Timer.prototype = timer.prototype = {
-  constructor: Timer,
-  restart: function(callback, delay, time) {
-    if (typeof callback !== "function")
-      throw new TypeError("callback is not a function");
-    time = (time == null ? now() : +time) + (delay == null ? 0 : +delay);
-    if (!this._next && taskTail !== this) {
-      if (taskTail)
-        taskTail._next = this;
-      else
-        taskHead = this;
-      taskTail = this;
-    }
-    this._call = callback;
-    this._time = time;
-    sleep();
-  },
-  stop: function() {
-    if (this._call) {
-      this._call = null;
-      this._time = Infinity;
-      sleep();
-    }
-  }
-};
 function timer(callback, delay, time) {
   var t = new Timer();
   t.restart(callback, delay, time);
@@ -2458,18 +2164,18 @@ function poke() {
     clockSkew -= delay, clockLast = now2;
 }
 function nap() {
-  var t0, t1 = taskHead, t2, time = Infinity;
-  while (t1) {
-    if (t1._call) {
-      if (time > t1._time)
-        time = t1._time;
-      t0 = t1, t1 = t1._next;
+  var t02, t12 = taskHead, t2, time = Infinity;
+  while (t12) {
+    if (t12._call) {
+      if (time > t12._time)
+        time = t12._time;
+      t02 = t12, t12 = t12._next;
     } else {
-      t2 = t1._next, t1._next = null;
-      t1 = t0 ? t0._next = t2 : taskHead = t2;
+      t2 = t12._next, t12._next = null;
+      t12 = t02 ? t02._next = t2 : taskHead = t2;
     }
   }
-  taskTail = t0;
+  taskTail = t02;
   sleep(time);
 }
 function sleep(time) {
@@ -2489,6 +2195,47 @@ function sleep(time) {
     frame = 1, setFrame(wake);
   }
 }
+var frame, timeout, interval, pokeDelay, taskHead, taskTail, clockLast, clockNow, clockSkew, clock, setFrame;
+var init_timer = __esm({
+  "node_modules/d3-timer/src/timer.js"() {
+    frame = 0;
+    timeout = 0;
+    interval = 0;
+    pokeDelay = 1e3;
+    clockLast = 0;
+    clockNow = 0;
+    clockSkew = 0;
+    clock = typeof performance === "object" && performance.now ? performance : Date;
+    setFrame = typeof window === "object" && window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function(f) {
+      setTimeout(f, 17);
+    };
+    Timer.prototype = timer.prototype = {
+      constructor: Timer,
+      restart: function(callback, delay, time) {
+        if (typeof callback !== "function")
+          throw new TypeError("callback is not a function");
+        time = (time == null ? now() : +time) + (delay == null ? 0 : +delay);
+        if (!this._next && taskTail !== this) {
+          if (taskTail)
+            taskTail._next = this;
+          else
+            taskHead = this;
+          taskTail = this;
+        }
+        this._call = callback;
+        this._time = time;
+        sleep();
+      },
+      stop: function() {
+        if (this._call) {
+          this._call = null;
+          this._time = Infinity;
+          sleep();
+        }
+      }
+    };
+  }
+});
 
 // node_modules/d3-timer/src/timeout.js
 function timeout_default(callback, delay, time) {
@@ -2500,17 +2247,21 @@ function timeout_default(callback, delay, time) {
   }, delay, time);
   return t;
 }
+var init_timeout = __esm({
+  "node_modules/d3-timer/src/timeout.js"() {
+    init_timer();
+  }
+});
+
+// node_modules/d3-timer/src/index.js
+var init_src8 = __esm({
+  "node_modules/d3-timer/src/index.js"() {
+    init_timer();
+    init_timeout();
+  }
+});
 
 // node_modules/d3-transition/src/transition/schedule.js
-var emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
-var emptyTween = [];
-var CREATED = 0;
-var SCHEDULED = 1;
-var STARTING = 2;
-var STARTED = 3;
-var RUNNING = 4;
-var ENDING = 5;
-var ENDED = 6;
 function schedule_default(node, name, id2, index, group, timing) {
   var schedules = node.__transition;
   if (!schedules)
@@ -2620,6 +2371,22 @@ function create(node, id2, self) {
     delete node.__transition;
   }
 }
+var emptyOn, emptyTween, CREATED, SCHEDULED, STARTING, STARTED, RUNNING, ENDING, ENDED;
+var init_schedule = __esm({
+  "node_modules/d3-transition/src/transition/schedule.js"() {
+    init_src3();
+    init_src8();
+    emptyOn = dispatch_default("start", "end", "cancel", "interrupt");
+    emptyTween = [];
+    CREATED = 0;
+    SCHEDULED = 1;
+    STARTING = 2;
+    STARTED = 3;
+    RUNNING = 4;
+    ENDING = 5;
+    ENDED = 6;
+  }
+});
 
 // node_modules/d3-transition/src/interrupt.js
 function interrupt_default(node, name) {
@@ -2641,6 +2408,11 @@ function interrupt_default(node, name) {
   if (empty2)
     delete node.__transition;
 }
+var init_interrupt = __esm({
+  "node_modules/d3-transition/src/interrupt.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/selection/interrupt.js
 function interrupt_default2(name) {
@@ -2648,6 +2420,11 @@ function interrupt_default2(name) {
     interrupt_default(this, name);
   });
 }
+var init_interrupt2 = __esm({
+  "node_modules/d3-transition/src/selection/interrupt.js"() {
+    init_interrupt();
+  }
+});
 
 // node_modules/d3-transition/src/transition/tween.js
 function tweenRemove(id2, name) {
@@ -2711,12 +2488,23 @@ function tweenValue(transition2, name, value) {
     return get2(node, id2).value[name];
   };
 }
+var init_tween = __esm({
+  "node_modules/d3-transition/src/transition/tween.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/interpolate.js
 function interpolate_default(a, b) {
   var c;
   return (typeof b === "number" ? number_default : b instanceof color ? rgb_default : (c = color(b)) ? (b = c, rgb_default) : string_default)(a, b);
 }
+var init_interpolate = __esm({
+  "node_modules/d3-transition/src/transition/interpolate.js"() {
+    init_src6();
+    init_src7();
+  }
+});
 
 // node_modules/d3-transition/src/transition/attr.js
 function attrRemove2(name) {
@@ -2769,6 +2557,14 @@ function attr_default2(name, value) {
   var fullname = namespace_default(name), i = fullname === "transform" ? interpolateTransformSvg : interpolate_default;
   return this.attrTween(name, typeof value === "function" ? (fullname.local ? attrFunctionNS2 : attrFunction2)(fullname, i, tweenValue(this, "attr." + name, value)) : value == null ? (fullname.local ? attrRemoveNS2 : attrRemove2)(fullname) : (fullname.local ? attrConstantNS2 : attrConstant2)(fullname, i, value));
 }
+var init_attr2 = __esm({
+  "node_modules/d3-transition/src/transition/attr.js"() {
+    init_src7();
+    init_src4();
+    init_tween();
+    init_interpolate();
+  }
+});
 
 // node_modules/d3-transition/src/transition/attrTween.js
 function attrInterpolate(name, i) {
@@ -2782,23 +2578,23 @@ function attrInterpolateNS(fullname, i) {
   };
 }
 function attrTweenNS(fullname, value) {
-  var t0, i0;
+  var t02, i0;
   function tween() {
     var i = value.apply(this, arguments);
     if (i !== i0)
-      t0 = (i0 = i) && attrInterpolateNS(fullname, i);
-    return t0;
+      t02 = (i0 = i) && attrInterpolateNS(fullname, i);
+    return t02;
   }
   tween._value = value;
   return tween;
 }
 function attrTween(name, value) {
-  var t0, i0;
+  var t02, i0;
   function tween() {
     var i = value.apply(this, arguments);
     if (i !== i0)
-      t0 = (i0 = i) && attrInterpolate(name, i);
-    return t0;
+      t02 = (i0 = i) && attrInterpolate(name, i);
+    return t02;
   }
   tween._value = value;
   return tween;
@@ -2814,6 +2610,11 @@ function attrTween_default(name, value) {
   var fullname = namespace_default(name);
   return this.tween(key, (fullname.local ? attrTweenNS : attrTween)(fullname, value));
 }
+var init_attrTween = __esm({
+  "node_modules/d3-transition/src/transition/attrTween.js"() {
+    init_src4();
+  }
+});
 
 // node_modules/d3-transition/src/transition/delay.js
 function delayFunction(id2, value) {
@@ -2830,6 +2631,11 @@ function delay_default(value) {
   var id2 = this._id;
   return arguments.length ? this.each((typeof value === "function" ? delayFunction : delayConstant)(id2, value)) : get2(this.node(), id2).delay;
 }
+var init_delay = __esm({
+  "node_modules/d3-transition/src/transition/delay.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/duration.js
 function durationFunction(id2, value) {
@@ -2846,6 +2652,11 @@ function duration_default(value) {
   var id2 = this._id;
   return arguments.length ? this.each((typeof value === "function" ? durationFunction : durationConstant)(id2, value)) : get2(this.node(), id2).duration;
 }
+var init_duration = __esm({
+  "node_modules/d3-transition/src/transition/duration.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/ease.js
 function easeConstant(id2, value) {
@@ -2859,6 +2670,11 @@ function ease_default(value) {
   var id2 = this._id;
   return arguments.length ? this.each(easeConstant(id2, value)) : get2(this.node(), id2).ease;
 }
+var init_ease = __esm({
+  "node_modules/d3-transition/src/transition/ease.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/easeVarying.js
 function easeVarying(id2, value) {
@@ -2874,6 +2690,11 @@ function easeVarying_default(value) {
     throw new Error();
   return this.each(easeVarying(this._id, value));
 }
+var init_easeVarying = __esm({
+  "node_modules/d3-transition/src/transition/easeVarying.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/filter.js
 function filter_default2(match) {
@@ -2888,6 +2709,12 @@ function filter_default2(match) {
   }
   return new Transition(subgroups, this._parents, this._name, this._id);
 }
+var init_filter2 = __esm({
+  "node_modules/d3-transition/src/transition/filter.js"() {
+    init_src4();
+    init_transition2();
+  }
+});
 
 // node_modules/d3-transition/src/transition/merge.js
 function merge_default2(transition2) {
@@ -2905,6 +2732,11 @@ function merge_default2(transition2) {
   }
   return new Transition(merges, this._parents, this._name, this._id);
 }
+var init_merge2 = __esm({
+  "node_modules/d3-transition/src/transition/merge.js"() {
+    init_transition2();
+  }
+});
 
 // node_modules/d3-transition/src/transition/on.js
 function start(name) {
@@ -2928,6 +2760,11 @@ function on_default2(name, listener) {
   var id2 = this._id;
   return arguments.length < 2 ? get2(this.node(), id2).on.on(name) : this.each(onFunction(id2, name, listener));
 }
+var init_on2 = __esm({
+  "node_modules/d3-transition/src/transition/on.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/remove.js
 function removeFunction(id2) {
@@ -2943,6 +2780,10 @@ function removeFunction(id2) {
 function remove_default2() {
   return this.on("end.remove", removeFunction(this._id));
 }
+var init_remove2 = __esm({
+  "node_modules/d3-transition/src/transition/remove.js"() {
+  }
+});
 
 // node_modules/d3-transition/src/transition/select.js
 function select_default3(select) {
@@ -2961,6 +2802,13 @@ function select_default3(select) {
   }
   return new Transition(subgroups, this._parents, name, id2);
 }
+var init_select3 = __esm({
+  "node_modules/d3-transition/src/transition/select.js"() {
+    init_src4();
+    init_transition2();
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/selectAll.js
 function selectAll_default3(select) {
@@ -2982,12 +2830,25 @@ function selectAll_default3(select) {
   }
   return new Transition(subgroups, parents, name, id2);
 }
+var init_selectAll3 = __esm({
+  "node_modules/d3-transition/src/transition/selectAll.js"() {
+    init_src4();
+    init_transition2();
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/selection.js
-var Selection2 = selection_default.prototype.constructor;
 function selection_default2() {
   return new Selection2(this._groups, this._parents);
 }
+var Selection2;
+var init_selection2 = __esm({
+  "node_modules/d3-transition/src/transition/selection.js"() {
+    init_src4();
+    Selection2 = selection_default.prototype.constructor;
+  }
+});
 
 // node_modules/d3-transition/src/transition/style.js
 function styleNull(name, interpolate) {
@@ -3031,6 +2892,15 @@ function style_default2(name, value, priority) {
   var i = (name += "") === "transform" ? interpolateTransformCss : interpolate_default;
   return value == null ? this.styleTween(name, styleNull(name, i)).on("end.style." + name, styleRemove2(name)) : typeof value === "function" ? this.styleTween(name, styleFunction2(name, i, tweenValue(this, "style." + name, value))).each(styleMaybeRemove(this._id, name)) : this.styleTween(name, styleConstant2(name, i, value), priority).on("end.style." + name, null);
 }
+var init_style2 = __esm({
+  "node_modules/d3-transition/src/transition/style.js"() {
+    init_src7();
+    init_src4();
+    init_schedule();
+    init_tween();
+    init_interpolate();
+  }
+});
 
 // node_modules/d3-transition/src/transition/styleTween.js
 function styleInterpolate(name, i, priority) {
@@ -3059,6 +2929,10 @@ function styleTween_default(name, value, priority) {
     throw new Error();
   return this.tween(key, styleTween(name, value, priority == null ? "" : priority));
 }
+var init_styleTween = __esm({
+  "node_modules/d3-transition/src/transition/styleTween.js"() {
+  }
+});
 
 // node_modules/d3-transition/src/transition/text.js
 function textConstant2(value) {
@@ -3075,6 +2949,11 @@ function textFunction2(value) {
 function text_default2(value) {
   return this.tween("text", typeof value === "function" ? textFunction2(tweenValue(this, "text", value)) : textConstant2(value == null ? "" : value + ""));
 }
+var init_text2 = __esm({
+  "node_modules/d3-transition/src/transition/text.js"() {
+    init_tween();
+  }
+});
 
 // node_modules/d3-transition/src/transition/textTween.js
 function textInterpolate(i) {
@@ -3083,12 +2962,12 @@ function textInterpolate(i) {
   };
 }
 function textTween(value) {
-  var t0, i0;
+  var t02, i0;
   function tween() {
     var i = value.apply(this, arguments);
     if (i !== i0)
-      t0 = (i0 = i) && textInterpolate(i);
-    return t0;
+      t02 = (i0 = i) && textInterpolate(i);
+    return t02;
   }
   tween._value = value;
   return tween;
@@ -3103,6 +2982,10 @@ function textTween_default(value) {
     throw new Error();
   return this.tween(key, textTween(value));
 }
+var init_textTween = __esm({
+  "node_modules/d3-transition/src/transition/textTween.js"() {
+  }
+});
 
 // node_modules/d3-transition/src/transition/transition.js
 function transition_default() {
@@ -3122,6 +3005,12 @@ function transition_default() {
   }
   return new Transition(groups, this._parents, name, id1);
 }
+var init_transition = __esm({
+  "node_modules/d3-transition/src/transition/transition.js"() {
+    init_transition2();
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/end.js
 function end_default() {
@@ -3145,9 +3034,13 @@ function end_default() {
       resolve();
   });
 }
+var init_end = __esm({
+  "node_modules/d3-transition/src/transition/end.js"() {
+    init_schedule();
+  }
+});
 
 // node_modules/d3-transition/src/transition/index.js
-var id = 0;
 function Transition(groups, parents, name, id2) {
   this._groups = groups;
   this._parents = parents;
@@ -3160,50 +3053,82 @@ function transition(name) {
 function newId() {
   return ++id;
 }
-var selection_prototype = selection_default.prototype;
-Transition.prototype = transition.prototype = {
-  constructor: Transition,
-  select: select_default3,
-  selectAll: selectAll_default3,
-  filter: filter_default2,
-  merge: merge_default2,
-  selection: selection_default2,
-  transition: transition_default,
-  call: selection_prototype.call,
-  nodes: selection_prototype.nodes,
-  node: selection_prototype.node,
-  size: selection_prototype.size,
-  empty: selection_prototype.empty,
-  each: selection_prototype.each,
-  on: on_default2,
-  attr: attr_default2,
-  attrTween: attrTween_default,
-  style: style_default2,
-  styleTween: styleTween_default,
-  text: text_default2,
-  textTween: textTween_default,
-  remove: remove_default2,
-  tween: tween_default,
-  delay: delay_default,
-  duration: duration_default,
-  ease: ease_default,
-  easeVarying: easeVarying_default,
-  end: end_default,
-  [Symbol.iterator]: selection_prototype[Symbol.iterator]
-};
+var id, selection_prototype;
+var init_transition2 = __esm({
+  "node_modules/d3-transition/src/transition/index.js"() {
+    init_src4();
+    init_attr2();
+    init_attrTween();
+    init_delay();
+    init_duration();
+    init_ease();
+    init_easeVarying();
+    init_filter2();
+    init_merge2();
+    init_on2();
+    init_remove2();
+    init_select3();
+    init_selectAll3();
+    init_selection2();
+    init_style2();
+    init_styleTween();
+    init_text2();
+    init_textTween();
+    init_transition();
+    init_tween();
+    init_end();
+    id = 0;
+    selection_prototype = selection_default.prototype;
+    Transition.prototype = transition.prototype = {
+      constructor: Transition,
+      select: select_default3,
+      selectAll: selectAll_default3,
+      filter: filter_default2,
+      merge: merge_default2,
+      selection: selection_default2,
+      transition: transition_default,
+      call: selection_prototype.call,
+      nodes: selection_prototype.nodes,
+      node: selection_prototype.node,
+      size: selection_prototype.size,
+      empty: selection_prototype.empty,
+      each: selection_prototype.each,
+      on: on_default2,
+      attr: attr_default2,
+      attrTween: attrTween_default,
+      style: style_default2,
+      styleTween: styleTween_default,
+      text: text_default2,
+      textTween: textTween_default,
+      remove: remove_default2,
+      tween: tween_default,
+      delay: delay_default,
+      duration: duration_default,
+      ease: ease_default,
+      easeVarying: easeVarying_default,
+      end: end_default,
+      [Symbol.iterator]: selection_prototype[Symbol.iterator]
+    };
+  }
+});
 
 // node_modules/d3-ease/src/cubic.js
 function cubicInOut(t) {
   return ((t *= 2) <= 1 ? t * t * t : (t -= 2) * t * t + 2) / 2;
 }
+var init_cubic = __esm({
+  "node_modules/d3-ease/src/cubic.js"() {
+  }
+});
+
+// node_modules/d3-ease/src/index.js
+var init_src9 = __esm({
+  "node_modules/d3-ease/src/index.js"() {
+    init_cubic();
+  }
+});
 
 // node_modules/d3-transition/src/selection/transition.js
-var defaultTiming = {
-  time: null,
-  delay: 0,
-  duration: 250,
-  ease: cubicInOut
-};
 function inherit(node, id2) {
   var timing;
   while (!(timing = node.__transition) || !(timing = timing[id2])) {
@@ -3229,10 +3154,68 @@ function transition_default2(name) {
   }
   return new Transition(groups, this._parents, name, id2);
 }
+var defaultTiming;
+var init_transition3 = __esm({
+  "node_modules/d3-transition/src/selection/transition.js"() {
+    init_transition2();
+    init_schedule();
+    init_src9();
+    init_src8();
+    defaultTiming = {
+      time: null,
+      delay: 0,
+      duration: 250,
+      ease: cubicInOut
+    };
+  }
+});
 
 // node_modules/d3-transition/src/selection/index.js
-selection_default.prototype.interrupt = interrupt_default2;
-selection_default.prototype.transition = transition_default2;
+var init_selection3 = __esm({
+  "node_modules/d3-transition/src/selection/index.js"() {
+    init_src4();
+    init_interrupt2();
+    init_transition3();
+    selection_default.prototype.interrupt = interrupt_default2;
+    selection_default.prototype.transition = transition_default2;
+  }
+});
+
+// node_modules/d3-transition/src/active.js
+var init_active = __esm({
+  "node_modules/d3-transition/src/active.js"() {
+    init_transition2();
+    init_schedule();
+  }
+});
+
+// node_modules/d3-transition/src/index.js
+var init_src10 = __esm({
+  "node_modules/d3-transition/src/index.js"() {
+    init_selection3();
+    init_transition2();
+    init_active();
+    init_interrupt();
+  }
+});
+
+// node_modules/d3-brush/src/constant.js
+var init_constant3 = __esm({
+  "node_modules/d3-brush/src/constant.js"() {
+  }
+});
+
+// node_modules/d3-brush/src/event.js
+var init_event = __esm({
+  "node_modules/d3-brush/src/event.js"() {
+  }
+});
+
+// node_modules/d3-brush/src/noevent.js
+var init_noevent = __esm({
+  "node_modules/d3-brush/src/noevent.js"() {
+  }
+});
 
 // node_modules/d3-brush/src/brush.js
 function number1(e) {
@@ -3241,39 +3224,1321 @@ function number1(e) {
 function number2(e) {
   return [number1(e[0]), number1(e[1])];
 }
-var X = {
-  name: "x",
-  handles: ["w", "e"].map(type),
-  input: function(x, e) {
-    return x == null ? null : [[+x[0], e[0][1]], [+x[1], e[1][1]]];
-  },
-  output: function(xy) {
-    return xy && [xy[0][0], xy[1][0]];
-  }
-};
-var Y = {
-  name: "y",
-  handles: ["n", "s"].map(type),
-  input: function(y, e) {
-    return y == null ? null : [[e[0][0], +y[0]], [e[1][0], +y[1]]];
-  },
-  output: function(xy) {
-    return xy && [xy[0][1], xy[1][1]];
-  }
-};
-var XY = {
-  name: "xy",
-  handles: ["n", "w", "e", "s", "nw", "ne", "sw", "se"].map(type),
-  input: function(xy) {
-    return xy == null ? null : number2(xy);
-  },
-  output: function(xy) {
-    return xy;
-  }
-};
 function type(t) {
   return { type: t };
 }
+var X, Y, XY;
+var init_brush = __esm({
+  "node_modules/d3-brush/src/brush.js"() {
+    init_src10();
+    init_constant3();
+    init_event();
+    init_noevent();
+    X = {
+      name: "x",
+      handles: ["w", "e"].map(type),
+      input: function(x, e) {
+        return x == null ? null : [[+x[0], e[0][1]], [+x[1], e[1][1]]];
+      },
+      output: function(xy) {
+        return xy && [xy[0][0], xy[1][0]];
+      }
+    };
+    Y = {
+      name: "y",
+      handles: ["n", "s"].map(type),
+      input: function(y, e) {
+        return y == null ? null : [[e[0][0], +y[0]], [e[1][0], +y[1]]];
+      },
+      output: function(xy) {
+        return xy && [xy[0][1], xy[1][1]];
+      }
+    };
+    XY = {
+      name: "xy",
+      handles: ["n", "w", "e", "s", "nw", "ne", "sw", "se"].map(type),
+      input: function(xy) {
+        return xy == null ? null : number2(xy);
+      },
+      output: function(xy) {
+        return xy;
+      }
+    };
+  }
+});
+
+// node_modules/d3-brush/src/index.js
+var init_src11 = __esm({
+  "node_modules/d3-brush/src/index.js"() {
+    init_brush();
+  }
+});
+
+// node_modules/d3-path/src/index.js
+var init_src12 = __esm({
+  "node_modules/d3-path/src/index.js"() {
+  }
+});
+
+// node_modules/d3-chord/src/index.js
+var init_src13 = __esm({
+  "node_modules/d3-chord/src/index.js"() {
+  }
+});
+
+// node_modules/d3-contour/src/index.js
+var init_src14 = __esm({
+  "node_modules/d3-contour/src/index.js"() {
+  }
+});
+
+// node_modules/d3-delaunay/src/index.js
+var init_src15 = __esm({
+  "node_modules/d3-delaunay/src/index.js"() {
+  }
+});
+
+// node_modules/d3-dsv/src/index.js
+var init_src16 = __esm({
+  "node_modules/d3-dsv/src/index.js"() {
+  }
+});
+
+// node_modules/d3-fetch/src/index.js
+var init_src17 = __esm({
+  "node_modules/d3-fetch/src/index.js"() {
+  }
+});
+
+// node_modules/d3-quadtree/src/index.js
+var init_src18 = __esm({
+  "node_modules/d3-quadtree/src/index.js"() {
+  }
+});
+
+// node_modules/d3-force/src/index.js
+var init_src19 = __esm({
+  "node_modules/d3-force/src/index.js"() {
+  }
+});
+
+// node_modules/d3-format/src/formatDecimal.js
+function formatDecimal_default(x) {
+  return Math.abs(x = Math.round(x)) >= 1e21 ? x.toLocaleString("en").replace(/,/g, "") : x.toString(10);
+}
+function formatDecimalParts(x, p) {
+  if ((i = (x = p ? x.toExponential(p - 1) : x.toExponential()).indexOf("e")) < 0)
+    return null;
+  var i, coefficient = x.slice(0, i);
+  return [
+    coefficient.length > 1 ? coefficient[0] + coefficient.slice(2) : coefficient,
+    +x.slice(i + 1)
+  ];
+}
+var init_formatDecimal = __esm({
+  "node_modules/d3-format/src/formatDecimal.js"() {
+  }
+});
+
+// node_modules/d3-format/src/exponent.js
+function exponent_default(x) {
+  return x = formatDecimalParts(Math.abs(x)), x ? x[1] : NaN;
+}
+var init_exponent = __esm({
+  "node_modules/d3-format/src/exponent.js"() {
+    init_formatDecimal();
+  }
+});
+
+// node_modules/d3-format/src/formatGroup.js
+function formatGroup_default(grouping, thousands) {
+  return function(value, width) {
+    var i = value.length, t = [], j = 0, g = grouping[0], length = 0;
+    while (i > 0 && g > 0) {
+      if (length + g + 1 > width)
+        g = Math.max(1, width - length);
+      t.push(value.substring(i -= g, i + g));
+      if ((length += g + 1) > width)
+        break;
+      g = grouping[j = (j + 1) % grouping.length];
+    }
+    return t.reverse().join(thousands);
+  };
+}
+var init_formatGroup = __esm({
+  "node_modules/d3-format/src/formatGroup.js"() {
+  }
+});
+
+// node_modules/d3-format/src/formatNumerals.js
+function formatNumerals_default(numerals) {
+  return function(value) {
+    return value.replace(/[0-9]/g, function(i) {
+      return numerals[+i];
+    });
+  };
+}
+var init_formatNumerals = __esm({
+  "node_modules/d3-format/src/formatNumerals.js"() {
+  }
+});
+
+// node_modules/d3-format/src/formatSpecifier.js
+function formatSpecifier(specifier) {
+  if (!(match = re.exec(specifier)))
+    throw new Error("invalid format: " + specifier);
+  var match;
+  return new FormatSpecifier({
+    fill: match[1],
+    align: match[2],
+    sign: match[3],
+    symbol: match[4],
+    zero: match[5],
+    width: match[6],
+    comma: match[7],
+    precision: match[8] && match[8].slice(1),
+    trim: match[9],
+    type: match[10]
+  });
+}
+function FormatSpecifier(specifier) {
+  this.fill = specifier.fill === void 0 ? " " : specifier.fill + "";
+  this.align = specifier.align === void 0 ? ">" : specifier.align + "";
+  this.sign = specifier.sign === void 0 ? "-" : specifier.sign + "";
+  this.symbol = specifier.symbol === void 0 ? "" : specifier.symbol + "";
+  this.zero = !!specifier.zero;
+  this.width = specifier.width === void 0 ? void 0 : +specifier.width;
+  this.comma = !!specifier.comma;
+  this.precision = specifier.precision === void 0 ? void 0 : +specifier.precision;
+  this.trim = !!specifier.trim;
+  this.type = specifier.type === void 0 ? "" : specifier.type + "";
+}
+var re;
+var init_formatSpecifier = __esm({
+  "node_modules/d3-format/src/formatSpecifier.js"() {
+    re = /^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(\.\d+)?(~)?([a-z%])?$/i;
+    formatSpecifier.prototype = FormatSpecifier.prototype;
+    FormatSpecifier.prototype.toString = function() {
+      return this.fill + this.align + this.sign + this.symbol + (this.zero ? "0" : "") + (this.width === void 0 ? "" : Math.max(1, this.width | 0)) + (this.comma ? "," : "") + (this.precision === void 0 ? "" : "." + Math.max(0, this.precision | 0)) + (this.trim ? "~" : "") + this.type;
+    };
+  }
+});
+
+// node_modules/d3-format/src/formatTrim.js
+function formatTrim_default(s) {
+  out:
+    for (var n = s.length, i = 1, i0 = -1, i1; i < n; ++i) {
+      switch (s[i]) {
+        case ".":
+          i0 = i1 = i;
+          break;
+        case "0":
+          if (i0 === 0)
+            i0 = i;
+          i1 = i;
+          break;
+        default:
+          if (!+s[i])
+            break out;
+          if (i0 > 0)
+            i0 = 0;
+          break;
+      }
+    }
+  return i0 > 0 ? s.slice(0, i0) + s.slice(i1 + 1) : s;
+}
+var init_formatTrim = __esm({
+  "node_modules/d3-format/src/formatTrim.js"() {
+  }
+});
+
+// node_modules/d3-format/src/formatPrefixAuto.js
+function formatPrefixAuto_default(x, p) {
+  var d = formatDecimalParts(x, p);
+  if (!d)
+    return x + "";
+  var coefficient = d[0], exponent = d[1], i = exponent - (prefixExponent = Math.max(-8, Math.min(8, Math.floor(exponent / 3))) * 3) + 1, n = coefficient.length;
+  return i === n ? coefficient : i > n ? coefficient + new Array(i - n + 1).join("0") : i > 0 ? coefficient.slice(0, i) + "." + coefficient.slice(i) : "0." + new Array(1 - i).join("0") + formatDecimalParts(x, Math.max(0, p + i - 1))[0];
+}
+var prefixExponent;
+var init_formatPrefixAuto = __esm({
+  "node_modules/d3-format/src/formatPrefixAuto.js"() {
+    init_formatDecimal();
+  }
+});
+
+// node_modules/d3-format/src/formatRounded.js
+function formatRounded_default(x, p) {
+  var d = formatDecimalParts(x, p);
+  if (!d)
+    return x + "";
+  var coefficient = d[0], exponent = d[1];
+  return exponent < 0 ? "0." + new Array(-exponent).join("0") + coefficient : coefficient.length > exponent + 1 ? coefficient.slice(0, exponent + 1) + "." + coefficient.slice(exponent + 1) : coefficient + new Array(exponent - coefficient.length + 2).join("0");
+}
+var init_formatRounded = __esm({
+  "node_modules/d3-format/src/formatRounded.js"() {
+    init_formatDecimal();
+  }
+});
+
+// node_modules/d3-format/src/formatTypes.js
+var formatTypes_default;
+var init_formatTypes = __esm({
+  "node_modules/d3-format/src/formatTypes.js"() {
+    init_formatDecimal();
+    init_formatPrefixAuto();
+    init_formatRounded();
+    formatTypes_default = {
+      "%": (x, p) => (x * 100).toFixed(p),
+      "b": (x) => Math.round(x).toString(2),
+      "c": (x) => x + "",
+      "d": formatDecimal_default,
+      "e": (x, p) => x.toExponential(p),
+      "f": (x, p) => x.toFixed(p),
+      "g": (x, p) => x.toPrecision(p),
+      "o": (x) => Math.round(x).toString(8),
+      "p": (x, p) => formatRounded_default(x * 100, p),
+      "r": formatRounded_default,
+      "s": formatPrefixAuto_default,
+      "X": (x) => Math.round(x).toString(16).toUpperCase(),
+      "x": (x) => Math.round(x).toString(16)
+    };
+  }
+});
+
+// node_modules/d3-format/src/identity.js
+function identity_default(x) {
+  return x;
+}
+var init_identity = __esm({
+  "node_modules/d3-format/src/identity.js"() {
+  }
+});
+
+// node_modules/d3-format/src/locale.js
+function locale_default(locale3) {
+  var group = locale3.grouping === void 0 || locale3.thousands === void 0 ? identity_default : formatGroup_default(map.call(locale3.grouping, Number), locale3.thousands + ""), currencyPrefix = locale3.currency === void 0 ? "" : locale3.currency[0] + "", currencySuffix = locale3.currency === void 0 ? "" : locale3.currency[1] + "", decimal = locale3.decimal === void 0 ? "." : locale3.decimal + "", numerals = locale3.numerals === void 0 ? identity_default : formatNumerals_default(map.call(locale3.numerals, String)), percent = locale3.percent === void 0 ? "%" : locale3.percent + "", minus = locale3.minus === void 0 ? "\u2212" : locale3.minus + "", nan = locale3.nan === void 0 ? "NaN" : locale3.nan + "";
+  function newFormat(specifier) {
+    specifier = formatSpecifier(specifier);
+    var fill = specifier.fill, align = specifier.align, sign = specifier.sign, symbol = specifier.symbol, zero2 = specifier.zero, width = specifier.width, comma = specifier.comma, precision = specifier.precision, trim = specifier.trim, type2 = specifier.type;
+    if (type2 === "n")
+      comma = true, type2 = "g";
+    else if (!formatTypes_default[type2])
+      precision === void 0 && (precision = 12), trim = true, type2 = "g";
+    if (zero2 || fill === "0" && align === "=")
+      zero2 = true, fill = "0", align = "=";
+    var prefix = symbol === "$" ? currencyPrefix : symbol === "#" && /[boxX]/.test(type2) ? "0" + type2.toLowerCase() : "", suffix = symbol === "$" ? currencySuffix : /[%p]/.test(type2) ? percent : "";
+    var formatType = formatTypes_default[type2], maybeSuffix = /[defgprs%]/.test(type2);
+    precision = precision === void 0 ? 6 : /[gprs]/.test(type2) ? Math.max(1, Math.min(21, precision)) : Math.max(0, Math.min(20, precision));
+    function format2(value) {
+      var valuePrefix = prefix, valueSuffix = suffix, i, n, c;
+      if (type2 === "c") {
+        valueSuffix = formatType(value) + valueSuffix;
+        value = "";
+      } else {
+        value = +value;
+        var valueNegative = value < 0 || 1 / value < 0;
+        value = isNaN(value) ? nan : formatType(Math.abs(value), precision);
+        if (trim)
+          value = formatTrim_default(value);
+        if (valueNegative && +value === 0 && sign !== "+")
+          valueNegative = false;
+        valuePrefix = (valueNegative ? sign === "(" ? sign : minus : sign === "-" || sign === "(" ? "" : sign) + valuePrefix;
+        valueSuffix = (type2 === "s" ? prefixes[8 + prefixExponent / 3] : "") + valueSuffix + (valueNegative && sign === "(" ? ")" : "");
+        if (maybeSuffix) {
+          i = -1, n = value.length;
+          while (++i < n) {
+            if (c = value.charCodeAt(i), 48 > c || c > 57) {
+              valueSuffix = (c === 46 ? decimal + value.slice(i + 1) : value.slice(i)) + valueSuffix;
+              value = value.slice(0, i);
+              break;
+            }
+          }
+        }
+      }
+      if (comma && !zero2)
+        value = group(value, Infinity);
+      var length = valuePrefix.length + value.length + valueSuffix.length, padding = length < width ? new Array(width - length + 1).join(fill) : "";
+      if (comma && zero2)
+        value = group(padding + value, padding.length ? width - valueSuffix.length : Infinity), padding = "";
+      switch (align) {
+        case "<":
+          value = valuePrefix + value + valueSuffix + padding;
+          break;
+        case "=":
+          value = valuePrefix + padding + value + valueSuffix;
+          break;
+        case "^":
+          value = padding.slice(0, length = padding.length >> 1) + valuePrefix + value + valueSuffix + padding.slice(length);
+          break;
+        default:
+          value = padding + valuePrefix + value + valueSuffix;
+          break;
+      }
+      return numerals(value);
+    }
+    format2.toString = function() {
+      return specifier + "";
+    };
+    return format2;
+  }
+  function formatPrefix2(specifier, value) {
+    var f = newFormat((specifier = formatSpecifier(specifier), specifier.type = "f", specifier)), e = Math.max(-8, Math.min(8, Math.floor(exponent_default(value) / 3))) * 3, k = Math.pow(10, -e), prefix = prefixes[8 + e / 3];
+    return function(value2) {
+      return f(k * value2) + prefix;
+    };
+  }
+  return {
+    format: newFormat,
+    formatPrefix: formatPrefix2
+  };
+}
+var map, prefixes;
+var init_locale = __esm({
+  "node_modules/d3-format/src/locale.js"() {
+    init_exponent();
+    init_formatGroup();
+    init_formatNumerals();
+    init_formatSpecifier();
+    init_formatTrim();
+    init_formatTypes();
+    init_formatPrefixAuto();
+    init_identity();
+    map = Array.prototype.map;
+    prefixes = ["y", "z", "a", "f", "p", "n", "\xB5", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y"];
+  }
+});
+
+// node_modules/d3-format/src/defaultLocale.js
+function defaultLocale(definition) {
+  locale = locale_default(definition);
+  format = locale.format;
+  formatPrefix = locale.formatPrefix;
+  return locale;
+}
+var locale, format, formatPrefix;
+var init_defaultLocale = __esm({
+  "node_modules/d3-format/src/defaultLocale.js"() {
+    init_locale();
+    defaultLocale({
+      thousands: ",",
+      grouping: [3],
+      currency: ["$", ""]
+    });
+  }
+});
+
+// node_modules/d3-format/src/index.js
+var init_src20 = __esm({
+  "node_modules/d3-format/src/index.js"() {
+    init_defaultLocale();
+  }
+});
+
+// node_modules/d3-geo/src/index.js
+var init_src21 = __esm({
+  "node_modules/d3-geo/src/index.js"() {
+  }
+});
+
+// node_modules/d3-hierarchy/src/index.js
+var init_src22 = __esm({
+  "node_modules/d3-hierarchy/src/index.js"() {
+  }
+});
+
+// node_modules/d3-polygon/src/index.js
+var init_src23 = __esm({
+  "node_modules/d3-polygon/src/index.js"() {
+  }
+});
+
+// node_modules/d3-random/src/index.js
+var init_src24 = __esm({
+  "node_modules/d3-random/src/index.js"() {
+  }
+});
+
+// node_modules/d3-time/src/interval.js
+function newInterval(floori, offseti, count, field) {
+  function interval2(date) {
+    return floori(date = arguments.length === 0 ? new Date() : new Date(+date)), date;
+  }
+  interval2.floor = function(date) {
+    return floori(date = new Date(+date)), date;
+  };
+  interval2.ceil = function(date) {
+    return floori(date = new Date(date - 1)), offseti(date, 1), floori(date), date;
+  };
+  interval2.round = function(date) {
+    var d0 = interval2(date), d1 = interval2.ceil(date);
+    return date - d0 < d1 - date ? d0 : d1;
+  };
+  interval2.offset = function(date, step) {
+    return offseti(date = new Date(+date), step == null ? 1 : Math.floor(step)), date;
+  };
+  interval2.range = function(start2, stop, step) {
+    var range = [], previous;
+    start2 = interval2.ceil(start2);
+    step = step == null ? 1 : Math.floor(step);
+    if (!(start2 < stop) || !(step > 0))
+      return range;
+    do
+      range.push(previous = new Date(+start2)), offseti(start2, step), floori(start2);
+    while (previous < start2 && start2 < stop);
+    return range;
+  };
+  interval2.filter = function(test) {
+    return newInterval(function(date) {
+      if (date >= date)
+        while (floori(date), !test(date))
+          date.setTime(date - 1);
+    }, function(date, step) {
+      if (date >= date) {
+        if (step < 0)
+          while (++step <= 0) {
+            while (offseti(date, -1), !test(date)) {
+            }
+          }
+        else
+          while (--step >= 0) {
+            while (offseti(date, 1), !test(date)) {
+            }
+          }
+      }
+    });
+  };
+  if (count) {
+    interval2.count = function(start2, end) {
+      t0.setTime(+start2), t1.setTime(+end);
+      floori(t0), floori(t1);
+      return Math.floor(count(t0, t1));
+    };
+    interval2.every = function(step) {
+      step = Math.floor(step);
+      return !isFinite(step) || !(step > 0) ? null : !(step > 1) ? interval2 : interval2.filter(field ? function(d) {
+        return field(d) % step === 0;
+      } : function(d) {
+        return interval2.count(0, d) % step === 0;
+      });
+    };
+  }
+  return interval2;
+}
+var t0, t1;
+var init_interval = __esm({
+  "node_modules/d3-time/src/interval.js"() {
+    t0 = new Date();
+    t1 = new Date();
+  }
+});
+
+// node_modules/d3-time/src/duration.js
+var durationSecond, durationMinute, durationHour, durationDay, durationWeek, durationMonth, durationYear;
+var init_duration2 = __esm({
+  "node_modules/d3-time/src/duration.js"() {
+    durationSecond = 1e3;
+    durationMinute = durationSecond * 60;
+    durationHour = durationMinute * 60;
+    durationDay = durationHour * 24;
+    durationWeek = durationDay * 7;
+    durationMonth = durationDay * 30;
+    durationYear = durationDay * 365;
+  }
+});
+
+// node_modules/d3-time/src/day.js
+var day, day_default, days;
+var init_day = __esm({
+  "node_modules/d3-time/src/day.js"() {
+    init_interval();
+    init_duration2();
+    day = newInterval((date) => date.setHours(0, 0, 0, 0), (date, step) => date.setDate(date.getDate() + step), (start2, end) => (end - start2 - (end.getTimezoneOffset() - start2.getTimezoneOffset()) * durationMinute) / durationDay, (date) => date.getDate() - 1);
+    day_default = day;
+    days = day.range;
+  }
+});
+
+// node_modules/d3-time/src/week.js
+function weekday(i) {
+  return newInterval(function(date) {
+    date.setDate(date.getDate() - (date.getDay() + 7 - i) % 7);
+    date.setHours(0, 0, 0, 0);
+  }, function(date, step) {
+    date.setDate(date.getDate() + step * 7);
+  }, function(start2, end) {
+    return (end - start2 - (end.getTimezoneOffset() - start2.getTimezoneOffset()) * durationMinute) / durationWeek;
+  });
+}
+var sunday, monday, tuesday, wednesday, thursday, friday, saturday, sundays, mondays, tuesdays, wednesdays, thursdays, fridays, saturdays;
+var init_week = __esm({
+  "node_modules/d3-time/src/week.js"() {
+    init_interval();
+    init_duration2();
+    sunday = weekday(0);
+    monday = weekday(1);
+    tuesday = weekday(2);
+    wednesday = weekday(3);
+    thursday = weekday(4);
+    friday = weekday(5);
+    saturday = weekday(6);
+    sundays = sunday.range;
+    mondays = monday.range;
+    tuesdays = tuesday.range;
+    wednesdays = wednesday.range;
+    thursdays = thursday.range;
+    fridays = friday.range;
+    saturdays = saturday.range;
+  }
+});
+
+// node_modules/d3-time/src/year.js
+var year, year_default, years;
+var init_year = __esm({
+  "node_modules/d3-time/src/year.js"() {
+    init_interval();
+    year = newInterval(function(date) {
+      date.setMonth(0, 1);
+      date.setHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setFullYear(date.getFullYear() + step);
+    }, function(start2, end) {
+      return end.getFullYear() - start2.getFullYear();
+    }, function(date) {
+      return date.getFullYear();
+    });
+    year.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
+        date.setFullYear(Math.floor(date.getFullYear() / k) * k);
+        date.setMonth(0, 1);
+        date.setHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setFullYear(date.getFullYear() + step * k);
+      });
+    };
+    year_default = year;
+    years = year.range;
+  }
+});
+
+// node_modules/d3-time/src/utcDay.js
+var utcDay, utcDay_default, utcDays;
+var init_utcDay = __esm({
+  "node_modules/d3-time/src/utcDay.js"() {
+    init_interval();
+    init_duration2();
+    utcDay = newInterval(function(date) {
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCDate(date.getUTCDate() + step);
+    }, function(start2, end) {
+      return (end - start2) / durationDay;
+    }, function(date) {
+      return date.getUTCDate() - 1;
+    });
+    utcDay_default = utcDay;
+    utcDays = utcDay.range;
+  }
+});
+
+// node_modules/d3-time/src/utcWeek.js
+function utcWeekday(i) {
+  return newInterval(function(date) {
+    date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 7 - i) % 7);
+    date.setUTCHours(0, 0, 0, 0);
+  }, function(date, step) {
+    date.setUTCDate(date.getUTCDate() + step * 7);
+  }, function(start2, end) {
+    return (end - start2) / durationWeek;
+  });
+}
+var utcSunday, utcMonday, utcTuesday, utcWednesday, utcThursday, utcFriday, utcSaturday, utcSundays, utcMondays, utcTuesdays, utcWednesdays, utcThursdays, utcFridays, utcSaturdays;
+var init_utcWeek = __esm({
+  "node_modules/d3-time/src/utcWeek.js"() {
+    init_interval();
+    init_duration2();
+    utcSunday = utcWeekday(0);
+    utcMonday = utcWeekday(1);
+    utcTuesday = utcWeekday(2);
+    utcWednesday = utcWeekday(3);
+    utcThursday = utcWeekday(4);
+    utcFriday = utcWeekday(5);
+    utcSaturday = utcWeekday(6);
+    utcSundays = utcSunday.range;
+    utcMondays = utcMonday.range;
+    utcTuesdays = utcTuesday.range;
+    utcWednesdays = utcWednesday.range;
+    utcThursdays = utcThursday.range;
+    utcFridays = utcFriday.range;
+    utcSaturdays = utcSaturday.range;
+  }
+});
+
+// node_modules/d3-time/src/utcYear.js
+var utcYear, utcYear_default, utcYears;
+var init_utcYear = __esm({
+  "node_modules/d3-time/src/utcYear.js"() {
+    init_interval();
+    utcYear = newInterval(function(date) {
+      date.setUTCMonth(0, 1);
+      date.setUTCHours(0, 0, 0, 0);
+    }, function(date, step) {
+      date.setUTCFullYear(date.getUTCFullYear() + step);
+    }, function(start2, end) {
+      return end.getUTCFullYear() - start2.getUTCFullYear();
+    }, function(date) {
+      return date.getUTCFullYear();
+    });
+    utcYear.every = function(k) {
+      return !isFinite(k = Math.floor(k)) || !(k > 0) ? null : newInterval(function(date) {
+        date.setUTCFullYear(Math.floor(date.getUTCFullYear() / k) * k);
+        date.setUTCMonth(0, 1);
+        date.setUTCHours(0, 0, 0, 0);
+      }, function(date, step) {
+        date.setUTCFullYear(date.getUTCFullYear() + step * k);
+      });
+    };
+    utcYear_default = utcYear;
+    utcYears = utcYear.range;
+  }
+});
+
+// node_modules/d3-time/src/index.js
+var init_src25 = __esm({
+  "node_modules/d3-time/src/index.js"() {
+    init_day();
+    init_week();
+    init_year();
+    init_utcDay();
+    init_utcWeek();
+    init_utcYear();
+  }
+});
+
+// node_modules/d3-time-format/src/locale.js
+function localDate(d) {
+  if (0 <= d.y && d.y < 100) {
+    var date = new Date(-1, d.m, d.d, d.H, d.M, d.S, d.L);
+    date.setFullYear(d.y);
+    return date;
+  }
+  return new Date(d.y, d.m, d.d, d.H, d.M, d.S, d.L);
+}
+function utcDate(d) {
+  if (0 <= d.y && d.y < 100) {
+    var date = new Date(Date.UTC(-1, d.m, d.d, d.H, d.M, d.S, d.L));
+    date.setUTCFullYear(d.y);
+    return date;
+  }
+  return new Date(Date.UTC(d.y, d.m, d.d, d.H, d.M, d.S, d.L));
+}
+function newDate(y, m, d) {
+  return { y, m, d, H: 0, M: 0, S: 0, L: 0 };
+}
+function formatLocale(locale3) {
+  var locale_dateTime = locale3.dateTime, locale_date = locale3.date, locale_time = locale3.time, locale_periods = locale3.periods, locale_weekdays = locale3.days, locale_shortWeekdays = locale3.shortDays, locale_months = locale3.months, locale_shortMonths = locale3.shortMonths;
+  var periodRe = formatRe(locale_periods), periodLookup = formatLookup(locale_periods), weekdayRe = formatRe(locale_weekdays), weekdayLookup = formatLookup(locale_weekdays), shortWeekdayRe = formatRe(locale_shortWeekdays), shortWeekdayLookup = formatLookup(locale_shortWeekdays), monthRe = formatRe(locale_months), monthLookup = formatLookup(locale_months), shortMonthRe = formatRe(locale_shortMonths), shortMonthLookup = formatLookup(locale_shortMonths);
+  var formats = {
+    "a": formatShortWeekday,
+    "A": formatWeekday,
+    "b": formatShortMonth,
+    "B": formatMonth,
+    "c": null,
+    "d": formatDayOfMonth,
+    "e": formatDayOfMonth,
+    "f": formatMicroseconds,
+    "g": formatYearISO,
+    "G": formatFullYearISO,
+    "H": formatHour24,
+    "I": formatHour12,
+    "j": formatDayOfYear,
+    "L": formatMilliseconds,
+    "m": formatMonthNumber,
+    "M": formatMinutes,
+    "p": formatPeriod,
+    "q": formatQuarter,
+    "Q": formatUnixTimestamp,
+    "s": formatUnixTimestampSeconds,
+    "S": formatSeconds,
+    "u": formatWeekdayNumberMonday,
+    "U": formatWeekNumberSunday,
+    "V": formatWeekNumberISO,
+    "w": formatWeekdayNumberSunday,
+    "W": formatWeekNumberMonday,
+    "x": null,
+    "X": null,
+    "y": formatYear,
+    "Y": formatFullYear,
+    "Z": formatZone,
+    "%": formatLiteralPercent
+  };
+  var utcFormats = {
+    "a": formatUTCShortWeekday,
+    "A": formatUTCWeekday,
+    "b": formatUTCShortMonth,
+    "B": formatUTCMonth,
+    "c": null,
+    "d": formatUTCDayOfMonth,
+    "e": formatUTCDayOfMonth,
+    "f": formatUTCMicroseconds,
+    "g": formatUTCYearISO,
+    "G": formatUTCFullYearISO,
+    "H": formatUTCHour24,
+    "I": formatUTCHour12,
+    "j": formatUTCDayOfYear,
+    "L": formatUTCMilliseconds,
+    "m": formatUTCMonthNumber,
+    "M": formatUTCMinutes,
+    "p": formatUTCPeriod,
+    "q": formatUTCQuarter,
+    "Q": formatUnixTimestamp,
+    "s": formatUnixTimestampSeconds,
+    "S": formatUTCSeconds,
+    "u": formatUTCWeekdayNumberMonday,
+    "U": formatUTCWeekNumberSunday,
+    "V": formatUTCWeekNumberISO,
+    "w": formatUTCWeekdayNumberSunday,
+    "W": formatUTCWeekNumberMonday,
+    "x": null,
+    "X": null,
+    "y": formatUTCYear,
+    "Y": formatUTCFullYear,
+    "Z": formatUTCZone,
+    "%": formatLiteralPercent
+  };
+  var parses = {
+    "a": parseShortWeekday,
+    "A": parseWeekday,
+    "b": parseShortMonth,
+    "B": parseMonth,
+    "c": parseLocaleDateTime,
+    "d": parseDayOfMonth,
+    "e": parseDayOfMonth,
+    "f": parseMicroseconds,
+    "g": parseYear,
+    "G": parseFullYear,
+    "H": parseHour24,
+    "I": parseHour24,
+    "j": parseDayOfYear,
+    "L": parseMilliseconds,
+    "m": parseMonthNumber,
+    "M": parseMinutes,
+    "p": parsePeriod,
+    "q": parseQuarter,
+    "Q": parseUnixTimestamp,
+    "s": parseUnixTimestampSeconds,
+    "S": parseSeconds,
+    "u": parseWeekdayNumberMonday,
+    "U": parseWeekNumberSunday,
+    "V": parseWeekNumberISO,
+    "w": parseWeekdayNumberSunday,
+    "W": parseWeekNumberMonday,
+    "x": parseLocaleDate,
+    "X": parseLocaleTime,
+    "y": parseYear,
+    "Y": parseFullYear,
+    "Z": parseZone,
+    "%": parseLiteralPercent
+  };
+  formats.x = newFormat(locale_date, formats);
+  formats.X = newFormat(locale_time, formats);
+  formats.c = newFormat(locale_dateTime, formats);
+  utcFormats.x = newFormat(locale_date, utcFormats);
+  utcFormats.X = newFormat(locale_time, utcFormats);
+  utcFormats.c = newFormat(locale_dateTime, utcFormats);
+  function newFormat(specifier, formats2) {
+    return function(date) {
+      var string = [], i = -1, j = 0, n = specifier.length, c, pad2, format2;
+      if (!(date instanceof Date))
+        date = new Date(+date);
+      while (++i < n) {
+        if (specifier.charCodeAt(i) === 37) {
+          string.push(specifier.slice(j, i));
+          if ((pad2 = pads[c = specifier.charAt(++i)]) != null)
+            c = specifier.charAt(++i);
+          else
+            pad2 = c === "e" ? " " : "0";
+          if (format2 = formats2[c])
+            c = format2(date, pad2);
+          string.push(c);
+          j = i + 1;
+        }
+      }
+      string.push(specifier.slice(j, i));
+      return string.join("");
+    };
+  }
+  function newParse(specifier, Z) {
+    return function(string) {
+      var d = newDate(1900, void 0, 1), i = parseSpecifier(d, specifier, string += "", 0), week, day2;
+      if (i != string.length)
+        return null;
+      if ("Q" in d)
+        return new Date(d.Q);
+      if ("s" in d)
+        return new Date(d.s * 1e3 + ("L" in d ? d.L : 0));
+      if (Z && !("Z" in d))
+        d.Z = 0;
+      if ("p" in d)
+        d.H = d.H % 12 + d.p * 12;
+      if (d.m === void 0)
+        d.m = "q" in d ? d.q : 0;
+      if ("V" in d) {
+        if (d.V < 1 || d.V > 53)
+          return null;
+        if (!("w" in d))
+          d.w = 1;
+        if ("Z" in d) {
+          week = utcDate(newDate(d.y, 0, 1)), day2 = week.getUTCDay();
+          week = day2 > 4 || day2 === 0 ? utcMonday.ceil(week) : utcMonday(week);
+          week = utcDay_default.offset(week, (d.V - 1) * 7);
+          d.y = week.getUTCFullYear();
+          d.m = week.getUTCMonth();
+          d.d = week.getUTCDate() + (d.w + 6) % 7;
+        } else {
+          week = localDate(newDate(d.y, 0, 1)), day2 = week.getDay();
+          week = day2 > 4 || day2 === 0 ? monday.ceil(week) : monday(week);
+          week = day_default.offset(week, (d.V - 1) * 7);
+          d.y = week.getFullYear();
+          d.m = week.getMonth();
+          d.d = week.getDate() + (d.w + 6) % 7;
+        }
+      } else if ("W" in d || "U" in d) {
+        if (!("w" in d))
+          d.w = "u" in d ? d.u % 7 : "W" in d ? 1 : 0;
+        day2 = "Z" in d ? utcDate(newDate(d.y, 0, 1)).getUTCDay() : localDate(newDate(d.y, 0, 1)).getDay();
+        d.m = 0;
+        d.d = "W" in d ? (d.w + 6) % 7 + d.W * 7 - (day2 + 5) % 7 : d.w + d.U * 7 - (day2 + 6) % 7;
+      }
+      if ("Z" in d) {
+        d.H += d.Z / 100 | 0;
+        d.M += d.Z % 100;
+        return utcDate(d);
+      }
+      return localDate(d);
+    };
+  }
+  function parseSpecifier(d, specifier, string, j) {
+    var i = 0, n = specifier.length, m = string.length, c, parse;
+    while (i < n) {
+      if (j >= m)
+        return -1;
+      c = specifier.charCodeAt(i++);
+      if (c === 37) {
+        c = specifier.charAt(i++);
+        parse = parses[c in pads ? specifier.charAt(i++) : c];
+        if (!parse || (j = parse(d, string, j)) < 0)
+          return -1;
+      } else if (c != string.charCodeAt(j++)) {
+        return -1;
+      }
+    }
+    return j;
+  }
+  function parsePeriod(d, string, i) {
+    var n = periodRe.exec(string.slice(i));
+    return n ? (d.p = periodLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+  }
+  function parseShortWeekday(d, string, i) {
+    var n = shortWeekdayRe.exec(string.slice(i));
+    return n ? (d.w = shortWeekdayLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+  }
+  function parseWeekday(d, string, i) {
+    var n = weekdayRe.exec(string.slice(i));
+    return n ? (d.w = weekdayLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+  }
+  function parseShortMonth(d, string, i) {
+    var n = shortMonthRe.exec(string.slice(i));
+    return n ? (d.m = shortMonthLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+  }
+  function parseMonth(d, string, i) {
+    var n = monthRe.exec(string.slice(i));
+    return n ? (d.m = monthLookup.get(n[0].toLowerCase()), i + n[0].length) : -1;
+  }
+  function parseLocaleDateTime(d, string, i) {
+    return parseSpecifier(d, locale_dateTime, string, i);
+  }
+  function parseLocaleDate(d, string, i) {
+    return parseSpecifier(d, locale_date, string, i);
+  }
+  function parseLocaleTime(d, string, i) {
+    return parseSpecifier(d, locale_time, string, i);
+  }
+  function formatShortWeekday(d) {
+    return locale_shortWeekdays[d.getDay()];
+  }
+  function formatWeekday(d) {
+    return locale_weekdays[d.getDay()];
+  }
+  function formatShortMonth(d) {
+    return locale_shortMonths[d.getMonth()];
+  }
+  function formatMonth(d) {
+    return locale_months[d.getMonth()];
+  }
+  function formatPeriod(d) {
+    return locale_periods[+(d.getHours() >= 12)];
+  }
+  function formatQuarter(d) {
+    return 1 + ~~(d.getMonth() / 3);
+  }
+  function formatUTCShortWeekday(d) {
+    return locale_shortWeekdays[d.getUTCDay()];
+  }
+  function formatUTCWeekday(d) {
+    return locale_weekdays[d.getUTCDay()];
+  }
+  function formatUTCShortMonth(d) {
+    return locale_shortMonths[d.getUTCMonth()];
+  }
+  function formatUTCMonth(d) {
+    return locale_months[d.getUTCMonth()];
+  }
+  function formatUTCPeriod(d) {
+    return locale_periods[+(d.getUTCHours() >= 12)];
+  }
+  function formatUTCQuarter(d) {
+    return 1 + ~~(d.getUTCMonth() / 3);
+  }
+  return {
+    format: function(specifier) {
+      var f = newFormat(specifier += "", formats);
+      f.toString = function() {
+        return specifier;
+      };
+      return f;
+    },
+    parse: function(specifier) {
+      var p = newParse(specifier += "", false);
+      p.toString = function() {
+        return specifier;
+      };
+      return p;
+    },
+    utcFormat: function(specifier) {
+      var f = newFormat(specifier += "", utcFormats);
+      f.toString = function() {
+        return specifier;
+      };
+      return f;
+    },
+    utcParse: function(specifier) {
+      var p = newParse(specifier += "", true);
+      p.toString = function() {
+        return specifier;
+      };
+      return p;
+    }
+  };
+}
+function pad(value, fill, width) {
+  var sign = value < 0 ? "-" : "", string = (sign ? -value : value) + "", length = string.length;
+  return sign + (length < width ? new Array(width - length + 1).join(fill) + string : string);
+}
+function requote(s) {
+  return s.replace(requoteRe, "\\$&");
+}
+function formatRe(names) {
+  return new RegExp("^(?:" + names.map(requote).join("|") + ")", "i");
+}
+function formatLookup(names) {
+  return new Map(names.map((name, i) => [name.toLowerCase(), i]));
+}
+function parseWeekdayNumberSunday(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 1));
+  return n ? (d.w = +n[0], i + n[0].length) : -1;
+}
+function parseWeekdayNumberMonday(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 1));
+  return n ? (d.u = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberSunday(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.U = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberISO(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.V = +n[0], i + n[0].length) : -1;
+}
+function parseWeekNumberMonday(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.W = +n[0], i + n[0].length) : -1;
+}
+function parseFullYear(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 4));
+  return n ? (d.y = +n[0], i + n[0].length) : -1;
+}
+function parseYear(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.y = +n[0] + (+n[0] > 68 ? 1900 : 2e3), i + n[0].length) : -1;
+}
+function parseZone(d, string, i) {
+  var n = /^(Z)|([+-]\d\d)(?::?(\d\d))?/.exec(string.slice(i, i + 6));
+  return n ? (d.Z = n[1] ? 0 : -(n[2] + (n[3] || "00")), i + n[0].length) : -1;
+}
+function parseQuarter(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 1));
+  return n ? (d.q = n[0] * 3 - 3, i + n[0].length) : -1;
+}
+function parseMonthNumber(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.m = n[0] - 1, i + n[0].length) : -1;
+}
+function parseDayOfMonth(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.d = +n[0], i + n[0].length) : -1;
+}
+function parseDayOfYear(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 3));
+  return n ? (d.m = 0, d.d = +n[0], i + n[0].length) : -1;
+}
+function parseHour24(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.H = +n[0], i + n[0].length) : -1;
+}
+function parseMinutes(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.M = +n[0], i + n[0].length) : -1;
+}
+function parseSeconds(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 2));
+  return n ? (d.S = +n[0], i + n[0].length) : -1;
+}
+function parseMilliseconds(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 3));
+  return n ? (d.L = +n[0], i + n[0].length) : -1;
+}
+function parseMicroseconds(d, string, i) {
+  var n = numberRe.exec(string.slice(i, i + 6));
+  return n ? (d.L = Math.floor(n[0] / 1e3), i + n[0].length) : -1;
+}
+function parseLiteralPercent(d, string, i) {
+  var n = percentRe.exec(string.slice(i, i + 1));
+  return n ? i + n[0].length : -1;
+}
+function parseUnixTimestamp(d, string, i) {
+  var n = numberRe.exec(string.slice(i));
+  return n ? (d.Q = +n[0], i + n[0].length) : -1;
+}
+function parseUnixTimestampSeconds(d, string, i) {
+  var n = numberRe.exec(string.slice(i));
+  return n ? (d.s = +n[0], i + n[0].length) : -1;
+}
+function formatDayOfMonth(d, p) {
+  return pad(d.getDate(), p, 2);
+}
+function formatHour24(d, p) {
+  return pad(d.getHours(), p, 2);
+}
+function formatHour12(d, p) {
+  return pad(d.getHours() % 12 || 12, p, 2);
+}
+function formatDayOfYear(d, p) {
+  return pad(1 + day_default.count(year_default(d), d), p, 3);
+}
+function formatMilliseconds(d, p) {
+  return pad(d.getMilliseconds(), p, 3);
+}
+function formatMicroseconds(d, p) {
+  return formatMilliseconds(d, p) + "000";
+}
+function formatMonthNumber(d, p) {
+  return pad(d.getMonth() + 1, p, 2);
+}
+function formatMinutes(d, p) {
+  return pad(d.getMinutes(), p, 2);
+}
+function formatSeconds(d, p) {
+  return pad(d.getSeconds(), p, 2);
+}
+function formatWeekdayNumberMonday(d) {
+  var day2 = d.getDay();
+  return day2 === 0 ? 7 : day2;
+}
+function formatWeekNumberSunday(d, p) {
+  return pad(sunday.count(year_default(d) - 1, d), p, 2);
+}
+function dISO(d) {
+  var day2 = d.getDay();
+  return day2 >= 4 || day2 === 0 ? thursday(d) : thursday.ceil(d);
+}
+function formatWeekNumberISO(d, p) {
+  d = dISO(d);
+  return pad(thursday.count(year_default(d), d) + (year_default(d).getDay() === 4), p, 2);
+}
+function formatWeekdayNumberSunday(d) {
+  return d.getDay();
+}
+function formatWeekNumberMonday(d, p) {
+  return pad(monday.count(year_default(d) - 1, d), p, 2);
+}
+function formatYear(d, p) {
+  return pad(d.getFullYear() % 100, p, 2);
+}
+function formatYearISO(d, p) {
+  d = dISO(d);
+  return pad(d.getFullYear() % 100, p, 2);
+}
+function formatFullYear(d, p) {
+  return pad(d.getFullYear() % 1e4, p, 4);
+}
+function formatFullYearISO(d, p) {
+  var day2 = d.getDay();
+  d = day2 >= 4 || day2 === 0 ? thursday(d) : thursday.ceil(d);
+  return pad(d.getFullYear() % 1e4, p, 4);
+}
+function formatZone(d) {
+  var z = d.getTimezoneOffset();
+  return (z > 0 ? "-" : (z *= -1, "+")) + pad(z / 60 | 0, "0", 2) + pad(z % 60, "0", 2);
+}
+function formatUTCDayOfMonth(d, p) {
+  return pad(d.getUTCDate(), p, 2);
+}
+function formatUTCHour24(d, p) {
+  return pad(d.getUTCHours(), p, 2);
+}
+function formatUTCHour12(d, p) {
+  return pad(d.getUTCHours() % 12 || 12, p, 2);
+}
+function formatUTCDayOfYear(d, p) {
+  return pad(1 + utcDay_default.count(utcYear_default(d), d), p, 3);
+}
+function formatUTCMilliseconds(d, p) {
+  return pad(d.getUTCMilliseconds(), p, 3);
+}
+function formatUTCMicroseconds(d, p) {
+  return formatUTCMilliseconds(d, p) + "000";
+}
+function formatUTCMonthNumber(d, p) {
+  return pad(d.getUTCMonth() + 1, p, 2);
+}
+function formatUTCMinutes(d, p) {
+  return pad(d.getUTCMinutes(), p, 2);
+}
+function formatUTCSeconds(d, p) {
+  return pad(d.getUTCSeconds(), p, 2);
+}
+function formatUTCWeekdayNumberMonday(d) {
+  var dow = d.getUTCDay();
+  return dow === 0 ? 7 : dow;
+}
+function formatUTCWeekNumberSunday(d, p) {
+  return pad(utcSunday.count(utcYear_default(d) - 1, d), p, 2);
+}
+function UTCdISO(d) {
+  var day2 = d.getUTCDay();
+  return day2 >= 4 || day2 === 0 ? utcThursday(d) : utcThursday.ceil(d);
+}
+function formatUTCWeekNumberISO(d, p) {
+  d = UTCdISO(d);
+  return pad(utcThursday.count(utcYear_default(d), d) + (utcYear_default(d).getUTCDay() === 4), p, 2);
+}
+function formatUTCWeekdayNumberSunday(d) {
+  return d.getUTCDay();
+}
+function formatUTCWeekNumberMonday(d, p) {
+  return pad(utcMonday.count(utcYear_default(d) - 1, d), p, 2);
+}
+function formatUTCYear(d, p) {
+  return pad(d.getUTCFullYear() % 100, p, 2);
+}
+function formatUTCYearISO(d, p) {
+  d = UTCdISO(d);
+  return pad(d.getUTCFullYear() % 100, p, 2);
+}
+function formatUTCFullYear(d, p) {
+  return pad(d.getUTCFullYear() % 1e4, p, 4);
+}
+function formatUTCFullYearISO(d, p) {
+  var day2 = d.getUTCDay();
+  d = day2 >= 4 || day2 === 0 ? utcThursday(d) : utcThursday.ceil(d);
+  return pad(d.getUTCFullYear() % 1e4, p, 4);
+}
+function formatUTCZone() {
+  return "+0000";
+}
+function formatLiteralPercent() {
+  return "%";
+}
+function formatUnixTimestamp(d) {
+  return +d;
+}
+function formatUnixTimestampSeconds(d) {
+  return Math.floor(+d / 1e3);
+}
+var pads, numberRe, percentRe, requoteRe;
+var init_locale2 = __esm({
+  "node_modules/d3-time-format/src/locale.js"() {
+    init_src25();
+    pads = { "-": "", "_": " ", "0": "0" };
+    numberRe = /^\s*\d+/;
+    percentRe = /^%/;
+    requoteRe = /[\\^$*+?|[\]().{}]/g;
+  }
+});
+
+// node_modules/d3-time-format/src/defaultLocale.js
+function defaultLocale2(definition) {
+  locale2 = formatLocale(definition);
+  timeFormat = locale2.format;
+  timeParse = locale2.parse;
+  utcFormat = locale2.utcFormat;
+  utcParse = locale2.utcParse;
+  return locale2;
+}
+var locale2, timeFormat, timeParse, utcFormat, utcParse;
+var init_defaultLocale2 = __esm({
+  "node_modules/d3-time-format/src/defaultLocale.js"() {
+    init_locale2();
+    defaultLocale2({
+      dateTime: "%x, %X",
+      date: "%-m/%-d/%Y",
+      time: "%-I:%M:%S %p",
+      periods: ["AM", "PM"],
+      days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      shortDays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      shortMonths: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    });
+  }
+});
+
+// node_modules/d3-time-format/src/index.js
+var init_src26 = __esm({
+  "node_modules/d3-time-format/src/index.js"() {
+    init_defaultLocale2();
+  }
+});
+
+// node_modules/d3-scale/src/index.js
+var init_src27 = __esm({
+  "node_modules/d3-scale/src/index.js"() {
+  }
+});
+
+// node_modules/d3-scale-chromatic/src/index.js
+var init_src28 = __esm({
+  "node_modules/d3-scale-chromatic/src/index.js"() {
+  }
+});
+
+// node_modules/d3-shape/src/index.js
+var init_src29 = __esm({
+  "node_modules/d3-shape/src/index.js"() {
+  }
+});
+
+// node_modules/d3-zoom/src/constant.js
+var init_constant4 = __esm({
+  "node_modules/d3-zoom/src/constant.js"() {
+  }
+});
+
+// node_modules/d3-zoom/src/event.js
+var init_event2 = __esm({
+  "node_modules/d3-zoom/src/event.js"() {
+  }
+});
 
 // node_modules/d3-zoom/src/transform.js
 function Transform(k, x, y) {
@@ -3281,2534 +4546,3513 @@ function Transform(k, x, y) {
   this.x = x;
   this.y = y;
 }
-Transform.prototype = {
-  constructor: Transform,
-  scale: function(k) {
-    return k === 1 ? this : new Transform(this.k * k, this.x, this.y);
-  },
-  translate: function(x, y) {
-    return x === 0 & y === 0 ? this : new Transform(this.k, this.x + this.k * x, this.y + this.k * y);
-  },
-  apply: function(point) {
-    return [point[0] * this.k + this.x, point[1] * this.k + this.y];
-  },
-  applyX: function(x) {
-    return x * this.k + this.x;
-  },
-  applyY: function(y) {
-    return y * this.k + this.y;
-  },
-  invert: function(location) {
-    return [(location[0] - this.x) / this.k, (location[1] - this.y) / this.k];
-  },
-  invertX: function(x) {
-    return (x - this.x) / this.k;
-  },
-  invertY: function(y) {
-    return (y - this.y) / this.k;
-  },
-  rescaleX: function(x) {
-    return x.copy().domain(x.range().map(this.invertX, this).map(x.invert, x));
-  },
-  rescaleY: function(y) {
-    return y.copy().domain(y.range().map(this.invertY, this).map(y.invert, y));
-  },
-  toString: function() {
-    return "translate(" + this.x + "," + this.y + ") scale(" + this.k + ")";
-  }
-};
-var identity2 = new Transform(1, 0, 0);
-transform.prototype = Transform.prototype;
 function transform(node) {
   while (!node.__zoom)
     if (!(node = node.parentNode))
       return identity2;
   return node.__zoom;
 }
+var identity2;
+var init_transform2 = __esm({
+  "node_modules/d3-zoom/src/transform.js"() {
+    Transform.prototype = {
+      constructor: Transform,
+      scale: function(k) {
+        return k === 1 ? this : new Transform(this.k * k, this.x, this.y);
+      },
+      translate: function(x, y) {
+        return x === 0 & y === 0 ? this : new Transform(this.k, this.x + this.k * x, this.y + this.k * y);
+      },
+      apply: function(point) {
+        return [point[0] * this.k + this.x, point[1] * this.k + this.y];
+      },
+      applyX: function(x) {
+        return x * this.k + this.x;
+      },
+      applyY: function(y) {
+        return y * this.k + this.y;
+      },
+      invert: function(location) {
+        return [(location[0] - this.x) / this.k, (location[1] - this.y) / this.k];
+      },
+      invertX: function(x) {
+        return (x - this.x) / this.k;
+      },
+      invertY: function(y) {
+        return (y - this.y) / this.k;
+      },
+      rescaleX: function(x) {
+        return x.copy().domain(x.range().map(this.invertX, this).map(x.invert, x));
+      },
+      rescaleY: function(y) {
+        return y.copy().domain(y.range().map(this.invertY, this).map(y.invert, y));
+      },
+      toString: function() {
+        return "translate(" + this.x + "," + this.y + ") scale(" + this.k + ")";
+      }
+    };
+    identity2 = new Transform(1, 0, 0);
+    transform.prototype = Transform.prototype;
+  }
+});
 
-// dist/esm/layer/d3Layer.js
-var baseName = "D3Layer";
-var backgroundClassName = "ig-layer-background";
-var D3Layer = class extends Layer {
-  constructor(baseName2, options) {
-    super(baseName2, options);
-    this._width = options.width;
-    this._height = options.height;
-    this._offset = options.offset;
-    this._name = options.name;
-    this._graphic = select_default2(options.container).append("g").call((g) => {
-      if (this._name)
-        g.attr("className", this._name);
-    }).call((g) => {
-      if (this._offset)
-        g.attr("transform", `translate(${this._offset.x || 0}, ${this._offset.y || 0})`);
-    }).node();
-    select_default2(this._graphic).append("rect").attr("class", backgroundClassName).attr("width", this._width).attr("height", this._height).attr("opacity", 0);
-    let tempElem = this._container;
-    while (tempElem && tempElem.tagName !== "svg")
-      tempElem = tempElem.parentElement;
-    if (tempElem.tagName !== "svg")
-      throw Error("Container must be wrapped in SVGSVGElement");
-    this._svg = tempElem;
-    this._postInitialize && this._postInitialize.call(this, this);
+// node_modules/d3-zoom/src/noevent.js
+var init_noevent2 = __esm({
+  "node_modules/d3-zoom/src/noevent.js"() {
   }
-  getVisualElements() {
-    const elems = [
-      ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)
-    ];
-    return elems;
-  }
-  cloneVisualElements(element, deep = false) {
-    const copiedElement = select_default2(element).clone(deep).node();
-    const frag = document.createDocumentFragment();
-    frag.append(copiedElement);
-    return copiedElement;
-  }
-  select(selector) {
-    return this._graphic.querySelectorAll(selector);
-  }
-  picking(options) {
-    if (options.baseOn === QueryType.Shape) {
-      return this._shapeQuery(options);
-    } else if (options.baseOn === QueryType.Data) {
-      return this._dataQuery(options);
-    } else if (options.baseOn === QueryType.Attr) {
-      return this._attrQuery(options);
-    }
-    return [];
-  }
-  _isElementInLayer(elem) {
-    return this._graphic.contains(elem) && !elem.classList.contains(backgroundClassName);
-  }
-  _shapeQuery(options) {
-    let result = [];
-    const svgBCR = this._svg.getBoundingClientRect();
-    const layerBCR = this._graphic.getBoundingClientRect();
-    if (options.type === ShapeQueryType.SurfacePoint) {
-      const { x, y } = options;
-      if (!isFinite(x) || !isFinite(y)) {
-        return [];
-      }
-      result = [...document.elementsFromPoint(x, y)].filter(this._isElementInLayer.bind(this));
-      if (result.length >= 1) {
-        result = [result[0]];
-      }
-    } else if (options.type === ShapeQueryType.Point) {
-      const { x, y } = options;
-      if (!isFinite(x) || !isFinite(y)) {
-        return [];
-      }
-      result = document.elementsFromPoint(x, y).filter(this._isElementInLayer.bind(this));
-    } else if (options.type === ShapeQueryType.Circle) {
-      const x = options.x - svgBCR.left, y = options.y - svgBCR.top, r = options.r;
-      const innerRectWidth = Math.floor(r * Math.sin(Math.PI / 4)) << 1;
-      const innerRectX = x - (innerRectWidth >>> 1);
-      const innerRectY = y - (innerRectWidth >>> 1);
-      const elemSet = new Set();
-      const innerRect = this._svg.createSVGRect();
-      innerRect.x = innerRectX;
-      innerRect.y = innerRectY;
-      innerRect.width = innerRectWidth;
-      innerRect.height = innerRectWidth;
-      this._svg.getIntersectionList(innerRect, this._graphic).forEach((elem) => elemSet.add(elem));
-      const outerRectWidth = r;
-      const outerRectX = x - r;
-      const outerRectY = y - r;
-      const outerElemSet = new Set();
-      const outerRect = this._svg.createSVGRect();
-      outerRect.x = outerRectX;
-      outerRect.y = outerRectY;
-      outerRect.width = outerRectWidth * 2;
-      outerRect.height = outerRectWidth * 2;
-      this._svg.getIntersectionList(outerRect, this._graphic).forEach((elem) => outerElemSet.add(elem));
-      let outer = 1;
-      while (true) {
-        for (let elem of outerElemSet) {
-          if (elemSet.has(elem))
-            outerElemSet.delete(elem);
-        }
-        if (!outerElemSet.size)
-          break;
-        if (outer * 2 + innerRectWidth >= r * 2)
-          break;
-        const w = Math.sqrt(r * r - Math.pow(innerRectWidth / 2 + outer, 2));
-        const topRect = this._svg.createSVGRect();
-        topRect.x = x - w;
-        topRect.y = innerRectY - outer;
-        topRect.width = w * 2;
-        topRect.height = 1;
-        const bottomRect = this._svg.createSVGRect();
-        bottomRect.x = x - w;
-        bottomRect.y = innerRectY + innerRectWidth + outer - 1;
-        bottomRect.width = w * 2;
-        bottomRect.height = 1;
-        const leftRect = this._svg.createSVGRect();
-        leftRect.x = innerRectX - outer;
-        leftRect.y = y - w;
-        leftRect.width = 1;
-        leftRect.height = w * 2;
-        const rightRect = this._svg.createSVGRect();
-        rightRect.x = innerRectX + innerRectWidth + outer - 1;
-        rightRect.y = y - w;
-        rightRect.width = 1;
-        rightRect.height = w * 2;
-        [topRect, bottomRect, leftRect, rightRect].forEach((rect) => {
-          this._svg.getIntersectionList(rect, this._graphic).forEach((elem) => elemSet.add(elem));
-        });
-        outer++;
-      }
-      result = [...elemSet].filter(this._isElementInLayer.bind(this));
-    } else if (options.type === ShapeQueryType.Rect) {
-      const { x, y, width, height } = options;
-      const x0 = Math.min(x, x + width) - svgBCR.left, y0 = Math.min(y, y + height) - svgBCR.top, absWidth = Math.abs(width), absHeight = Math.abs(height);
-      const rect = this._svg.createSVGRect();
-      rect.x = x0;
-      rect.y = y0;
-      rect.width = absWidth;
-      rect.height = absHeight;
-      result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
-    } else if (options.type === ShapeQueryType.Polygon) {
-    }
-    const resultWithSVGGElement = [];
-    while (result.length > 0) {
-      const elem = result.shift();
-      resultWithSVGGElement.push(elem);
-      if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && this._graphic !== elem.parentElement)
-        result.push(elem.parentElement);
-    }
-    return resultWithSVGGElement;
-  }
-  _dataQuery(options) {
-    let result = [];
-    const visualElements = selectAll_default2(this.getVisualElements());
-    if (options.type === DataQueryType.Quantitative) {
-      const { attrName, extent } = options;
-      result = visualElements.filter((d) => d && d[attrName] && extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
-    }
-    if (options.type === DataQueryType.Quantitative2D) {
-      const { attrNameX, extentX, attrNameY, extentY } = options;
-      result = visualElements.filter((d) => d && d[attrNameX] && d[attrNameY] && extentX[0] < d[attrNameX] && d[attrNameX] < extentX[1] && extentY[0] < d[attrNameY] && d[attrNameY] < extentY[1]).nodes();
-    } else if (options.type === DataQueryType.Nominal) {
-      const { attrName, extent } = options;
-      result = visualElements.filter((d) => d && d[attrName] && extent.find(d[attrName])).nodes();
-    } else if (options.type === DataQueryType.Temporal) {
-      const { attrName, extent } = options;
-      const dateParser = options.dateParser || ((d) => d);
-      result = visualElements.filter((d) => d && d[attrName] && extent[0].getTime() < dateParser(d[attrName]).getTime() && dateParser(d[attrName]).getTime() < extent[1].getTime()).nodes();
-    }
-    return result;
-  }
-  _attrQuery(options) {
-    const { attrName, value } = options;
-    const result = select_default2(this._graphic).filter((d) => d[attrName] === value).nodes();
-    return result;
-  }
-};
-Layer.D3Layer = D3Layer;
-Layer.register(baseName, { constructor: D3Layer });
-Layer.register(baseName, { constructor: D3Layer });
+});
 
-// dist/esm/layer/index.js
-var Layer2 = Layer;
+// node_modules/d3-zoom/src/zoom.js
+var init_zoom = __esm({
+  "node_modules/d3-zoom/src/zoom.js"() {
+    init_src10();
+    init_constant4();
+    init_event2();
+    init_transform2();
+    init_noevent2();
+  }
+});
 
-// dist/esm/transformer/transformer.js
-var registeredTransformers = {};
-var instanceTransformers = [];
-var transientQueue = [];
-var transientCleaner = () => {
-  let transientElement;
-  while (transientElement = transientQueue.pop()) {
-    try {
-      transientElement.remove();
-    } catch (e) {
-    }
+// node_modules/d3-zoom/src/index.js
+var init_src30 = __esm({
+  "node_modules/d3-zoom/src/index.js"() {
+    init_zoom();
+    init_transform2();
   }
-  if (!global.stopTransient) {
-    instanceTransformers.filter((transformer) => transformer._transient).forEach((transformer) => transformer.redraw());
+});
+
+// node_modules/d3/index.js
+var init_d3 = __esm({
+  "node_modules/d3/index.js"() {
+    init_package();
+    init_src();
+    init_src2();
+    init_src11();
+    init_src13();
+    init_src6();
+    init_src14();
+    init_src15();
+    init_src3();
+    init_src5();
+    init_src16();
+    init_src9();
+    init_src17();
+    init_src19();
+    init_src20();
+    init_src21();
+    init_src22();
+    init_src7();
+    init_src12();
+    init_src23();
+    init_src18();
+    init_src24();
+    init_src27();
+    init_src28();
+    init_src4();
+    init_src29();
+    init_src25();
+    init_src26();
+    init_src8();
+    init_src10();
+    init_src30();
   }
-  requestAnimationFrame(transientCleaner);
-};
-requestAnimationFrame(transientCleaner);
-var GraphicalTransformer = class {
-  constructor(baseName2, options) {
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? this._baseName;
-    this._sharedVar = options.sharedVar ?? {};
-    this._redraw = options.redraw ?? (() => {
-    });
-    this._layer = options.layer;
-    this._transient = options.transient ?? false;
-    this.redraw();
-    instanceTransformers.push(this);
-  }
-  getSharedVar(name) {
-    return this._sharedVar[name];
-  }
-  setSharedVar(name, value) {
-    this._sharedVar[name] = value;
-    this.redraw();
-  }
-  setSharedVars(obj) {
-    Object.entries(obj).forEach(([k, v]) => this._sharedVar[k] = v);
-    this.redraw();
-  }
-  redraw(transient = false) {
-    if (!this._layer && !this.getSharedVar("layer"))
-      return;
-    const layer = this._layer || this.getSharedVar("layer");
-    transient = transient || this._transient;
-    let preDrawElements = [], postDrawElements = [], changedLayers = new Set([layer]);
-    if (transient) {
-      preDrawElements = layer.getVisualElements();
-      if (!layer._getLayerFromQueue) {
-        layer._getLayerFromQueue = layer.getLayerFromQueue;
-        layer.getLayerFromQueue = function() {
-          const result = layer._getLayerFromQueue(...arguments);
-          preDrawElements = preDrawElements.concat(result.getVisualElements());
-          changedLayers.add(result);
-          return result;
-        };
-      }
-    }
-    this._redraw({
-      layer,
-      transformer: this
-    });
-    if (transient) {
-      layer.getLayerFromQueue = layer._getLayerFromQueue;
-      delete layer._getLayerFromQueue;
-      changedLayers.forEach((layer2) => {
-        postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer2.getGraphic().childNodes));
-        const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
-        transientQueue = transientQueue.concat(transientElements);
-      });
-    }
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  static register(baseName2, options) {
-    registeredTransformers[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredTransformers[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName2] ?? {}, options ?? {}, {
-      sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
-    });
-    const transformer = new mergedOptions.constructor(baseName2, mergedOptions);
-    instanceTransformers.push(transformer);
-    return transformer;
-  }
-  static findTransformer(baseNameOrRealName) {
-    return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register5 = GraphicalTransformer.register;
-var unregister3 = GraphicalTransformer.unregister;
-var initialize5 = GraphicalTransformer.initialize;
-var findTransformer = GraphicalTransformer.findTransformer;
+});
 
 // dist/esm/transformer/builtin.js
-GraphicalTransformer.register("SliderTransformer", {
-  constructor: GraphicalTransformer,
-  redraw: ({ layer, transformer }) => {
-    select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
-    const x1 = transformer.getSharedVar("x1") ?? 0;
-    const x2 = transformer.getSharedVar("x2") ?? 0;
-    const height = transformer.getSharedVar("height") ?? 0;
-    const fill = transformer.getSharedVar("fill") ?? "#000000";
-    const opacity = transformer.getSharedVar("opacity") ?? 0.3;
-    select_default2(layer.getGraphic()).append("rect").attr("x1", x1).attr("x2", x2).attr("width", x2 - x1).attr("height", height).attr("fill", fill).attr("opacity", opacity);
-  }
-});
-GraphicalTransformer.register("TransientRectangleTransformer", {
-  constructor: GraphicalTransformer,
-  redraw: ({ layer, transformer }) => {
-    select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
-    select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor")).attr("opacity", transformer.getSharedVar("opacity"));
-  }
-});
-GraphicalTransformer.register("HighlightSelection", {
-  constructor: GraphicalTransformer,
-  redraw({ layer, transformer }) {
-    const elems = select_default2(layer.getGraphic()).selectAll(transformer.getSharedVar("selector") || "*");
-    const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
-    attrValueEntries.forEach(([key, value]) => {
-      elems.attr(key, value);
+var init_builtin = __esm({
+  "dist/esm/transformer/builtin.js"() {
+    init_transformer();
+    init_d3();
+    GraphicalTransformer.register("SliderTransformer", {
+      constructor: GraphicalTransformer,
+      redraw: ({ layer, transformer }) => {
+        select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+        const x1 = transformer.getSharedVar("x1") ?? 0;
+        const x2 = transformer.getSharedVar("x2") ?? 0;
+        const height = transformer.getSharedVar("height") ?? 0;
+        const fill = transformer.getSharedVar("fill") ?? "#000000";
+        const opacity = transformer.getSharedVar("opacity") ?? 0.3;
+        select_default2(layer.getGraphic()).append("rect").attr("x1", x1).attr("x2", x2).attr("width", x2 - x1).attr("height", height).attr("fill", fill).attr("opacity", opacity);
+      }
     });
-  }
-});
-GraphicalTransformer.register("TransientRectangleTransformer", {
-  constructor: GraphicalTransformer,
-  redraw: ({ layer, transformer }) => {
-    select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
-    select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor")).attr("opacity", transformer.getSharedVar("opacity"));
-  }
-});
-GraphicalTransformer.register("SelectionTransformer", {
-  constructor: GraphicalTransformer,
-  redraw: ({ layer, transformer }) => {
-    transformer.getSharedVar("selectionResult").forEach((resultNode) => {
-      layer.getGraphic().appendChild(resultNode);
+    GraphicalTransformer.register("TransientRectangleTransformer", {
+      constructor: GraphicalTransformer,
+      redraw: ({ layer, transformer }) => {
+        select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+        select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor")).attr("opacity", transformer.getSharedVar("opacity"));
+      }
     });
-    const highlightColor = transformer.getSharedVar("highlightColor");
-    const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues") || {});
-    if (highlightColor || attrValueEntries.length) {
-      const elems = selectAll_default2(transformer.getSharedVar("selectionResult"));
-      if (highlightColor) {
-        elems.attr("fill", highlightColor).attr("stroke", highlightColor);
-      }
-      attrValueEntries.forEach(([key, value]) => {
-        elems.attr(key, value);
-      });
-    }
-  }
-});
-GraphicalTransformer.register("HelperLineTransformer", {
-  constructor: GraphicalTransformer,
-  transient: true,
-  sharedVar: {
-    orientation: ["horizontal", "vertical"],
-    style: {}
-  },
-  redraw({ layer, transformer }) {
-    const mainLayer = layer.getLayerFromQueue("mainLayer");
-    const orientation = transformer.getSharedVar("orientation");
-    const style = transformer.getSharedVar("style");
-    const x = transformer.getSharedVar("x");
-    const y = transformer.getSharedVar("y");
-    const tooltipConfig = transformer.getSharedVar("tooltip");
-    const scaleX = transformer.getSharedVar("scaleX");
-    const scaleY = transformer.getSharedVar("scaleY");
-    const tooltipQueue = [];
-    let tooltipOffsetX = 0;
-    let tooltipOffsetY = 0;
-    if (tooltipConfig) {
-      if (typeof tooltipConfig === "object" && tooltipConfig.prefix) {
-        tooltipQueue.push(tooltipConfig.prefix);
-      }
-      if (scaleX && scaleX.invert && typeof x === "number") {
-        tooltipQueue.push(scaleX.invert(x - (layer._offset?.x ?? 0)));
-      }
-      if (scaleY && scaleY.invert && typeof y === "number") {
-        tooltipQueue.push(scaleY.invert(y - (layer._offset?.y ?? 0)));
-      }
-      if (typeof tooltipConfig === "object" && tooltipConfig.suffix) {
-        tooltipQueue.push(tooltipConfig.suffix);
-      }
-      if (typeof tooltipConfig === "object" && tooltipConfig.offset) {
-        if (typeof tooltipConfig.offset.x === "number") {
-          tooltipOffsetX = tooltipConfig.offset.x;
-        }
-        if (typeof tooltipConfig.offset.y === "number") {
-          tooltipOffsetY = tooltipConfig.offset.y;
-        }
-        if (typeof tooltipConfig.offset.x === "function" && typeof x === "number") {
-          tooltipOffsetX = tooltipConfig.offset.x(x - (layer._offset?.x ?? 0));
-        }
-        if (typeof tooltipConfig.offset.y === "function" && typeof y === "number") {
-          tooltipOffsetY = tooltipConfig.offset.y(y - (layer._offset?.y ?? 0));
-        }
-      }
-    }
-    const tooltip = tooltipQueue.join(" ");
-    if (orientation.includes("horizontal") && typeof y === "number") {
-      const line = select_default2(layer.getGraphic()).append("line").attr("x1", 0).attr("x2", mainLayer.getGraphic().getBoundingClientRect().width).attr("y1", y - (layer._offset?.y ?? 0)).attr("y2", y - (layer._offset?.y ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
-      if (style) {
-        Object.entries(style).forEach(([key, value]) => {
-          line.attr(key, value);
+    GraphicalTransformer.register("HighlightSelection", {
+      constructor: GraphicalTransformer,
+      redraw({ layer, transformer }) {
+        const elems = select_default2(layer.getGraphic()).selectAll(transformer.getSharedVar("selector") || "*");
+        const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues"));
+        attrValueEntries.forEach(([key, value]) => {
+          elems.attr(key, value);
         });
       }
-    }
-    if (orientation.includes("vertical") && typeof x === "number") {
-      const line = select_default2(layer.getGraphic()).append("line").attr("y1", 0).attr("y2", mainLayer.getGraphic().getBoundingClientRect().height).attr("x1", x - (layer._offset?.x ?? 0)).attr("x2", x - (layer._offset?.x ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
-      if (style) {
-        Object.entries(style).forEach(([key, value]) => {
-          line.attr(key, value);
-        });
+    });
+    GraphicalTransformer.register("TransientRectangleTransformer", {
+      constructor: GraphicalTransformer,
+      redraw: ({ layer, transformer }) => {
+        select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
+        select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor")).attr("opacity", transformer.getSharedVar("opacity"));
       }
-    }
-    if (tooltip) {
-      select_default2(layer.getGraphic()).append("text").attr("x", x - (layer._offset?.x ?? 0)).attr("y", y - (layer._offset?.y ?? 0)).text(tooltip);
-    }
+    });
+    GraphicalTransformer.register("SelectionTransformer", {
+      constructor: GraphicalTransformer,
+      redraw: ({ layer, transformer }) => {
+        transformer.getSharedVar("selectionResult").forEach((resultNode) => {
+          layer.getGraphic().appendChild(resultNode);
+        });
+        const highlightColor = transformer.getSharedVar("highlightColor");
+        const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues") || {});
+        if (highlightColor || attrValueEntries.length) {
+          const elems = selectAll_default2(transformer.getSharedVar("selectionResult"));
+          if (highlightColor) {
+            elems.attr("fill", highlightColor).attr("stroke", highlightColor);
+          }
+          attrValueEntries.forEach(([key, value]) => {
+            elems.attr(key, value);
+          });
+        }
+      }
+    });
+    GraphicalTransformer.register("HelperLineTransformer", {
+      constructor: GraphicalTransformer,
+      transient: true,
+      sharedVar: {
+        orientation: ["horizontal", "vertical"],
+        style: {}
+      },
+      redraw({ layer, transformer }) {
+        const mainLayer = layer.getLayerFromQueue("mainLayer");
+        const orientation = transformer.getSharedVar("orientation");
+        const style = transformer.getSharedVar("style");
+        const x = transformer.getSharedVar("x");
+        const y = transformer.getSharedVar("y");
+        const tooltipConfig = transformer.getSharedVar("tooltip");
+        const scaleX = transformer.getSharedVar("scaleX");
+        const scaleY = transformer.getSharedVar("scaleY");
+        const tooltipQueue = [];
+        let tooltipOffsetX = 0;
+        let tooltipOffsetY = 0;
+        if (tooltipConfig) {
+          if (typeof tooltipConfig === "object" && tooltipConfig.prefix) {
+            tooltipQueue.push(tooltipConfig.prefix);
+          }
+          if (scaleX && scaleX.invert && typeof x === "number") {
+            tooltipQueue.push(scaleX.invert(x - (layer._offset?.x ?? 0)));
+          }
+          if (scaleY && scaleY.invert && typeof y === "number") {
+            tooltipQueue.push(scaleY.invert(y - (layer._offset?.y ?? 0)));
+          }
+          if (typeof tooltipConfig === "object" && tooltipConfig.suffix) {
+            tooltipQueue.push(tooltipConfig.suffix);
+          }
+          if (typeof tooltipConfig === "object" && tooltipConfig.offset) {
+            if (typeof tooltipConfig.offset.x === "number") {
+              tooltipOffsetX = tooltipConfig.offset.x;
+            }
+            if (typeof tooltipConfig.offset.y === "number") {
+              tooltipOffsetY = tooltipConfig.offset.y;
+            }
+            if (typeof tooltipConfig.offset.x === "function" && typeof x === "number") {
+              tooltipOffsetX = tooltipConfig.offset.x(x - (layer._offset?.x ?? 0));
+            }
+            if (typeof tooltipConfig.offset.y === "function" && typeof y === "number") {
+              tooltipOffsetY = tooltipConfig.offset.y(y - (layer._offset?.y ?? 0));
+            }
+          }
+        }
+        const tooltip = tooltipQueue.join(" ");
+        if (orientation.includes("horizontal") && typeof y === "number") {
+          const line = select_default2(layer.getGraphic()).append("line").attr("x1", 0).attr("x2", mainLayer.getGraphic().getBoundingClientRect().width).attr("y1", y - (layer._offset?.y ?? 0)).attr("y2", y - (layer._offset?.y ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
+          if (style) {
+            Object.entries(style).forEach(([key, value]) => {
+              line.attr(key, value);
+            });
+          }
+        }
+        if (orientation.includes("vertical") && typeof x === "number") {
+          const line = select_default2(layer.getGraphic()).append("line").attr("y1", 0).attr("y2", mainLayer.getGraphic().getBoundingClientRect().height).attr("x1", x - (layer._offset?.x ?? 0)).attr("x2", x - (layer._offset?.x ?? 0)).attr("stroke-width", 1).attr("stroke", "#000");
+          if (style) {
+            Object.entries(style).forEach(([key, value]) => {
+              line.attr(key, value);
+            });
+          }
+        }
+        if (tooltip) {
+          select_default2(layer.getGraphic()).append("text").attr("x", x - (layer._offset?.x ?? 0)).attr("y", y - (layer._offset?.y ?? 0)).text(tooltip);
+        }
+      }
+    });
   }
 });
 
 // dist/esm/transformer/index.js
-var GraphicalTransformer2 = GraphicalTransformer;
+var instanceTransformers2, GraphicalTransformer2;
+var init_transformer2 = __esm({
+  "dist/esm/transformer/index.js"() {
+    init_transformer();
+    init_transformer();
+    init_builtin();
+    instanceTransformers2 = instanceTransformers;
+    GraphicalTransformer2 = GraphicalTransformer;
+  }
+});
 
 // dist/esm/service/service.js
-var registeredServices = {};
-var instanceServices = [];
-var Service = class {
-  constructor(baseName2, options) {
-    this._linkCache = {};
-    this._transformers = [];
-    this._services = [];
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._sharedVar = {};
-    this._transformers = options.transformers ?? [];
-    this._services = options.services ?? [];
-    this._layerInstances = [];
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preUpdate = options.preUpdate ?? null;
-    this._postUpdate = options.postUpdate ?? null;
-    this._preAttach = options.preAttach ?? null;
-    this._postUse = options.postUse ?? null;
-    Object.entries(options.sharedVar || {}).forEach((entry) => {
-      this.setSharedVar(entry[0], entry[1]);
-    });
-    if (options.layer) {
-      this._layerInstances.push(options.layer);
-    }
-    instanceServices.push(this);
-    options.postInitialize && options.postInitialize.call(this, this);
-  }
-  getSharedVar(sharedName, options) {
-    if (options && options.layer && this._layerInstances.length && !this._layerInstances.includes(options.layer)) {
-      return void 0;
-    }
-    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
-      this.setSharedVar(sharedName, options.defaultValue, options);
-    }
-    return this._sharedVar[sharedName];
-  }
-  async setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    this.postUpdate();
-  }
-  preUpdate() {
-    this._preUpdate && this._preUpdate.call(this, this);
-  }
-  postUpdate() {
-    const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-    if (this._sharedVar.linking) {
-      for (let prop of linkProps) {
-        if (this._linkCache[prop] === this._sharedVar[prop])
-          continue;
-        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+var registeredServices, instanceServices, Service, register3, unregister3, initialize3, findService;
+var init_service = __esm({
+  "dist/esm/service/service.js"() {
+    init_helpers();
+    init_transformer2();
+    registeredServices = {};
+    instanceServices = [];
+    Service = class {
+      constructor(baseName2, options) {
+        this._linkCache = {};
+        this._transformers = [];
+        this._services = [];
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._sharedVar = {};
+        this._transformers = options.transformers ?? [];
+        this._services = options.services ?? [];
+        this._layerInstances = [];
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUpdate = options.preUpdate ?? null;
+        this._postUpdate = options.postUpdate ?? null;
+        this._preAttach = options.preAttach ?? null;
+        this._postUse = options.postUse ?? null;
+        Object.entries(options.sharedVar || {}).forEach((entry) => {
+          this.setSharedVar(entry[0], entry[1]);
+        });
+        if (options.layer) {
+          this._layerInstances.push(options.layer);
+        }
+        instanceServices.push(this);
+        options.postInitialize && options.postInitialize.call(this, this);
       }
-    }
-    this._postUpdate && this._postUpdate.call(this, this);
+      getSharedVar(sharedName, options) {
+        if (options && options.layer && this._layerInstances.length && !this._layerInstances.includes(options.layer)) {
+          return void 0;
+        }
+        if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
+          this.setSharedVar(sharedName, options.defaultValue, options);
+        }
+        return this._sharedVar[sharedName];
+      }
+      async setSharedVar(sharedName, value, options) {
+        this.preUpdate();
+        this._sharedVar[sharedName] = value;
+        this.postUpdate();
+      }
+      preUpdate() {
+        this._preUpdate && this._preUpdate.call(this, this);
+      }
+      postUpdate() {
+        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+        if (this._sharedVar.linking) {
+          for (let prop of linkProps) {
+            if (this._linkCache[prop] === this._sharedVar[prop])
+              continue;
+            this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+          }
+        }
+        this._postUpdate && this._postUpdate.call(this, this);
+      }
+      preAttach(instrument) {
+        this._preAttach && this._preAttach.call(this, this, instrument);
+      }
+      postUse(instrument) {
+        this._postUse && this._postUse.call(this, this, instrument);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      get transformers() {
+        return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => {
+          e.setSharedVars({
+            selectionResult: [],
+            layoutResult: null,
+            result: null
+          });
+          this._transformers.splice(this._transformers.indexOf(e), 1);
+        }, this);
+      }
+      get services() {
+        return makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
+          Object.entries({
+            selectionResult: [],
+            layoutResult: null,
+            result: null
+          }).forEach(([k, v]) => {
+            e.setSharedVar(k, v);
+          });
+          this._services.splice(this._services.indexOf(e), 1);
+        }, this);
+      }
+      static register(baseName2, options) {
+        registeredServices[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredServices[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName2] ?? {}, options ?? {}, {
+          on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+          sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
+          params: Object.assign({}, (registeredServices[baseName2] ?? {}).params ?? {}, options?.params ?? {})
+        });
+        const service = new mergedOptions.constructor(baseName2, mergedOptions);
+        return service;
+      }
+      static findService(baseNameOrRealName) {
+        return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    register3 = Service.register;
+    unregister3 = Service.unregister;
+    initialize3 = Service.initialize;
+    findService = Service.findService;
   }
-  preAttach(instrument) {
-    this._preAttach && this._preAttach.call(this, this, instrument);
-  }
-  postUse(instrument) {
-    this._postUse && this._postUse.call(this, this, instrument);
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  get transformers() {
-    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => {
-      e.setSharedVars({
-        selectionResult: [],
-        layoutResult: null,
-        result: null
-      });
-      this._transformers.splice(this._transformers.indexOf(e), 1);
-    });
-  }
-  get services() {
-    return makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
-      Object.entries({
-        selectionResult: [],
-        layoutResult: null,
-        result: null
-      }).forEach(([k, v]) => {
-        e.setSharedVar(k, v);
-      });
-      this._services.splice(this._services.indexOf(e), 1);
-    });
-  }
-  static register(baseName2, options) {
-    registeredServices[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredServices[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName2] ?? {}, options ?? {}, {
-      on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
-      sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
-      params: Object.assign({}, (registeredServices[baseName2] ?? {}).params ?? {}, options?.params ?? {})
-    });
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findService(baseNameOrRealName) {
-    return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register6 = Service.register;
-var unregister4 = Service.unregister;
-var initialize6 = Service.initialize;
-var findService = Service.findService;
+});
 
 // dist/esm/service/selectionService.js
-var SelectionService = class extends Service {
-  constructor(baseName2, options) {
-    super(baseName2, options);
-    this._oldResult = [];
-    this._result = [];
-    this._transformers = [];
-    this._currentDimension = [];
-    this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
-      transient: true,
-      sharedVar: {
-        selectionResult: [],
-        layer: null,
-        highlightColor: options?.sharedVar?.highlightColor,
-        highlightAttrValues: options?.sharedVar?.highlightAttrValues
-      }
-    }));
-  }
-  async setSharedVar(sharedName, value, options) {
-    if (options && options.layer && this._layerInstances.length !== 0 && !this._layerInstances.includes(options.layer)) {
-      return;
-    }
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
-      const layer = options?.layer || this._layerInstances[0];
-      this._oldResult = this._result;
-      this._result = layer.picking({
-        ...this._userOptions.query,
-        ...this._sharedVar
-      });
-      const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
-      while (selectionLayer.firstChild) {
-        selectionLayer.removeChild(selectionLayer.lastChild);
-      }
-      if (this._sharedVar.deepClone) {
-        let resultNodes = [];
-        let refNodes = [];
-        this._result.forEach((node) => {
-          if (node !== layer.getGraphic()) {
-            let k = refNodes.length;
-            for (let i = 0; i < k; i++) {
-              const refNode = refNodes[i];
-              const resultNode = resultNodes[i];
-              if (node.contains(refNode)) {
-                refNodes.splice(i, 1);
-                resultNodes.splice(i, 1);
-                resultNode.remove();
-                i--;
-                k--;
-              }
-            }
-            resultNodes.push(layer.cloneVisualElements(node, true));
-            refNodes.push(node);
+var SelectionService;
+var init_selectionService = __esm({
+  "dist/esm/service/selectionService.js"() {
+    init_service();
+    init_helpers();
+    init_transformer2();
+    SelectionService = class extends Service {
+      constructor(baseName2, options) {
+        super(baseName2, options);
+        this._oldResult = [];
+        this._result = [];
+        this._transformers = [];
+        this._currentDimension = [];
+        this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
+          transient: true,
+          sharedVar: {
+            selectionResult: [],
+            layer: null,
+            highlightColor: options?.sharedVar?.highlightColor,
+            highlightAttrValues: options?.sharedVar?.highlightAttrValues
           }
-        });
-        this._services.forEach((service) => {
-          service.setSharedVar("selectionResult", resultNodes);
-        });
-        this._transformers.forEach((transformer) => {
-          transformer.setSharedVars({
-            layer: layer.getLayerFromQueue("selectionLayer"),
-            selectionResult: resultNodes
-          });
-        });
-      } else {
-        this._services.forEach((service) => {
-          service.setSharedVar("selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
-        });
-        this._transformers.forEach((transformer) => {
-          transformer.setSharedVars({
-            layer: layer.getLayerFromQueue("selectionLayer"),
-            selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false))
-          });
-        });
+        }));
       }
-      this.postUpdate();
-    } else {
-      this.postUpdate();
-    }
-  }
-  isInstanceOf(name) {
-    return name === "SelectionService" || this._baseName === name || this._name === name;
-  }
-  dimension() {
-  }
-  filter() {
-  }
-  get results() {
-    return this._result;
-  }
-  get oldResults() {
-    return this._oldResult;
-  }
-};
-Service.SelectionService = SelectionService;
-Service.register("SelectionService", {
-  constructor: SelectionService
-});
-Service.register("SurfacePointSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.SurfacePoint,
-    x: 0,
-    y: 0
-  }
-});
-Service.register("PointSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Point,
-    x: 0,
-    y: 0
-  }
-});
-Service.register("RectSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Rect,
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1
-  }
-});
-Service.register("CircleSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Circle,
-    x: 0,
-    y: 0,
-    r: 1
-  }
-});
-Service.register("PolygonSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Shape,
-    type: ShapeQueryType.Polygon,
-    points: []
-  }
-});
-Service.register("QuantitativeSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Data,
-    type: DataQueryType.Quantitative,
-    attrName: "",
-    extent: [0, 0]
-  }
-});
-Service.register("Quantitative2DSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: QueryType.Data,
-    type: DataQueryType.Quantitative2D,
-    attrNameX: "",
-    attrNameY: "",
-    extentX: [0, 0],
-    extentY: [0, 0]
+      async setSharedVar(sharedName, value, options) {
+        if (options && options.layer && this._layerInstances.length !== 0 && !this._layerInstances.includes(options.layer)) {
+          return;
+        }
+        this.preUpdate();
+        this._sharedVar[sharedName] = value;
+        if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
+          const layer = options?.layer || this._layerInstances[0];
+          this._oldResult = this._result;
+          this._result = layer.picking({
+            ...this._userOptions.query,
+            ...this._sharedVar
+          });
+          const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
+          while (selectionLayer.firstChild) {
+            selectionLayer.removeChild(selectionLayer.lastChild);
+          }
+          if (this._sharedVar.deepClone) {
+            let resultNodes = [];
+            let refNodes = [];
+            this._result.forEach((node) => {
+              if (node !== layer.getGraphic()) {
+                let k = refNodes.length;
+                for (let i = 0; i < k; i++) {
+                  const refNode = refNodes[i];
+                  const resultNode = resultNodes[i];
+                  if (node.contains(refNode)) {
+                    refNodes.splice(i, 1);
+                    resultNodes.splice(i, 1);
+                    resultNode.remove();
+                    i--;
+                    k--;
+                  }
+                }
+                resultNodes.push(layer.cloneVisualElements(node, true));
+                refNodes.push(node);
+              }
+            });
+            this._services.forEach((service) => {
+              service.setSharedVar("selectionResult", resultNodes);
+            });
+            this._transformers.forEach((transformer) => {
+              transformer.setSharedVars({
+                layer: layer.getLayerFromQueue("selectionLayer"),
+                selectionResult: resultNodes
+              });
+            });
+          } else {
+            this._services.forEach((service) => {
+              service.setSharedVar("selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
+            });
+            this._transformers.forEach((transformer) => {
+              transformer.setSharedVars({
+                layer: layer.getLayerFromQueue("selectionLayer"),
+                selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false))
+              });
+            });
+          }
+          this.postUpdate();
+        } else {
+          this.postUpdate();
+        }
+      }
+      isInstanceOf(name) {
+        return name === "SelectionService" || this._baseName === name || this._name === name;
+      }
+      dimension() {
+      }
+      filter() {
+      }
+      get results() {
+        return this._result;
+      }
+      get oldResults() {
+        return this._oldResult;
+      }
+    };
+    Service.SelectionService = SelectionService;
+    Service.register("SelectionService", {
+      constructor: SelectionService
+    });
+    Service.register("SurfacePointSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Shape,
+        type: ShapeQueryType.SurfacePoint,
+        x: 0,
+        y: 0
+      }
+    });
+    Service.register("PointSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Shape,
+        type: ShapeQueryType.Point,
+        x: 0,
+        y: 0
+      }
+    });
+    Service.register("RectSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Shape,
+        type: ShapeQueryType.Rect,
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1
+      }
+    });
+    Service.register("CircleSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Shape,
+        type: ShapeQueryType.Circle,
+        x: 0,
+        y: 0,
+        r: 1
+      }
+    });
+    Service.register("PolygonSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Shape,
+        type: ShapeQueryType.Polygon,
+        points: []
+      }
+    });
+    Service.register("QuantitativeSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Data,
+        type: DataQueryType.Quantitative,
+        attrName: "",
+        extent: [0, 0]
+      }
+    });
+    Service.register("Quantitative2DSelectionService", {
+      constructor: SelectionService,
+      query: {
+        baseOn: QueryType.Data,
+        type: DataQueryType.Quantitative2D,
+        attrNameX: "",
+        attrNameY: "",
+        extentX: [0, 0],
+        extentY: [0, 0]
+      }
+    });
   }
 });
 
 // dist/esm/service/crossSelectionService.js
-var CrossSelectionService = class extends SelectionService {
-  constructor() {
-    super(...arguments);
-    this._oldResult = [];
-    this._result = [];
-    this._nextTick = 0;
-    this._mode = "intersection";
-  }
-  getSharedVar(sharedName, options) {
-    if (options && options.keepAll) {
-      return this._sm.map((sm) => sm.getSharedVar(sharedName, options));
-    }
-    if (options && options.layer) {
-      return this._sm.map((sm) => sm.getSharedVar(sharedName, options)).find((x) => x !== void 0);
-    }
-    return this._sm.map((sm) => sm.getSharedVar(sharedName, options))[0];
-  }
-  async setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if (sharedName == "$SelectionService") {
-      this._sm = value;
-      return;
-    }
-    if (sharedName == "$Mode") {
-      this._mode = value;
-      return;
-    }
-    this._sm.forEach((sm) => sm.setSharedVar(sharedName, value, options));
-    if (options?.layer || this._layerInstances.length == 1) {
-      if (this._nextTick) {
-        return;
-      }
-      this._nextTick = requestAnimationFrame(async () => {
-        this._oldResult = this._result;
-        let s;
-        for (let sm of this._sm) {
-          const result = await sm.results;
-          if (!s) {
-            s = new Set(result);
-          } else {
-            const tempS = new Set(result);
-            switch (this._mode) {
-              case "intersection":
-                tempS.forEach((r) => {
-                  if (!s.has(r)) {
-                    tempS.delete(r);
-                  }
-                });
-                break;
-              case "union":
-                s.forEach((r) => {
-                  tempS.add(r);
-                });
-                break;
-              default:
-                break;
-            }
-            s = tempS;
-          }
-        }
-        this._result = [...s];
+var CrossSelectionService;
+var init_crossSelectionService = __esm({
+  "dist/esm/service/crossSelectionService.js"() {
+    init_selectionService();
+    init_service();
+    CrossSelectionService = class extends SelectionService {
+      constructor() {
+        super(...arguments);
+        this._oldResult = [];
+        this._result = [];
         this._nextTick = 0;
-        this.postUpdate();
-      });
-    } else {
-      this.postUpdate();
-    }
-  }
-  isInstanceOf(name) {
-    return name === "CrossSelectionService" || name === "SelectionService" || this._baseName === name || this._name === name;
-  }
-  async getResultOnLayer(layer) {
-    Object.entries(this._sharedVar).filter(([key]) => !key.startsWith("$")).forEach(([key, value]) => {
-      this._sm.forEach((sm) => sm.setSharedVar(key, value, { layer }));
-    });
-    return await (async () => {
-      this._oldResult = this._result;
-      let s;
-      for (let sm of this._sm) {
-        const result = await sm.results;
-        if (!s) {
-          s = new Set(result);
-        } else {
-          const tempS = new Set(result);
-          switch (this._mode) {
-            case "intersection":
-              tempS.forEach((r) => {
-                if (!s.has(r)) {
-                  tempS.delete(r);
-                }
-              });
-              break;
-            case "union":
-              s.forEach((r) => {
-                tempS.add(r);
-              });
-              break;
-            default:
-              break;
+        this._mode = "intersection";
+      }
+      getSharedVar(sharedName, options) {
+        if (options && options.keepAll) {
+          return this._sm.map((sm) => sm.getSharedVar(sharedName, options));
+        }
+        if (options && options.layer) {
+          return this._sm.map((sm) => sm.getSharedVar(sharedName, options)).find((x) => x !== void 0);
+        }
+        return this._sm.map((sm) => sm.getSharedVar(sharedName, options))[0];
+      }
+      async setSharedVar(sharedName, value, options) {
+        this.preUpdate();
+        this._sharedVar[sharedName] = value;
+        if (sharedName == "$SelectionService") {
+          this._sm = value;
+          return;
+        }
+        if (sharedName == "$Mode") {
+          this._mode = value;
+          return;
+        }
+        this._sm.forEach((sm) => sm.setSharedVar(sharedName, value, options));
+        if (options?.layer || this._layerInstances.length == 1) {
+          if (this._nextTick) {
+            return;
           }
-          s = tempS;
+          this._nextTick = requestAnimationFrame(async () => {
+            this._oldResult = this._result;
+            let s;
+            for (let sm of this._sm) {
+              const result = await sm.results;
+              if (!s) {
+                s = new Set(result);
+              } else {
+                const tempS = new Set(result);
+                switch (this._mode) {
+                  case "intersection":
+                    tempS.forEach((r) => {
+                      if (!s.has(r)) {
+                        tempS.delete(r);
+                      }
+                    });
+                    break;
+                  case "union":
+                    s.forEach((r) => {
+                      tempS.add(r);
+                    });
+                    break;
+                  default:
+                    break;
+                }
+                s = tempS;
+              }
+            }
+            this._result = [...s];
+            this._nextTick = 0;
+            this.postUpdate();
+          });
+        } else {
+          this.postUpdate();
         }
       }
-      this._result = [...s];
-      this._nextTick = 0;
-    })();
+      isInstanceOf(name) {
+        return name === "CrossSelectionService" || name === "SelectionService" || this._baseName === name || this._name === name;
+      }
+      async getResultOnLayer(layer) {
+        Object.entries(this._sharedVar).filter(([key]) => !key.startsWith("$")).forEach(([key, value]) => {
+          this._sm.forEach((sm) => sm.setSharedVar(key, value, { layer }));
+        });
+        return await (async () => {
+          this._oldResult = this._result;
+          let s;
+          for (let sm of this._sm) {
+            const result = await sm.results;
+            if (!s) {
+              s = new Set(result);
+            } else {
+              const tempS = new Set(result);
+              switch (this._mode) {
+                case "intersection":
+                  tempS.forEach((r) => {
+                    if (!s.has(r)) {
+                      tempS.delete(r);
+                    }
+                  });
+                  break;
+                case "union":
+                  s.forEach((r) => {
+                    tempS.add(r);
+                  });
+                  break;
+                default:
+                  break;
+              }
+              s = tempS;
+            }
+          }
+          this._result = [...s];
+          this._nextTick = 0;
+        })();
+      }
+    };
+    Service.register("CrossSelectionService", {
+      constructor: CrossSelectionService
+    });
   }
-};
-Service.register("CrossSelectionService", {
-  constructor: CrossSelectionService
 });
 
 // dist/esm/service/layoutService.js
-var LayoutService = class extends Service {
-  constructor(baseName2, options) {
-    super(baseName2, options);
-    this._oldResult = null;
-    this._result = null;
-    this._nextTick = 0;
-  }
-  async setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if (this._userOptions.evaluate) {
-      if (this._nextTick) {
-        return;
+var LayoutService;
+var init_layoutService = __esm({
+  "dist/esm/service/layoutService.js"() {
+    init_service();
+    LayoutService = class extends Service {
+      constructor(baseName2, options) {
+        super(baseName2, options);
+        this._oldResult = null;
+        this._result = null;
+        this._nextTick = 0;
       }
-      this._nextTick = requestAnimationFrame(async () => {
-        this._oldResult = this._result;
-        try {
-          this._result = await this._userOptions.evaluate({
-            self: this,
-            ...this._userOptions.params ?? {},
-            ...this._sharedVar
+      async setSharedVar(sharedName, value, options) {
+        this.preUpdate();
+        this._sharedVar[sharedName] = value;
+        if (this._userOptions.evaluate) {
+          if (this._nextTick) {
+            return;
+          }
+          this._nextTick = requestAnimationFrame(async () => {
+            this._oldResult = this._result;
+            try {
+              this._result = await this._userOptions.evaluate({
+                self: this,
+                ...this._userOptions.params ?? {},
+                ...this._sharedVar
+              });
+              this._services.forEach((service) => {
+                service.setSharedVar("layoutResult", this._result);
+              });
+              this._transformers.forEach((transformer) => {
+                transformer.setSharedVars({
+                  layoutResult: this._result
+                });
+              });
+            } catch (e) {
+              console.error(e);
+              this._result = void 0;
+            }
+            this._nextTick = 0;
+            this.postUpdate();
           });
-          this._services.forEach((service) => {
-            service.setSharedVar("layoutResult", this._result);
-          });
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              layoutResult: this._result
+        } else {
+          this.postUpdate();
+        }
+      }
+      isInstanceOf(name) {
+        return name === "LayoutService" || this._baseName === name || this._name === name;
+      }
+      get results() {
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(() => {
+              res(this._result);
             });
           });
-        } catch (e) {
-          console.error(e);
-          this._result = void 0;
         }
-        this._nextTick = 0;
-        this.postUpdate();
-      });
-    } else {
-      this.postUpdate();
-    }
+        return this._result;
+      }
+      get oldResults() {
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(() => {
+              res(this._oldResult);
+            });
+          });
+        }
+        return this._oldResult;
+      }
+    };
+    Service.LayoutService = LayoutService;
+    Service.register("LayoutService", {
+      constructor: LayoutService
+    });
   }
-  isInstanceOf(name) {
-    return name === "LayoutService" || this._baseName === name || this._name === name;
-  }
-  get results() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._result);
-        });
-      });
-    }
-    return this._result;
-  }
-  get oldResults() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._oldResult);
-        });
-      });
-    }
-    return this._oldResult;
-  }
-};
-Service.LayoutService = LayoutService;
-Service.register("LayoutService", {
-  constructor: LayoutService
 });
 
 // dist/esm/service/algorithmService.js
-var AnalysisService = class extends Service {
-  constructor(baseName2, options) {
-    super(baseName2, options);
-    this._oldResult = null;
-    this._result = null;
-    this._nextTick = 0;
-  }
-  async setSharedVar(sharedName, value, options) {
-    this.preUpdate();
-    this._sharedVar[sharedName] = value;
-    if (this._userOptions.evaluate && this._userOptions.params) {
-      if (this._nextTick) {
-        return;
+var AnalysisService;
+var init_algorithmService = __esm({
+  "dist/esm/service/algorithmService.js"() {
+    init_service();
+    AnalysisService = class extends Service {
+      constructor(baseName2, options) {
+        super(baseName2, options);
+        this._oldResult = null;
+        this._result = null;
+        this._nextTick = 0;
       }
-      this._nextTick = requestAnimationFrame(async () => {
-        this._oldResult = this._result;
-        try {
-          this._result = await this._userOptions.evaluate({
-            self: this,
-            ...this._userOptions.params,
-            ...this._sharedVar
+      async setSharedVar(sharedName, value, options) {
+        this.preUpdate();
+        this._sharedVar[sharedName] = value;
+        if (this._userOptions.evaluate && this._userOptions.params) {
+          if (this._nextTick) {
+            return;
+          }
+          this._nextTick = requestAnimationFrame(async () => {
+            this._oldResult = this._result;
+            try {
+              this._result = await this._userOptions.evaluate({
+                self: this,
+                ...this._userOptions.params,
+                ...this._sharedVar
+              });
+              this._services.forEach((service) => {
+                service.setSharedVar("result", this._result);
+              });
+              this._transformers.forEach((transformer) => {
+                transformer.setSharedVars({
+                  result: this._result
+                });
+              });
+            } catch (e) {
+              console.error(e);
+              this._result = void 0;
+            }
+            this._nextTick = 0;
+            this.postUpdate();
           });
-          this._services.forEach((service) => {
-            service.setSharedVar("result", this._result);
-          });
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              result: this._result
+        } else {
+          this.postUpdate();
+        }
+      }
+      isInstanceOf(name) {
+        return name === "AnalysisService" || this._baseName === name || this._name === name;
+      }
+      get results() {
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(() => {
+              res(this._result);
             });
           });
-        } catch (e) {
-          console.error(e);
-          this._result = void 0;
         }
-        this._nextTick = 0;
-        this.postUpdate();
-      });
-    } else {
-      this.postUpdate();
-    }
+        return this._result;
+      }
+      get oldResults() {
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(() => {
+              res(this._oldResult);
+            });
+          });
+        }
+        return this._oldResult;
+      }
+    };
+    Service.AnalysisService = AnalysisService;
+    Service.register("AnalysisService", {
+      constructor: AnalysisService
+    });
   }
-  isInstanceOf(name) {
-    return name === "AnalysisService" || this._baseName === name || this._name === name;
-  }
-  get results() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._result);
-        });
-      });
-    }
-    return this._result;
-  }
-  get oldResults() {
-    if (this._nextTick) {
-      return new Promise((res) => {
-        window.requestAnimationFrame(() => {
-          res(this._oldResult);
-        });
-      });
-    }
-    return this._oldResult;
-  }
-};
-Service.AnalysisService = AnalysisService;
-Service.register("AnalysisService", {
-  constructor: AnalysisService
 });
 
 // dist/esm/service/index.js
-var findService2 = findService;
-var instanceServices2 = instanceServices;
-var Service2 = Service;
+var findService2, instanceServices2, Service2;
+var init_service2 = __esm({
+  "dist/esm/service/index.js"() {
+    init_service();
+    init_service();
+    init_selectionService();
+    init_crossSelectionService();
+    init_layoutService();
+    init_algorithmService();
+    findService2 = findService;
+    instanceServices2 = instanceServices;
+    Service2 = Service;
+  }
+});
+
+// dist/esm/history/index.js
+var history_exports = {};
+__export(history_exports, {
+  createHistoryTrrack: () => createHistoryTrrack,
+  tryGetHistoryTrrackInstance: () => tryGetHistoryTrrackInstance,
+  tryRegisterDynamicInstance: () => tryRegisterDynamicInstance
+});
+function createHistoryTrrack() {
+  let historyTrace = null;
+  let currentHistoryNode = null;
+  let commitLock = false;
+  const HistoryManager = {
+    traceStructure: (node = historyTrace) => {
+      return {
+        recordList: [...node.record.keys()],
+        children: node.children.map((node2) => HistoryManager.traceStructure(node2))
+      };
+    },
+    commit: async () => {
+      if (commitLock) {
+        return;
+      }
+      const record = new Map();
+      [
+        { list: instanceInstruments, fields: ["_sharedVar"] },
+        { list: instanceServices2, fields: ["_sharedVar"] },
+        { list: instanceTransformers2, fields: ["_sharedVar"] },
+        { list: instanceInteractors, fields: ["_state", "_modalities"] }
+      ].forEach(({ list, fields }) => {
+        list.filter((component) => tryGetHistoryTrrackInstance(component) === HistoryManager).forEach((component) => {
+          record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
+        });
+      });
+      const newHistoryNode = {
+        record,
+        prev: currentHistoryNode,
+        next: null,
+        children: []
+      };
+      if (currentHistoryNode) {
+        currentHistoryNode.children.push(newHistoryNode);
+      }
+      currentHistoryNode = newHistoryNode;
+    },
+    async undo() {
+      if (currentHistoryNode && currentHistoryNode.prev) {
+        currentHistoryNode.prev.next = currentHistoryNode;
+        const record = currentHistoryNode.prev.record;
+        commitLock = true;
+        for (let [component, records] of record.entries()) {
+          Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+          if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+          }
+        }
+        commitLock = false;
+        currentHistoryNode = currentHistoryNode.prev;
+      }
+    },
+    async redo() {
+      if (currentHistoryNode && currentHistoryNode.next) {
+        const record = currentHistoryNode.next.record;
+        commitLock = true;
+        for (let [component, records] of record.entries()) {
+          Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+          if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+          }
+        }
+        commitLock = false;
+        currentHistoryNode = currentHistoryNode.next;
+      }
+    }
+  };
+  [
+    instanceServices2,
+    instanceTransformers2,
+    instanceCommands2,
+    instanceInstruments,
+    instanceInteractors
+  ].flatMap((x) => x).forEach((component) => {
+    if (!historyInstanceMapping.has(component)) {
+      historyInstanceMapping.set(component, HistoryManager);
+    }
+  });
+  HistoryManager.commit();
+  historyTrace = currentHistoryNode;
+  return HistoryManager;
+}
+function tryGetHistoryTrrackInstance(component) {
+  const directHM = historyInstanceMapping.get(component);
+  if (directHM) {
+    return directHM;
+  }
+  return {
+    traceStructure() {
+      return null;
+    },
+    async commit() {
+    },
+    async undo() {
+    },
+    async redo() {
+    }
+  };
+}
+function tryRegisterDynamicInstance(parentComponent, newComponent) {
+  const HM = historyInstanceMapping.get(parentComponent);
+  if (HM) {
+    historyInstanceMapping.set(newComponent, HM);
+  }
+}
+var historyInstanceMapping;
+var init_history = __esm({
+  "dist/esm/history/index.js"() {
+    init_service2();
+    init_transformer2();
+    init_command2();
+    init_instrument2();
+    init_interactor2();
+    init_helpers();
+    historyInstanceMapping = new Map();
+  }
+});
+
+// dist/esm/helpers.js
+function makeFindableList(list, typing, addFunc, removeFunc, self) {
+  return new Proxy(list, {
+    get(target, p) {
+      if (p === "find") {
+        return function(name, defaultValue) {
+          if (!("initialize" in typing)) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.find(...arguments);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const filteredResult = target.filter((item) => item.isInstanceOf(name));
+            if (filteredResult.length <= 0 && defaultValue) {
+              const newElement = typing.initialize(defaultValue);
+              addFunc(newElement);
+              filteredResult.push(newElement);
+              tryRegisterDynamicInstance2(self, newElement);
+            }
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p === "add") {
+        return (...args) => {
+          const filteredResult = target.slice();
+          if (!("initialize" in typing)) {
+            filteredResult.forEach((newTarget) => {
+              newTarget.add(...args);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const newElement = typing.initialize(...args);
+            addFunc(newElement);
+            filteredResult.push(newElement);
+            tryRegisterDynamicInstance2(self, newElement);
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p === "remove") {
+        return (name) => {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.remove(name);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const origin = target.slice();
+            const filteredResult = origin.filter((item) => item.isInstanceOf(name));
+            filteredResult.forEach((item) => {
+              removeFunc(item);
+              origin.splice(origin.indexOf(item), 1);
+            });
+            return makeFindableList(origin, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p in target) {
+        return target[p];
+      } else {
+        if (!target.length) {
+          const f = () => {
+          };
+          f[Symbol.iterator] = function* () {
+          };
+          return f;
+        } else if (target[0][p] instanceof Function) {
+          return function() {
+            return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => {
+            }, () => {
+            }, self);
+          };
+        } else {
+          return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => {
+          }, () => {
+          }, self);
+        }
+      }
+    }
+  });
+}
+function getTransform(elem) {
+  try {
+    const transform2 = elem.getAttribute("transform").split("(")[1].split(")")[0].split(",").map((i) => parseFloat(i));
+    return transform2;
+  } catch (e) {
+    return [0, 0];
+  }
+}
+function parseEventSelector(selector) {
+  return parseMerge(selector.trim()).map(parseSelector);
+}
+function isMarkType(type2) {
+  return MARKS.hasOwnProperty(type2);
+}
+function find2(s, i, endChar, pushChar, popChar) {
+  let count = 0, c;
+  const n = s.length;
+  for (; i < n; ++i) {
+    c = s[i];
+    if (!count && c === endChar)
+      return i;
+    else if (popChar && popChar.indexOf(c) >= 0)
+      --count;
+    else if (pushChar && pushChar.indexOf(c) >= 0)
+      ++count;
+  }
+  return i;
+}
+function parseMerge(s) {
+  const output = [], n = s.length;
+  let start2 = 0, i = 0;
+  while (i < n) {
+    i = find2(s, i, COMMA, LBRACK + LBRACE, RBRACK + RBRACE);
+    output.push(s.substring(start2, i).trim());
+    start2 = ++i;
+  }
+  if (output.length === 0) {
+    throw "Empty event selector: " + s;
+  }
+  return output;
+}
+function parseSelector(s) {
+  return s[0] === "[" ? parseBetween(s) : parseStream(s);
+}
+function parseBetween(s) {
+  const n = s.length;
+  let i = 1, b, stream;
+  i = find2(s, i, RBRACK, LBRACK, RBRACK);
+  if (i === n) {
+    throw "Empty between selector: " + s;
+  }
+  b = parseMerge(s.substring(1, i));
+  if (b.length !== 2) {
+    throw "Between selector must have two elements: " + s;
+  }
+  s = s.slice(i + 1).trim();
+  if (s[0] !== GT) {
+    throw "Expected '>' after between selector: " + s;
+  }
+  const bt = b.map(parseSelector);
+  stream = parseSelector(s.slice(1).trim());
+  if (stream.between) {
+    return {
+      between: bt,
+      stream
+    };
+  } else {
+    stream.between = bt;
+  }
+  return stream;
+}
+function parseStream(s) {
+  const stream = {
+    source: DEFAULT_SOURCE,
+    type: ""
+  }, source = [];
+  let throttle = [0, 0], markname = 0, start2 = 0, n = s.length, i = 0, j, filter2;
+  if (s[n - 1] === RBRACE) {
+    i = s.lastIndexOf(LBRACE);
+    if (i >= 0) {
+      try {
+        throttle = parseThrottle(s.substring(i + 1, n - 1));
+      } catch (e) {
+        throw "Invalid throttle specification: " + s;
+      }
+      s = s.slice(0, i).trim();
+      n = s.length;
+    } else
+      throw "Unmatched right brace: " + s;
+    i = 0;
+  }
+  if (!n)
+    throw s;
+  if (s[0] === NAME)
+    markname = ++i;
+  j = find2(s, i, COLON);
+  if (j < n) {
+    source.push(s.substring(start2, j).trim());
+    start2 = i = ++j;
+  }
+  i = find2(s, i, LBRACK);
+  if (i === n) {
+    source.push(s.substring(start2, n).trim());
+  } else {
+    source.push(s.substring(start2, i).trim());
+    filter2 = [];
+    start2 = ++i;
+    if (start2 === n)
+      throw "Unmatched left bracket: " + s;
+  }
+  while (i < n) {
+    i = find2(s, i, RBRACK);
+    if (i === n)
+      throw "Unmatched left bracket: " + s;
+    filter2.push(s.substring(start2, i).trim());
+    if (i < n - 1 && s[++i] !== LBRACK)
+      throw "Expected left bracket: " + s;
+    start2 = ++i;
+  }
+  if (!(n = source.length) || ILLEGAL.test(source[n - 1])) {
+    throw "Invalid event selector: " + s;
+  }
+  if (n > 1) {
+    stream.type = source[1];
+    if (markname) {
+      stream.markname = source[0].slice(1);
+    } else if (isMarkType(source[0])) {
+      stream.marktype = source[0];
+    } else {
+      stream.source = source[0];
+    }
+  } else {
+    stream.type = source[0];
+  }
+  if (stream.type.slice(-1) === "!") {
+    stream.consume = true;
+    stream.type = stream.type.slice(0, -1);
+  }
+  if (filter2 != null)
+    stream.filter = filter2;
+  if (throttle[0])
+    stream.throttle = throttle[0];
+  if (throttle[1])
+    stream.debounce = throttle[1];
+  return stream;
+}
+function parseThrottle(s) {
+  const a = s.split(COMMA);
+  if (!s.length || a.length > 2)
+    throw s;
+  return a.map(function(_) {
+    const x = +_;
+    if (x !== x)
+      throw s;
+    return x;
+  });
+}
+function deepClone(obj) {
+  if (obj instanceof Array) {
+    return obj.map(deepClone);
+  }
+  if ([
+    "string",
+    "number",
+    "boolean",
+    "undefined",
+    "bigint",
+    "symbol",
+    "function"
+  ].includes(typeof obj)) {
+    return obj;
+  }
+  if (obj === null)
+    return null;
+  const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
+}
+var QueryType, ShapeQueryType, DataQueryType, NonsenseClass, tryRegisterDynamicInstance2, VIEW, LBRACK, RBRACK, LBRACE, RBRACE, COLON, COMMA, NAME, GT, ILLEGAL, DEFAULT_SOURCE, DEFAULT_MARKS, MARKS, global;
+var init_helpers = __esm({
+  "dist/esm/helpers.js"() {
+    (function(QueryType2) {
+      QueryType2[QueryType2["Shape"] = 0] = "Shape";
+      QueryType2[QueryType2["Data"] = 1] = "Data";
+      QueryType2[QueryType2["Attr"] = 2] = "Attr";
+    })(QueryType || (QueryType = {}));
+    (function(ShapeQueryType2) {
+      ShapeQueryType2[ShapeQueryType2["SurfacePoint"] = 0] = "SurfacePoint";
+      ShapeQueryType2[ShapeQueryType2["Point"] = 1] = "Point";
+      ShapeQueryType2[ShapeQueryType2["Circle"] = 2] = "Circle";
+      ShapeQueryType2[ShapeQueryType2["Rect"] = 3] = "Rect";
+      ShapeQueryType2[ShapeQueryType2["Polygon"] = 4] = "Polygon";
+    })(ShapeQueryType || (ShapeQueryType = {}));
+    (function(DataQueryType2) {
+      DataQueryType2[DataQueryType2["Quantitative"] = 0] = "Quantitative";
+      DataQueryType2[DataQueryType2["Quantitative2D"] = 1] = "Quantitative2D";
+      DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
+      DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
+    })(DataQueryType || (DataQueryType = {}));
+    NonsenseClass = class {
+    };
+    VIEW = "view";
+    LBRACK = "[";
+    RBRACK = "]";
+    LBRACE = "{";
+    RBRACE = "}";
+    COLON = ":";
+    COMMA = ",";
+    NAME = "@";
+    GT = ">";
+    ILLEGAL = /[[\]{}]/;
+    DEFAULT_SOURCE = VIEW;
+    DEFAULT_MARKS = {
+      "*": 1,
+      arc: 1,
+      area: 1,
+      group: 1,
+      image: 1,
+      line: 1,
+      path: 1,
+      rect: 1,
+      rule: 1,
+      shape: 1,
+      symbol: 1,
+      text: 1,
+      trail: 1
+    };
+    MARKS = DEFAULT_MARKS;
+    global = {
+      stopTransient: false
+    };
+    Promise.resolve().then(() => (init_history(), history_exports)).then((HM) => {
+      tryRegisterDynamicInstance2 = HM.tryRegisterDynamicInstance;
+    });
+  }
+});
+
+// dist/esm/interactor/actions.jsgf.js
+var actions_jsgf_default;
+var init_actions_jsgf = __esm({
+  "dist/esm/interactor/actions.jsgf.js"() {
+    actions_jsgf_default = `#JSGF V1.0;
+
+grammar actions;
+
+public <action> = start | stop | pause | resume | play | delete | add | insert | create | remove | drag | move | drag | brush;`;
+  }
+});
+
+// dist/esm/interactor/interactor.js
+function transferInteractorInnerAction(originAction) {
+  const eventStreams = originAction.events.map((evtSelector) => parseEventSelector(evtSelector)[0]);
+  return {
+    ...originAction,
+    eventStreams: eventStreams.map((es) => transferEventStream(es))
+  };
+}
+function transferEventStream(es) {
+  return es.filter ? {
+    ...es,
+    filterFuncs: es.filter ? es.filter.map((f) => new Function("event", `return ${f}`)) : []
+  } : { ...es };
+}
+var SR, SGL, registeredInteractors, instanceInteractors2, Interactor, register4, unregister4, initialize4, findInteractor;
+var init_interactor = __esm({
+  "dist/esm/interactor/interactor.js"() {
+    init_helpers();
+    init_actions_jsgf();
+    SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+    registeredInteractors = {};
+    instanceInteractors2 = [];
+    Interactor = class {
+      constructor(baseName2, options) {
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._state = options.state;
+        this._actions = deepClone(options.actions ?? []).map(transferInteractorInnerAction);
+        this._modalities = {};
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUse = options.preUse ?? null;
+        this._postUse = options.postUse ?? null;
+        options.postInitialize && options.postInitialize.call(this, this);
+      }
+      enableModality(modal) {
+        switch (modal) {
+          case "speech":
+            if (this._modalities["speech"])
+              break;
+            const recognition = new SR();
+            this._modalities["speech"] = recognition;
+            const speechRecognitionList = new SGL();
+            speechRecognitionList.addFromString(actions_jsgf_default);
+            recognition.grammars = speechRecognitionList;
+            recognition.lang = "en-US";
+            break;
+        }
+      }
+      disableModality(modal) {
+        switch (modal) {
+          case "speech":
+            if (this._modalities["speech"]) {
+              this._modalities.speech.onresult = null;
+              this._modalities.speech.onend = null;
+              this._modalities["speech"].abort();
+              this._modalities["speech"] = null;
+            }
+            break;
+        }
+      }
+      getActions() {
+        return this._actions.slice(0);
+      }
+      setActions(actions) {
+        const mergeActions = actions.concat(this._actions);
+        this._actions = mergeActions.filter((action, i) => i === mergeActions.findIndex((a) => a.action === action.action));
+      }
+      _parseEvent(event) {
+        const flatStream = (stream) => "stream" in stream ? stream.between.concat(stream.stream).flatMap(flatStream) : "between" in stream ? stream.between.concat([{ type: stream.type }]).flatMap(flatStream) : stream.type;
+        return parseEventSelector(event).flatMap(flatStream);
+      }
+      getAcceptEvents() {
+        return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
+      }
+      async dispatch(event, layer) {
+        const moveAction = this._actions.find((action) => {
+          const events = action.eventStreams.map((es) => es.type);
+          let inculdeEvent = false;
+          if (events.includes("*"))
+            inculdeEvent = true;
+          if (event instanceof Event) {
+            inculdeEvent = action.eventStreams.filter((es) => es.type === event.type).some((es) => es.filterFuncs ? es.filterFuncs.every((f) => f(event)) : true);
+          } else {
+            if (events.includes(event))
+              inculdeEvent = true;
+          }
+          return inculdeEvent && (!action.transition || action.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*"));
+        });
+        if (moveAction) {
+          if (event instanceof Event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*");
+          if (moveTransition) {
+            this._state = moveTransition[1];
+          }
+          if (this._state.startsWith("speech:")) {
+            this.enableModality("speech");
+            try {
+              this._modalities.speech.start();
+            } catch {
+            }
+            this._modalities.speech.onresult = (e) => {
+              const result = e.results[e.resultIndex][0];
+              this.dispatch(result.transcript, layer);
+            };
+            this._modalities.speech.onend = (e) => {
+              this._modalities.speech.start();
+            };
+          } else {
+            this.disableModality("speech");
+          }
+          if (moveAction.sideEffect) {
+            try {
+              await moveAction.sideEffect({
+                self: this,
+                layer,
+                instrument: null,
+                interactor: this,
+                event
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          return true;
+        }
+        return false;
+      }
+      preUse(instrument) {
+        this._preUse && this._preUse.call(this, this, instrument);
+      }
+      postUse(instrument) {
+        this._postUse && this._postUse.call(this, this, instrument);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      static register(baseName2, options) {
+        registeredInteractors[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredInteractors[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName2] ?? {}, options ?? {});
+        const interactor = new mergedOptions.constructor(baseName2, mergedOptions);
+        instanceInteractors2.push(interactor);
+        return interactor;
+      }
+      static findInteractor(baseNameOrRealName) {
+        return instanceInteractors2.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    register4 = Interactor.register;
+    unregister4 = Interactor.unregister;
+    initialize4 = Interactor.initialize;
+    findInteractor = Interactor.findInteractor;
+  }
+});
+
+// dist/esm/interactor/builtin.js
+var init_builtin2 = __esm({
+  "dist/esm/interactor/builtin.js"() {
+    init_interactor();
+    Interactor.register("MousePositionInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "hover",
+          events: ["mousemove"],
+          transition: [["start", "start"]]
+        }
+      ]
+    });
+    Interactor.register("TouchPositionInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "enter",
+          events: ["touchstart"],
+          transition: [["start", "running"]]
+        },
+        {
+          action: "hover",
+          events: ["touchmove"],
+          transition: [["running", "running"]]
+        },
+        {
+          action: "leave",
+          events: ["touchend"],
+          transition: [
+            ["running", "start"],
+            ["start", "start"]
+          ]
+        }
+      ]
+    });
+    Interactor.register("MouseTraceInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "dragstart",
+          events: ["mousedown"],
+          transition: [["start", "drag"]]
+        },
+        {
+          action: "drag",
+          events: ["mousemove"],
+          transition: [["drag", "drag"]]
+        },
+        {
+          action: "dragend",
+          events: ["mouseup[event.button==0]"],
+          transition: [["drag", "start"]]
+        },
+        {
+          action: "dragabort",
+          events: ["mouseup[event.button==2]", "contextmenu"],
+          transition: [
+            ["drag", "start"],
+            ["start", "start"]
+          ]
+        }
+      ]
+    });
+    Interactor.register("TouchTraceInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "dragstart",
+          events: ["touchstart"],
+          transition: [["start", "drag"]]
+        },
+        {
+          action: "drag",
+          events: ["touchmove"],
+          transition: [["drag", "drag"]]
+        },
+        {
+          action: "dragend",
+          events: ["touchend"],
+          transition: [["drag", "start"]]
+        }
+      ]
+    });
+    Interactor.register("SpeechControlInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "enableSpeech",
+          events: ["click"],
+          transition: [["*", "speech:ready"]]
+        },
+        {
+          action: "disableSpeech",
+          events: ["mouseup[event.button==2]", "contextmenu"],
+          transition: [["*", "start"]]
+        },
+        {
+          action: "speech",
+          events: ["*"],
+          transition: [["*", "speech:ready"]]
+        }
+      ]
+    });
+    Interactor.register("KeyboardPositionInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "begin",
+          events: ["keydown[event.key===' ']"],
+          transition: [["start", "running"]]
+        },
+        {
+          action: "up",
+          events: [
+            "keypress[event.key==='w' || event.key==='W']",
+            "keydown[event.key==='ArrowUp']{100}"
+          ],
+          transition: [["running", "running"]]
+        },
+        {
+          action: "left",
+          events: [
+            "keypress[event.key==='a' || event.key==='A']",
+            "keydown[event.key==='ArrowLeft']{100}"
+          ],
+          transition: [["running", "running"]]
+        },
+        {
+          action: "down",
+          events: [
+            "keypress[event.key==='s' || event.key==='S']",
+            "keydown[event.key==='ArrowDown']{100}"
+          ],
+          transition: [["running", "running"]]
+        },
+        {
+          action: "right",
+          events: [
+            "keypress[event.key==='d' || event.key==='D']",
+            "keydown[event.key==='ArrowRight']{100}"
+          ],
+          transition: [["running", "running"]]
+        }
+      ]
+    });
+    Interactor.register("MouseWheelInteractor", {
+      constructor: Interactor,
+      state: "start",
+      actions: [
+        {
+          action: "enter",
+          events: ["mouseenter"],
+          transition: [["start", "running"]]
+        },
+        {
+          action: "wheel",
+          events: ["wheel", "mousewheel"],
+          transition: [["running", "running"]]
+        },
+        {
+          action: "leave",
+          events: ["mouseleave"],
+          transition: [
+            ["running", "start"],
+            ["start", "start"]
+          ]
+        },
+        {
+          action: "abort",
+          events: ["mouseup[event.button==2]", "contextmenu"],
+          transition: [
+            ["running", "running"],
+            ["start", "start"]
+          ]
+        }
+      ]
+    });
+  }
+});
+
+// dist/esm/interactor/index.js
+var register5, initialize5, findInteractor2, instanceInteractors, Interactor2;
+var init_interactor2 = __esm({
+  "dist/esm/interactor/index.js"() {
+    init_interactor();
+    init_interactor();
+    init_builtin2();
+    register5 = Interactor.register;
+    initialize5 = Interactor.initialize;
+    findInteractor2 = Interactor.findInteractor;
+    instanceInteractors = instanceInteractors2;
+    Interactor2 = Interactor;
+  }
+});
+
+// dist/esm/layer/layer.js
+function register6(baseName2, options) {
+  registeredLayers[baseName2] = options;
+}
+function initialize6(baseName2, options) {
+  const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName2] ?? {}, options ?? {}, {});
+  const layer = new mergedOptions.constructor(baseName2, mergedOptions);
+  return layer;
+}
+function findLayer(baseNameOrRealName) {
+  return instanceLayers.filter((layer) => layer.isInstanceOf(baseNameOrRealName));
+}
+var registeredLayers, instanceLayers, siblingLayers, orderLayers, Layer;
+var init_layer = __esm({
+  "dist/esm/layer/layer.js"() {
+    registeredLayers = {};
+    instanceLayers = [];
+    siblingLayers = new Map();
+    orderLayers = new Map();
+    Layer = class {
+      constructor(baseName2, options) {
+        this._nextTick = 0;
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._container = options.container;
+        this._order = 0;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preUpdate = options.preUpdate ?? null;
+        this._postUpdate = options.postUpdate ?? null;
+        instanceLayers.push(this);
+        this._postInitialize && this._postInitialize.call(this, this);
+      }
+      getGraphic() {
+        return this._graphic;
+      }
+      getContainerGraphic() {
+        return this._container;
+      }
+      getVisualElements() {
+        return [];
+      }
+      cloneVisualElements(element, deep = false) {
+        const copiedElement = element.cloneNode(deep);
+        const frag = document.createDocumentFragment();
+        frag.append(copiedElement);
+        return copiedElement;
+      }
+      join(rightTable, joinKey) {
+        return [];
+      }
+      preUpdate() {
+        this._preUpdate && this._preUpdate.call(this, this);
+      }
+      postUpdate() {
+        this._postUpdate && this._postUpdate.call(this, this);
+      }
+      picking(options) {
+        return [];
+      }
+      getLayerFromQueue(siblingLayerName) {
+        if (!siblingLayers.has(this)) {
+          siblingLayers.set(this, { [this._name]: this });
+        }
+        if (!orderLayers.has(this)) {
+          orderLayers.set(this, { [this._name]: 0 });
+        }
+        const siblings = siblingLayers.get(this);
+        if (!(siblingLayerName in siblings)) {
+          const layer = Layer.initialize(this._baseName, {
+            ...this._userOptions,
+            name: siblingLayerName,
+            redraw() {
+            }
+          });
+          siblings[siblingLayerName] = layer;
+          siblingLayers.set(layer, siblings);
+          const graphic = siblings[siblingLayerName].getGraphic();
+          graphic && graphic.style && (graphic.style.pointerEvents = "none");
+        }
+        if (!(siblingLayerName in orderLayers.get(this))) {
+          orderLayers.get(this)[siblingLayerName] = 0;
+        }
+        return siblings[siblingLayerName];
+      }
+      setLayersOrder(layerNameOrderKVPairs) {
+        if (!siblingLayers.has(this)) {
+          siblingLayers.set(this, { [this._name]: this });
+        }
+        if (!orderLayers.has(this)) {
+          orderLayers.set(this, { [this._name]: 0 });
+        }
+        const orders = orderLayers.get(this);
+        const frag = document.createDocumentFragment();
+        Object.entries(layerNameOrderKVPairs).forEach(([layerName, order]) => {
+          orders[layerName] = order;
+        });
+        Object.entries(orders).sort((a, b) => a[1] - b[1]).forEach(([layerName, order]) => {
+          orders[layerName] = order;
+          orderLayers.set(this.getLayerFromQueue(layerName), orders);
+          if (order >= 0) {
+            const graphic = this.getLayerFromQueue(layerName).getGraphic();
+            graphic && graphic.style && (graphic.style.display = "initial");
+          } else {
+            const graphic = this.getLayerFromQueue(layerName).getGraphic();
+            graphic && graphic.style && (graphic.style.display = "none");
+          }
+          this.getLayerFromQueue(layerName)._order = order;
+          frag.append(this.getLayerFromQueue(layerName).getGraphic());
+        });
+        this.getContainerGraphic().appendChild(frag);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+    };
+    Layer.register = register6;
+    Layer.initialize = initialize6;
+    Layer.findLayer = findLayer;
+  }
+});
+
+// dist/esm/layer/d3Layer.js
+var baseName, backgroundClassName, D3Layer;
+var init_d3Layer = __esm({
+  "dist/esm/layer/d3Layer.js"() {
+    init_layer();
+    init_d3();
+    init_helpers();
+    baseName = "D3Layer";
+    backgroundClassName = "ig-layer-background";
+    D3Layer = class extends Layer {
+      constructor(baseName2, options) {
+        super(baseName2, options);
+        this._width = options.width;
+        this._height = options.height;
+        this._offset = options.offset;
+        this._name = options.name;
+        this._graphic = select_default2(options.container).append("g").call((g) => {
+          if (this._name)
+            g.attr("className", this._name);
+        }).call((g) => {
+          if (this._offset)
+            g.attr("transform", `translate(${this._offset.x || 0}, ${this._offset.y || 0})`);
+        }).node();
+        select_default2(this._graphic).append("rect").attr("class", backgroundClassName).attr("width", this._width).attr("height", this._height).attr("opacity", 0);
+        let tempElem = this._container;
+        while (tempElem && tempElem.tagName !== "svg")
+          tempElem = tempElem.parentElement;
+        if (tempElem.tagName !== "svg")
+          throw Error("Container must be wrapped in SVGSVGElement");
+        this._svg = tempElem;
+        this._postInitialize && this._postInitialize.call(this, this);
+      }
+      getVisualElements() {
+        const elems = [
+          ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`)
+        ];
+        return elems;
+      }
+      cloneVisualElements(element, deep = false) {
+        const copiedElement = select_default2(element).clone(deep).node();
+        const frag = document.createDocumentFragment();
+        frag.append(copiedElement);
+        return copiedElement;
+      }
+      select(selector) {
+        return this._graphic.querySelectorAll(selector);
+      }
+      picking(options) {
+        if (options.baseOn === QueryType.Shape) {
+          return this._shapeQuery(options);
+        } else if (options.baseOn === QueryType.Data) {
+          return this._dataQuery(options);
+        } else if (options.baseOn === QueryType.Attr) {
+          return this._attrQuery(options);
+        }
+        return [];
+      }
+      _isElementInLayer(elem) {
+        return this._graphic.contains(elem) && !elem.classList.contains(backgroundClassName);
+      }
+      _shapeQuery(options) {
+        let result = [];
+        const svgBCR = this._svg.getBoundingClientRect();
+        const layerBCR = this._graphic.getBoundingClientRect();
+        if (options.type === ShapeQueryType.SurfacePoint) {
+          const { x, y } = options;
+          if (!isFinite(x) || !isFinite(y)) {
+            return [];
+          }
+          result = [...document.elementsFromPoint(x, y)].filter(this._isElementInLayer.bind(this));
+          if (result.length >= 1) {
+            result = [result[0]];
+          }
+        } else if (options.type === ShapeQueryType.Point) {
+          const { x, y } = options;
+          if (!isFinite(x) || !isFinite(y)) {
+            return [];
+          }
+          result = document.elementsFromPoint(x, y).filter(this._isElementInLayer.bind(this));
+        } else if (options.type === ShapeQueryType.Circle) {
+          const x = options.x - svgBCR.left, y = options.y - svgBCR.top, r = options.r;
+          const innerRectWidth = Math.floor(r * Math.sin(Math.PI / 4)) << 1;
+          const innerRectX = x - (innerRectWidth >>> 1);
+          const innerRectY = y - (innerRectWidth >>> 1);
+          const elemSet = new Set();
+          const innerRect = this._svg.createSVGRect();
+          innerRect.x = innerRectX;
+          innerRect.y = innerRectY;
+          innerRect.width = innerRectWidth;
+          innerRect.height = innerRectWidth;
+          this._svg.getIntersectionList(innerRect, this._graphic).forEach((elem) => elemSet.add(elem));
+          const outerRectWidth = r;
+          const outerRectX = x - r;
+          const outerRectY = y - r;
+          const outerElemSet = new Set();
+          const outerRect = this._svg.createSVGRect();
+          outerRect.x = outerRectX;
+          outerRect.y = outerRectY;
+          outerRect.width = outerRectWidth * 2;
+          outerRect.height = outerRectWidth * 2;
+          this._svg.getIntersectionList(outerRect, this._graphic).forEach((elem) => outerElemSet.add(elem));
+          let outer = 1;
+          while (true) {
+            for (let elem of outerElemSet) {
+              if (elemSet.has(elem))
+                outerElemSet.delete(elem);
+            }
+            if (!outerElemSet.size)
+              break;
+            if (outer * 2 + innerRectWidth >= r * 2)
+              break;
+            const w = Math.sqrt(r * r - Math.pow(innerRectWidth / 2 + outer, 2));
+            const topRect = this._svg.createSVGRect();
+            topRect.x = x - w;
+            topRect.y = innerRectY - outer;
+            topRect.width = w * 2;
+            topRect.height = 1;
+            const bottomRect = this._svg.createSVGRect();
+            bottomRect.x = x - w;
+            bottomRect.y = innerRectY + innerRectWidth + outer - 1;
+            bottomRect.width = w * 2;
+            bottomRect.height = 1;
+            const leftRect = this._svg.createSVGRect();
+            leftRect.x = innerRectX - outer;
+            leftRect.y = y - w;
+            leftRect.width = 1;
+            leftRect.height = w * 2;
+            const rightRect = this._svg.createSVGRect();
+            rightRect.x = innerRectX + innerRectWidth + outer - 1;
+            rightRect.y = y - w;
+            rightRect.width = 1;
+            rightRect.height = w * 2;
+            [topRect, bottomRect, leftRect, rightRect].forEach((rect) => {
+              this._svg.getIntersectionList(rect, this._graphic).forEach((elem) => elemSet.add(elem));
+            });
+            outer++;
+          }
+          result = [...elemSet].filter(this._isElementInLayer.bind(this));
+        } else if (options.type === ShapeQueryType.Rect) {
+          const { x, y, width, height } = options;
+          const x0 = Math.min(x, x + width) - svgBCR.left, y0 = Math.min(y, y + height) - svgBCR.top, absWidth = Math.abs(width), absHeight = Math.abs(height);
+          const rect = this._svg.createSVGRect();
+          rect.x = x0;
+          rect.y = y0;
+          rect.width = absWidth;
+          rect.height = absHeight;
+          result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => !elem.classList.contains(backgroundClassName));
+        } else if (options.type === ShapeQueryType.Polygon) {
+        }
+        const resultWithSVGGElement = [];
+        while (result.length > 0) {
+          const elem = result.shift();
+          resultWithSVGGElement.push(elem);
+          if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && this._graphic !== elem.parentElement)
+            result.push(elem.parentElement);
+        }
+        return resultWithSVGGElement;
+      }
+      _dataQuery(options) {
+        let result = [];
+        const visualElements = selectAll_default2(this.getVisualElements());
+        if (options.type === DataQueryType.Quantitative) {
+          const { attrName, extent } = options;
+          result = visualElements.filter((d) => d && d[attrName] && extent[0] < d[attrName] && d[attrName] < extent[1]).nodes();
+        }
+        if (options.type === DataQueryType.Quantitative2D) {
+          const { attrNameX, extentX, attrNameY, extentY } = options;
+          result = visualElements.filter((d) => d && d[attrNameX] && d[attrNameY] && extentX[0] < d[attrNameX] && d[attrNameX] < extentX[1] && extentY[0] < d[attrNameY] && d[attrNameY] < extentY[1]).nodes();
+        } else if (options.type === DataQueryType.Nominal) {
+          const { attrName, extent } = options;
+          result = visualElements.filter((d) => d && d[attrName] && extent.find(d[attrName])).nodes();
+        } else if (options.type === DataQueryType.Temporal) {
+          const { attrName, extent } = options;
+          const dateParser = options.dateParser || ((d) => d);
+          result = visualElements.filter((d) => d && d[attrName] && extent[0].getTime() < dateParser(d[attrName]).getTime() && dateParser(d[attrName]).getTime() < extent[1].getTime()).nodes();
+        }
+        return result;
+      }
+      _attrQuery(options) {
+        const { attrName, value } = options;
+        const result = select_default2(this._graphic).filter((d) => d[attrName] === value).nodes();
+        return result;
+      }
+    };
+    Layer.D3Layer = D3Layer;
+    Layer.register(baseName, { constructor: D3Layer });
+    Layer.register(baseName, { constructor: D3Layer });
+  }
+});
+
+// dist/esm/layer/index.js
+var Layer2;
+var init_layer2 = __esm({
+  "dist/esm/layer/index.js"() {
+    init_layer();
+    init_layer();
+    init_d3Layer();
+    Layer2 = Layer;
+  }
+});
 
 // dist/esm/instrument/instrument.js
-var registeredInstruments = {};
-var instanceInstruments = [];
-var EventDispatcher = new Map();
-var EventQueue = [];
-var eventHandling = false;
-var Instrument = class {
-  constructor(baseName2, options) {
-    this._transformers = [];
-    this._linkCache = {};
-    options.preInitialize && options.preInitialize.call(this, this);
-    this._preInitialize = options.preInitialize ?? null;
-    this._postInitialize = options.postInitialize ?? null;
-    this._preAttach = options.preAttach ?? null;
-    this._postUse = options.postUse ?? null;
-    this._baseName = baseName2;
-    this._userOptions = options;
-    this._name = options.name ?? baseName2;
-    this._on = deepClone(options.on ?? {});
-    this._interactors = [];
-    this._layers = [];
-    this._layerInteractors = new Map();
-    this._services = options.services ?? [];
-    this._serviceInstances = [];
-    this._sharedVar = options.sharedVar ?? {};
-    this._transformers = options.transformers ?? [];
-    if (options.interactors) {
-      options.interactors.forEach((interactor) => {
-        if (typeof interactor === "string") {
-          this.useInteractor(Interactor2.initialize(interactor));
-        } else if ("options" in interactor) {
-          if (typeof interactor.interactor === "string") {
-            this.useInteractor(Interactor2.initialize(interactor.interactor, interactor.options));
-          } else {
-            this.useInteractor(interactor.interactor, interactor.options);
-          }
-        } else {
-          this.useInteractor(interactor);
-        }
-      });
-    }
-    if (options.layers) {
-      options.layers.forEach((layer) => {
-        if ("options" in layer) {
-          this.attach(layer.layer, layer.options);
-        } else {
-          this.attach(layer);
-        }
-      });
-    }
-    this._services.forEach((service) => {
-      if (typeof service === "string" || !("options" in service)) {
-        this.useService(service);
-      } else {
-        this.useService(service.service, service.options);
-      }
-    });
-    options.postInitialize && options.postInitialize.call(this, this);
-  }
-  emit(action, options) {
-    if (this._on[action]) {
-      this._on[action].forEach((feedforwardOrCommand) => {
-        if (feedforwardOrCommand instanceof Command2) {
-          feedforwardOrCommand.execute(Object.assign({
-            self: this,
-            layer: null,
-            instrument: this,
-            interactor: null
-          }, options || {}));
-        } else {
-          feedforwardOrCommand(Object.assign({
-            self: this,
-            layer: null,
-            instrument: this,
-            interactor: null
-          }, options || {}));
-        }
-      });
-    }
-  }
-  on(action, feedforwardOrCommand) {
-    if (action instanceof Array) {
-      action.forEach((action2) => {
-        if (!this._on[action2]) {
-          this._on[action2] = [];
-        }
-        this._on[action2].push(feedforwardOrCommand);
-      });
-    } else {
-      if (!this._on[action]) {
-        this._on[action] = [];
-      }
-      this._on[action].push(feedforwardOrCommand);
-    }
-  }
-  off(action, feedforwardOrCommand) {
-    if (!this._on[action])
-      return;
-    if (this._on[action].includes(feedforwardOrCommand)) {
-      this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
-    }
-  }
-  _use(service, options) {
-    service.preAttach(this);
-    this._serviceInstances.push(service);
-    service.postUse(this);
-  }
-  useService(service, options) {
-    if (typeof service !== "string" && this._serviceInstances.includes(service)) {
-      return;
-    }
-    if (arguments.length >= 2) {
-      this._services.push({ service, options });
-    } else {
-      this._services.push(service);
-    }
-    if (typeof service === "string") {
-      const services = findService2(service);
-      services.forEach((service2) => this._use(service2, options));
-    } else {
-      this._use(service, options);
-    }
-  }
-  useInteractor(interactor, options) {
-    interactor.preUse(this);
-    if (arguments.length >= 2) {
-      this._interactors.push({ interactor, options });
-    } else {
-      this._interactors.push(interactor);
-    }
-    this._layers.forEach((layer) => {
-      let layr;
-      if (layer instanceof Layer2) {
-        layr = layer;
-      } else {
-        layr = layer.layer;
-      }
-      if (!this._layerInteractors.has(layr)) {
-        this._layerInteractors.set(layr, []);
-      }
-      const copyInteractor = Interactor2.initialize(interactor._baseName, interactor._userOptions);
-      this._layerInteractors.get(layr).push(copyInteractor);
-      copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
-        ...action,
-        sideEffect: async (options2) => {
-          action.sideEffect && action.sideEffect(options2);
-          if (this._on[action.action]) {
-            for (let command of this._on[action.action]) {
-              try {
-                if (command instanceof Command2) {
-                  await command.execute({
-                    ...options2,
-                    self: this,
-                    instrument: this
-                  });
-                } else {
-                  await command({
-                    ...options2,
-                    self: this,
-                    instrument: this
-                  });
-                }
-              } catch (e) {
-                console.error(e);
-              }
-            }
-          }
-        }
-      })));
-      copyInteractor.getAcceptEvents().forEach((event) => {
-        if (!EventDispatcher.has(layr.getContainerGraphic())) {
-          EventDispatcher.set(layr.getContainerGraphic(), new Map());
-        }
-        if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
-          layr.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layr, event));
-          EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
-        }
-        EventDispatcher.get(layr.getContainerGraphic()).get(event).push([
-          copyInteractor,
-          layr,
-          layer instanceof Layer2 ? null : layer.options,
-          this
-        ]);
-      });
-    });
-    interactor.postUse(this);
-  }
-  attach(layer, options) {
-    if (this._layers.find((l) => l instanceof Layer2 ? l === layer : l.layer === layer))
-      return;
-    this.preAttach(layer, options ?? null);
-    if (arguments.length >= 2) {
-      this._layers.push({ layer, options });
-    } else {
-      this._layers.push(layer);
-    }
-    this.postUse(layer);
-  }
-  getSharedVar(sharedName, options) {
-    if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
-      this.setSharedVar(sharedName, options.defaultValue, options);
-    }
-    return this._sharedVar[sharedName];
-  }
-  setSharedVar(sharedName, value, options) {
-    this._sharedVar[sharedName] = value;
-    if (this._on[`update:${sharedName}`]) {
-      const feedforwardOrCommands = this._on[`update:${sharedName}`];
-      feedforwardOrCommands.forEach((feedforwardOrCommand) => {
-        if (feedforwardOrCommand instanceof Command2) {
-          feedforwardOrCommand.execute({
-            self: this,
-            layer: null,
-            instrument: this,
-            interactor: null
-          });
-        } else {
-          feedforwardOrCommand({
-            self: this,
-            layer: null,
-            instrument: this,
-            interactor: null
-          });
-        }
-      });
-    }
-    const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-    if (this._sharedVar.linking) {
-      for (let prop of linkProps) {
-        if (this._linkCache[prop] === this._sharedVar[prop])
-          continue;
-        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
-      }
-    }
-  }
-  watchSharedVar(sharedName, handler) {
-    this.on(`update:${sharedName}`, handler);
-  }
-  preAttach(layer, options) {
-    this._preAttach && this._preAttach.call(this, this, layer);
-    this._interactors.forEach((interactor) => {
-      let inter;
-      if (interactor instanceof Interactor2) {
-        inter = interactor;
-      } else {
-        inter = interactor.interactor;
-      }
-      if (!this._layerInteractors.has(layer)) {
-        this._layerInteractors.set(layer, []);
-      }
-      const copyInteractor = Interactor2.initialize(inter._baseName, inter._userOptions);
-      this._layerInteractors.get(layer).push(copyInteractor);
-      copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
-        ...action,
-        sideEffect: async (options2) => {
-          action.sideEffect && action.sideEffect(options2);
-          if (this._on[action.action]) {
-            for (let command of this._on[action.action]) {
-              try {
-                if (command instanceof Command2) {
-                  await command.execute({
-                    ...options2,
-                    self: this,
-                    instrument: this
-                  });
-                } else {
-                  await command({
-                    ...options2,
-                    self: this,
-                    instrument: this
-                  });
-                }
-              } catch (e) {
-                console.error(e);
-              }
-            }
-          }
-        }
-      })));
-      copyInteractor.getAcceptEvents().forEach((event) => {
-        if (!EventDispatcher.has(layer.getContainerGraphic())) {
-          EventDispatcher.set(layer.getContainerGraphic(), new Map());
-        }
-        if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
-          layer.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layer, event));
-          EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
-        }
-        EventDispatcher.get(layer.getContainerGraphic()).get(event).push([copyInteractor, layer, options, this]);
-      });
-    });
-  }
-  async _dispatch(layer, event, e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    if (eventHandling) {
-      let existingEventIndex = EventQueue.findIndex((e2) => e2.instrument === this && e2.layer === layer && e2.eventType === event);
-      if (existingEventIndex >= 0) {
-        EventQueue.splice(existingEventIndex, 1);
-      }
-      EventQueue.push({ instrument: this, layer, eventType: event, event: e });
-      return;
-    }
-    eventHandling = true;
-    const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([_, layr]) => layr._order >= 0);
-    layers.sort((a, b) => b[1]._order - a[1]._order);
-    let handled = false;
-    for (let [inter, layr, layerOption, instrument] of layers) {
-      if (e instanceof MouseEvent) {
-        if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer" || layerOption && layerOption.pointerEvents === "all") {
-        } else if (!layerOption || layerOption.pointerEvents === "viewport") {
-          const maybeD3Layer = layr;
-          if (maybeD3Layer._offset) {
-            if (e.offsetX < maybeD3Layer._offset.x || e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width || e.offsetY < maybeD3Layer._offset.y || e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height) {
-              continue;
-            }
-          }
-        } else {
-          const query = layr.picking({
-            baseOn: QueryType.Shape,
-            type: ShapeQueryType.Point,
-            x: e.clientX,
-            y: e.clientY
-          });
-          if (query.length <= 0)
-            continue;
-        }
-      }
-      try {
-        let flag = await inter.dispatch(e, layr);
-      } catch (e2) {
-        console.error(e2);
-        break;
-      }
-    }
+var registeredInstruments, instanceInstruments2, EventDispatcher, EventQueue, eventHandling, Instrument, register7, unregister5, initialize7, findInstrument;
+var init_instrument = __esm({
+  "dist/esm/instrument/instrument.js"() {
+    init_interactor2();
+    init_helpers();
+    init_command2();
+    init_layer2();
+    init_service2();
+    init_transformer2();
+    registeredInstruments = {};
+    instanceInstruments2 = [];
+    EventDispatcher = new Map();
+    EventQueue = [];
     eventHandling = false;
-    if (EventQueue.length) {
-      const eventDescription = EventQueue.shift();
-      eventDescription.instrument._dispatch(eventDescription.layer, eventDescription.eventType, eventDescription.event);
-    }
+    Instrument = class {
+      constructor(baseName2, options) {
+        this._transformers = [];
+        this._linkCache = {};
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preAttach = options.preAttach ?? null;
+        this._postUse = options.postUse ?? null;
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._on = deepClone(options.on ?? {});
+        this._interactors = [];
+        this._layers = [];
+        this._layerInteractors = new Map();
+        this._services = options.services ?? [];
+        this._serviceInstances = [];
+        this._sharedVar = options.sharedVar ?? {};
+        this._transformers = options.transformers ?? [];
+        if (options.interactors) {
+          options.interactors.forEach((interactor) => {
+            if (typeof interactor === "string") {
+              this.useInteractor(Interactor2.initialize(interactor));
+            } else if ("options" in interactor) {
+              if (typeof interactor.interactor === "string") {
+                this.useInteractor(Interactor2.initialize(interactor.interactor, interactor.options));
+              } else {
+                this.useInteractor(interactor.interactor, interactor.options);
+              }
+            } else {
+              this.useInteractor(interactor);
+            }
+          });
+        }
+        if (options.layers) {
+          options.layers.forEach((layer) => {
+            if ("options" in layer) {
+              this.attach(layer.layer, layer.options);
+            } else {
+              this.attach(layer);
+            }
+          });
+        }
+        this._services.forEach((service) => {
+          if (typeof service === "string" || !("options" in service)) {
+            this.useService(service);
+          } else {
+            this.useService(service.service, service.options);
+          }
+        });
+        options.postInitialize && options.postInitialize.call(this, this);
+      }
+      emit(action, options) {
+        if (this._on[action]) {
+          this._on[action].forEach((feedforwardOrCommand) => {
+            if (feedforwardOrCommand instanceof Command2) {
+              feedforwardOrCommand.execute(Object.assign({
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null
+              }, options || {}));
+            } else {
+              feedforwardOrCommand(Object.assign({
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null
+              }, options || {}));
+            }
+          });
+        }
+      }
+      on(action, feedforwardOrCommand) {
+        if (action instanceof Array) {
+          action.forEach((action2) => {
+            if (!this._on[action2]) {
+              this._on[action2] = [];
+            }
+            this._on[action2].push(feedforwardOrCommand);
+          });
+        } else {
+          if (!this._on[action]) {
+            this._on[action] = [];
+          }
+          this._on[action].push(feedforwardOrCommand);
+        }
+      }
+      off(action, feedforwardOrCommand) {
+        if (!this._on[action])
+          return;
+        if (this._on[action].includes(feedforwardOrCommand)) {
+          this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
+        }
+      }
+      _use(service, options) {
+        service.preAttach(this);
+        this._serviceInstances.push(service);
+        service.postUse(this);
+      }
+      useService(service, options) {
+        if (typeof service !== "string" && this._serviceInstances.includes(service)) {
+          return;
+        }
+        if (arguments.length >= 2) {
+          this._services.push({ service, options });
+        } else {
+          this._services.push(service);
+        }
+        if (typeof service === "string") {
+          const services = findService2(service);
+          services.forEach((service2) => this._use(service2, options));
+        } else {
+          this._use(service, options);
+        }
+      }
+      useInteractor(interactor, options) {
+        interactor.preUse(this);
+        if (arguments.length >= 2) {
+          this._interactors.push({ interactor, options });
+        } else {
+          this._interactors.push(interactor);
+        }
+        this._layers.forEach((layer) => {
+          let layr;
+          if (layer instanceof Layer2) {
+            layr = layer;
+          } else {
+            layr = layer.layer;
+          }
+          if (!this._layerInteractors.has(layr)) {
+            this._layerInteractors.set(layr, []);
+          }
+          const copyInteractor = Interactor2.initialize(interactor._baseName, interactor._userOptions);
+          this._layerInteractors.get(layr).push(copyInteractor);
+          copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
+            ...action,
+            sideEffect: async (options2) => {
+              action.sideEffect && action.sideEffect(options2);
+              if (this._on[action.action]) {
+                for (let command of this._on[action.action]) {
+                  try {
+                    if (command instanceof Command2) {
+                      await command.execute({
+                        ...options2,
+                        self: this,
+                        instrument: this
+                      });
+                    } else {
+                      await command({
+                        ...options2,
+                        self: this,
+                        instrument: this
+                      });
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }
+              }
+            }
+          })));
+          copyInteractor.getAcceptEvents().forEach((event) => {
+            if (!EventDispatcher.has(layr.getContainerGraphic())) {
+              EventDispatcher.set(layr.getContainerGraphic(), new Map());
+            }
+            if (!EventDispatcher.get(layr.getContainerGraphic()).has(event)) {
+              layr.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layr, event));
+              EventDispatcher.get(layr.getContainerGraphic()).set(event, []);
+            }
+            EventDispatcher.get(layr.getContainerGraphic()).get(event).push([
+              copyInteractor,
+              layr,
+              layer instanceof Layer2 ? null : layer.options,
+              this
+            ]);
+          });
+        });
+        interactor.postUse(this);
+      }
+      attach(layer, options) {
+        if (this._layers.find((l) => l instanceof Layer2 ? l === layer : l.layer === layer))
+          return;
+        this.preAttach(layer, options ?? null);
+        if (arguments.length >= 2) {
+          this._layers.push({ layer, options });
+        } else {
+          this._layers.push(layer);
+        }
+        this.postUse(layer);
+      }
+      getSharedVar(sharedName, options) {
+        if (!(sharedName in this._sharedVar) && options && "defaultValue" in options) {
+          this.setSharedVar(sharedName, options.defaultValue, options);
+        }
+        return this._sharedVar[sharedName];
+      }
+      setSharedVar(sharedName, value, options) {
+        this._sharedVar[sharedName] = value;
+        if (this._on[`update:${sharedName}`]) {
+          const feedforwardOrCommands = this._on[`update:${sharedName}`];
+          feedforwardOrCommands.forEach((feedforwardOrCommand) => {
+            if (feedforwardOrCommand instanceof Command2) {
+              feedforwardOrCommand.execute({
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null
+              });
+            } else {
+              feedforwardOrCommand({
+                self: this,
+                layer: null,
+                instrument: this,
+                interactor: null
+              });
+            }
+          });
+        }
+        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+        if (this._sharedVar.linking) {
+          for (let prop of linkProps) {
+            if (this._linkCache[prop] === this._sharedVar[prop])
+              continue;
+            this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+          }
+        }
+      }
+      watchSharedVar(sharedName, handler) {
+        this.on(`update:${sharedName}`, handler);
+      }
+      preAttach(layer, options) {
+        this._preAttach && this._preAttach.call(this, this, layer);
+        this._interactors.forEach((interactor) => {
+          let inter;
+          if (interactor instanceof Interactor2) {
+            inter = interactor;
+          } else {
+            inter = interactor.interactor;
+          }
+          if (!this._layerInteractors.has(layer)) {
+            this._layerInteractors.set(layer, []);
+          }
+          const copyInteractor = Interactor2.initialize(inter._baseName, inter._userOptions);
+          this._layerInteractors.get(layer).push(copyInteractor);
+          copyInteractor.setActions(copyInteractor.getActions().map((action) => ({
+            ...action,
+            sideEffect: async (options2) => {
+              action.sideEffect && action.sideEffect(options2);
+              if (this._on[action.action]) {
+                for (let command of this._on[action.action]) {
+                  try {
+                    if (command instanceof Command2) {
+                      await command.execute({
+                        ...options2,
+                        self: this,
+                        instrument: this
+                      });
+                    } else {
+                      await command({
+                        ...options2,
+                        self: this,
+                        instrument: this
+                      });
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }
+              }
+            }
+          })));
+          copyInteractor.getAcceptEvents().forEach((event) => {
+            if (!EventDispatcher.has(layer.getContainerGraphic())) {
+              EventDispatcher.set(layer.getContainerGraphic(), new Map());
+            }
+            if (!EventDispatcher.get(layer.getContainerGraphic()).has(event)) {
+              layer.getContainerGraphic().addEventListener(event, this._dispatch.bind(this, layer, event));
+              EventDispatcher.get(layer.getContainerGraphic()).set(event, []);
+            }
+            EventDispatcher.get(layer.getContainerGraphic()).get(event).push([copyInteractor, layer, options, this]);
+          });
+        });
+      }
+      async _dispatch(layer, event, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (eventHandling) {
+          let existingEventIndex = EventQueue.findIndex((e2) => e2.instrument === this && e2.layer === layer && e2.eventType === event);
+          if (existingEventIndex >= 0) {
+            EventQueue.splice(existingEventIndex, 1);
+          }
+          EventQueue.push({ instrument: this, layer, eventType: event, event: e });
+          return;
+        }
+        eventHandling = true;
+        const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([_, layr]) => layr._order >= 0);
+        layers.sort((a, b) => b[1]._order - a[1]._order);
+        let handled = false;
+        for (let [inter, layr, layerOption, instrument] of layers) {
+          if (e instanceof MouseEvent) {
+            if (layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "backgroundlayer" || layr._name?.toLowerCase().replaceAll("-", "").replaceAll("_", "") === "bglayer" || layerOption && layerOption.pointerEvents === "all") {
+            } else if (!layerOption || layerOption.pointerEvents === "viewport") {
+              const maybeD3Layer = layr;
+              if (maybeD3Layer._offset) {
+                if (e.offsetX < maybeD3Layer._offset.x || e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width || e.offsetY < maybeD3Layer._offset.y || e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height) {
+                  continue;
+                }
+              }
+            } else {
+              const query = layr.picking({
+                baseOn: QueryType.Shape,
+                type: ShapeQueryType.Point,
+                x: e.clientX,
+                y: e.clientY
+              });
+              if (query.length <= 0)
+                continue;
+            }
+          }
+          try {
+            let flag = await inter.dispatch(e, layr);
+          } catch (e2) {
+            console.error(e2);
+            break;
+          }
+        }
+        eventHandling = false;
+        if (EventQueue.length) {
+          const eventDescription = EventQueue.shift();
+          eventDescription.instrument._dispatch(eventDescription.layer, eventDescription.eventType, eventDescription.event);
+        }
+      }
+      postUse(layer) {
+        const graphic = layer.getGraphic();
+        graphic && graphic.style && (graphic.style.pointerEvents = "auto");
+        this._postUse && this._postUse.call(this, this, layer);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      get services() {
+        return makeFindableList(this._serviceInstances.slice(0), Service2, this.useService.bind(this), () => {
+          throw new Error("Do not support dynamic change service yet");
+        }, this);
+      }
+      get transformers() {
+        return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1), this);
+      }
+      static register(baseName2, options) {
+        registeredInstruments[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredInstruments[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
+          on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+          sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+        });
+        const instrument = new mergedOptions.constructor(baseName2, mergedOptions);
+        instanceInstruments2.push(instrument);
+        return instrument;
+      }
+      static findInstrument(baseNameOrRealName) {
+        return instanceInstruments2.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    register7 = Instrument.register;
+    unregister5 = Instrument.unregister;
+    initialize7 = Instrument.initialize;
+    findInstrument = Instrument.findInstrument;
   }
-  postUse(layer) {
-    const graphic = layer.getGraphic();
-    graphic && graphic.style && (graphic.style.pointerEvents = "auto");
-    this._postUse && this._postUse.call(this, this, layer);
-  }
-  isInstanceOf(name) {
-    return this._baseName === name || this._name === name;
-  }
-  get services() {
-    return makeFindableList(this._serviceInstances.slice(0), Service2, this.useService.bind(this), () => {
-      throw new Error("Do not support dynamic change service yet");
-    });
-  }
-  get transformers() {
-    return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1));
-  }
-  static register(baseName2, options) {
-    registeredInstruments[baseName2] = options;
-  }
-  static unregister(baseName2) {
-    delete registeredInstruments[baseName2];
-    return true;
-  }
-  static initialize(baseName2, options) {
-    const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
-      on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
-      sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
-    });
-    const service = new mergedOptions.constructor(baseName2, mergedOptions);
-    return service;
-  }
-  static findInstrument(baseNameOrRealName) {
-    return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
-  }
-};
-var register7 = Instrument.register;
-var unregister5 = Instrument.unregister;
-var initialize7 = Instrument.initialize;
-var findInstrument = Instrument.findInstrument;
+});
 
 // dist/esm/instrument/builtin.js
-Instrument.register("HoverInstrument", {
-  constructor: Instrument,
-  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
-  on: {
-    hover: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    instrument.services.add("SurfacePointSelectionService", {
-      layer,
-      sharedVar: {
-        deepClone: instrument.getSharedVar("deepClone"),
-        highlightColor: instrument.getSharedVar("highlightColor"),
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
-      }
-    });
-  }
-});
-Instrument.register("ClickInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async (options) => {
-        let { event, layer, instrument } = options;
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.setSharedVar("x", event.clientX);
-        instrument.setSharedVar("y", event.clientY);
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
-        instrument.emit("clickstart", {
-          ...options,
-          self: options.instrument
-        });
-      }
-    ],
-    dragend: [
-      async (options) => {
-        let { event, layer, instrument } = options;
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("y", 0, { layer });
-        if (event.clientX === instrument.getSharedVar("x") && event.clientY === instrument.getSharedVar("y")) {
-          instrument.setSharedVar("x", 0);
-          instrument.setSharedVar("y", 0);
-          instrument.emit("click", {
-            ...options,
-            self: options.instrument
-          });
-        } else {
-          instrument.setSharedVar("x", 0);
-          instrument.setSharedVar("y", 0);
-          instrument.emit("clickabort", {
-            ...options,
-            self: options.instrument
-          });
-        }
-      }
-    ],
-    dragabort: [
-      (options) => {
-        if (options.event.changedTouches)
-          options.event = options.event.changedTouches[0];
-        const services = options.instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer: options.layer });
-        services.setSharedVar("y", 0, { layer: options.layer });
-        options.instrument.emit("clickabort", {
-          ...options,
-          self: options.instrument
-        });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    instrument.services.add("SurfacePointSelectionService", {
-      layer,
-      sharedVar: {
-        deepClone: instrument.getSharedVar("deepClone"),
-        highlightColor: instrument.getSharedVar("highlightColor"),
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
-      }
-    });
-  }
-});
-Instrument.register("BrushInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("RectSelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
-        services.setSharedVar("width", 1, { layer });
-        services.setSharedVar("height", 1, { layer });
-        services.setSharedVar("startx", event.clientX, { layer });
-        services.setSharedVar("starty", event.clientY, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("starty", event.clientY);
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          y: 0,
-          width: 1,
-          height: 1
-        });
-      }
-    ],
-    drag: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const startx = instrument.getSharedVar("startx");
-        const starty = instrument.getSharedVar("starty");
-        const x = Math.min(startx, event.clientX);
-        const y = Math.min(starty, event.clientY);
-        const width = Math.abs(event.clientX - startx);
-        const height = Math.abs(event.clientY - starty);
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", x, { layer });
-        services.setSharedVar("y", y, { layer });
-        services.setSharedVar("width", width, {
-          layer
-        });
-        services.setSharedVar("height", height, {
-          layer
-        });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.transformers.setSharedVars({
-          x: x - layer.getGraphic().getBoundingClientRect().left,
-          y: y - layer.getGraphic().getBoundingClientRect().top,
-          width,
-          height
-        });
-      }
-    ],
-    dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("y", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("height", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        services.setSharedVar("endy", event.clientY, { layer });
-        instrument.transformers.setSharedVars({
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0
-        });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    layer.getLayerFromQueue("selectionLayer");
-    instrument.services.add("RectSelectionService", {
-      layer,
-      sharedVar: {
-        deepClone: instrument.getSharedVar("deepClone"),
-        highlightColor: instrument.getSharedVar("highlightColor"),
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
-      }
-    });
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        fill: "#000",
-        opacity: 0.3
-      }
-    });
-  }
-});
-Instrument.register("BrushXInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services;
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("width", 1, { layer });
-        services.setSharedVar("startx", event.clientX, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        instrument.setSharedVar("startx", event.offsetX);
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          width: 1
-        });
-      }
-    ],
-    drag: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const startx = instrument.getSharedVar("startx");
-        const x = Math.min(startx, event.offsetX);
-        const width = Math.abs(event.offsetX - startx);
-        const layerOffsetX = layer.getGraphic().getBoundingClientRect().left;
-        const services = instrument.services;
-        const scaleX = instrument.getSharedVar("scaleX");
-        if (scaleX && scaleX.invert) {
-          const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
-          instrument.setSharedVar("extent", newExtent);
-        }
-        services.setSharedVar("x", x, { layer });
-        services.setSharedVar("width", width, {
-          layer
-        });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        instrument.setSharedVar("currentx", event.offsetX);
-        instrument.transformers.setSharedVars({
-          x: x - layer._offset?.x,
-          width
-        });
-      }
-    ],
-    dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services;
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          width: 0
-        });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    const y = instrument.getSharedVar("y") ?? 0;
-    const height = instrument.getSharedVar("height") ?? layer._height;
-    const services = instrument.services.add("RectSelectionService", { layer });
-    const bbox = layer.getGraphic().getBoundingClientRect();
-    services.setSharedVar("y", bbox.y + y);
-    services.setSharedVar("height", height);
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height,
-        fill: "#000",
-        opacity: 0.3
-      }
-    }).add("HighlightSelection", {
-      transient: true,
-      layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: {} }
-    });
-  }
-});
-Instrument.register("BrushYInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("RectSelectionService");
-        services.setSharedVar("y", event.clientY, { layer });
-        services.setSharedVar("height", 1, { layer });
-        services.setSharedVar("starty", event.clientY, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.setSharedVar("starty", event.clientY);
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          y: 0,
-          height: 1
-        });
-      }
-    ],
-    drag: [
-      Command.initialize("drawBrushAndSelect", {
-        continuous: true,
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          const starty = instrument.getSharedVar("starty");
-          const y = Math.min(starty, event.clientY);
-          const height = Math.abs(event.clientY - starty);
-          const services = instrument.services.find("SelectionService");
-          services.setSharedVar("y", y, { layer });
-          services.setSharedVar("height", height, {
-            layer
-          });
-          services.setSharedVar("currenty", event.clientY, { layer });
-          await Promise.all(instrument.services.results);
-        },
-        feedback: [
+var init_builtin3 = __esm({
+  "dist/esm/instrument/builtin.js"() {
+    init_instrument();
+    init_helpers();
+    init_d3();
+    init_command();
+    Instrument.register("HoverInstrument", {
+      constructor: Instrument,
+      interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
+      on: {
+        hover: [
           async ({ event, layer, instrument }) => {
-            const starty = instrument.getSharedVar("starty");
-            const y = Math.min(starty, event.clientY);
-            const height = Math.abs(event.clientY - starty);
-            const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              y: y - baseBBox.top,
-              height
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", event.clientX, { layer });
+            services.setSharedVar("y", event.clientY, { layer });
+          }
+        ]
+      },
+      preAttach: (instrument, layer) => {
+        instrument.services.add("SurfacePointSelectionService", {
+          layer,
+          sharedVar: {
+            deepClone: instrument.getSharedVar("deepClone"),
+            highlightColor: instrument.getSharedVar("highlightColor"),
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+          }
+        });
+      }
+    });
+    Instrument.register("ClickInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          async (options) => {
+            let { event, layer, instrument } = options;
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.setSharedVar("x", event.clientX);
+            instrument.setSharedVar("y", event.clientY);
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", event.clientX, { layer });
+            services.setSharedVar("y", event.clientY, { layer });
+            instrument.emit("clickstart", {
+              ...options,
+              self: options.instrument
             });
-          },
-          async ({ instrument }) => {
-            instrument.transformers.find("HighlightSelection").setSharedVars({
-              highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+          }
+        ],
+        dragend: [
+          async (options) => {
+            let { event, layer, instrument } = options;
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", 0, { layer });
+            services.setSharedVar("y", 0, { layer });
+            if (event.clientX === instrument.getSharedVar("x") && event.clientY === instrument.getSharedVar("y")) {
+              instrument.setSharedVar("x", 0);
+              instrument.setSharedVar("y", 0);
+              instrument.emit("click", {
+                ...options,
+                self: options.instrument
+              });
+            } else {
+              instrument.setSharedVar("x", 0);
+              instrument.setSharedVar("y", 0);
+              instrument.emit("clickabort", {
+                ...options,
+                self: options.instrument
+              });
+            }
+          }
+        ],
+        dragabort: [
+          (options) => {
+            if (options.event.changedTouches)
+              options.event = options.event.changedTouches[0];
+            const services = options.instrument.services.find("SelectionService");
+            services.setSharedVar("x", 0, { layer: options.layer });
+            services.setSharedVar("y", 0, { layer: options.layer });
+            options.instrument.emit("clickabort", {
+              ...options,
+              self: options.instrument
             });
           }
         ]
-      })
-    ],
-    dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("y", 0, { layer });
-        services.setSharedVar("height", 0, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        services.setSharedVar("endy", event.clientY, { layer });
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          y: 0,
-          height: 0
+      },
+      preAttach: (instrument, layer) => {
+        instrument.services.add("SurfacePointSelectionService", {
+          layer,
+          sharedVar: {
+            deepClone: instrument.getSharedVar("deepClone"),
+            highlightColor: instrument.getSharedVar("highlightColor"),
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+          }
         });
-      }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    const x = instrument.getSharedVar("x") ?? 0;
-    const width = instrument.getSharedVar("width") ?? layer._width;
-    const services = instrument.services.add("RectSelectionService", { layer });
-    const bbox = layer.getGraphic().getBoundingClientRect();
-    services.setSharedVar("x", bbox.x + x);
-    services.setSharedVar("width", width);
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: 0,
-        y: 0,
-        width,
-        height: 0,
-        fill: "#000",
-        opacity: 0.3
-      }
-    }).add("HighlightSelection", {
-      transient: true,
-      layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: { highlightAttrValues: {} }
-    });
-  }
-});
-Instrument.register("HelperLineInstrument", {
-  constructor: Instrument,
-  sharedVar: { orientation: ["horizontal"] },
-  interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
-  on: {
-    hover: [
-      ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.transformers.setSharedVars({
-          x: event.offsetX,
-          y: event.offsetY
-        });
-        instrument.setSharedVar("x", event.offsetX, {});
-        instrument.setSharedVar("y", event.offsetY, {});
-      }
-    ]
-  },
-  preAttach: function(instrument, layer) {
-    instrument.transformers.add("HelperLineTransformer", {
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        orientation: instrument.getSharedVar("orientation"),
-        style: instrument.getSharedVar("style") || {},
-        tooltip: instrument.getSharedVar("tooltip"),
-        scaleX: instrument.getSharedVar("scaleX"),
-        scaleY: instrument.getSharedVar("scaleY")
       }
     });
-  }
-});
-Instrument.register("DataBrushInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const scaleX = instrument.getSharedVar("scaleX");
-        const scaleY = instrument.getSharedVar("scaleY");
-        const services = instrument.services.find("Quantitative2DSelectionService");
-        const layerPos = pointer_default(event, layer.getGraphic());
-        instrument.setSharedVar("layerOffsetX", event.clientX - layerPos[0]);
-        instrument.setSharedVar("layerOffsetY", event.clientY - layerPos[1]);
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("starty", event.clientY);
-        const newExtentX = [layerPos[0], layerPos[0] + 1].map(scaleX.invert);
-        services.setSharedVar("extentX", newExtentX);
-        const newExtentY = [layerPos[1], layerPos[1] + 1].map(scaleY.invert);
-        services.setSharedVar("extentX", newExtentY);
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          y: 0,
-          width: 1,
-          height: 1
-        });
-      }
-    ],
-    drag: [
-      Command.initialize("drawBrushAndSelect", {
-        continuous: true,
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          const startx = instrument.getSharedVar("startx");
-          const starty = instrument.getSharedVar("starty");
-          const layerOffsetX = instrument.getSharedVar("layerOffsetX");
-          const layerOffsetY = instrument.getSharedVar("layerOffsetY");
-          const scaleX = instrument.getSharedVar("scaleX");
-          const scaleY = instrument.getSharedVar("scaleY");
-          const x = Math.min(startx, event.clientX) - layerOffsetX;
-          const y = Math.min(starty, event.clientY) - layerOffsetY;
-          const width = Math.abs(event.clientX - startx);
-          const height = Math.abs(event.clientY - starty);
-          instrument.setSharedVar("x", x);
-          instrument.setSharedVar("y", y);
-          instrument.setSharedVar("width", width);
-          instrument.setSharedVar("height", height);
-          const newExtentDataX = [x, x + width].map(scaleX.invert);
-          const newExtentDataY = [y + height, y].map(scaleY.invert);
-          const services = instrument.services.find("SelectionService");
-          services.setSharedVar("extentX", newExtentDataX);
-          services.setSharedVar("extentY", newExtentDataY);
-          console.log(services);
-          await Promise.all(instrument.services.results);
-        },
-        feedback: [
+    Instrument.register("BrushInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
           async ({ event, layer, instrument }) => {
-            const x = instrument.getSharedVar("x");
-            const y = instrument.getSharedVar("y");
-            const width = instrument.getSharedVar("width");
-            const height = instrument.getSharedVar("height");
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("RectSelectionService");
+            services.setSharedVar("x", event.clientX, { layer });
+            services.setSharedVar("y", event.clientY, { layer });
+            services.setSharedVar("width", 1, { layer });
+            services.setSharedVar("height", 1, { layer });
+            services.setSharedVar("startx", event.clientX, { layer });
+            services.setSharedVar("starty", event.clientY, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("currenty", event.clientY, { layer });
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("starty", event.clientY);
             instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x,
-              y,
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1
+            });
+          }
+        ],
+        drag: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const startx = instrument.getSharedVar("startx");
+            const starty = instrument.getSharedVar("starty");
+            const x = Math.min(startx, event.clientX);
+            const y = Math.min(starty, event.clientY);
+            const width = Math.abs(event.clientX - startx);
+            const height = Math.abs(event.clientY - starty);
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", x, { layer });
+            services.setSharedVar("y", y, { layer });
+            services.setSharedVar("width", width, {
+              layer
+            });
+            services.setSharedVar("height", height, {
+              layer
+            });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("currenty", event.clientY, { layer });
+            instrument.transformers.setSharedVars({
+              x: x - layer.getGraphic().getBoundingClientRect().left,
+              y: y - layer.getGraphic().getBoundingClientRect().top,
               width,
               height
             });
-          },
-          async ({ instrument }) => {
-            instrument.transformers.find("HighlightSelection").setSharedVars({
-              highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+          }
+        ],
+        dragabort: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", 0, { layer });
+            services.setSharedVar("y", 0, { layer });
+            services.setSharedVar("width", 0, { layer });
+            services.setSharedVar("height", 0, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("currenty", event.clientY, { layer });
+            services.setSharedVar("endx", event.clientX, { layer });
+            services.setSharedVar("endy", event.clientY, { layer });
+            instrument.transformers.setSharedVars({
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0
             });
           }
         ]
-      })
-    ],
-    dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          width: 0
+      },
+      preAttach: (instrument, layer) => {
+        layer.getLayerFromQueue("selectionLayer");
+        instrument.services.add("RectSelectionService", {
+          layer,
+          sharedVar: {
+            deepClone: instrument.getSharedVar("deepClone"),
+            highlightColor: instrument.getSharedVar("highlightColor"),
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+          }
+        });
+        instrument.transformers.add("TransientRectangleTransformer", {
+          transient: true,
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            fill: "#000",
+            opacity: 0.3
+          }
         });
       }
-    ]
-  },
-  preAttach: async (instrument, layer) => {
-    const scaleX = instrument.getSharedVar("scaleX");
-    const scaleY = instrument.getSharedVar("scaleY");
-    const attrNameX = instrument.getSharedVar("attrNameX");
-    const extentX = instrument.getSharedVar("extentX") ?? [0, 0];
-    const extentXData = extentX.map(scaleX);
-    const attrNameY = instrument.getSharedVar("attrNameY");
-    const extentY = instrument.getSharedVar("extentY") ?? [0, 0];
-    const extentYData = extentX.map(scaleY).reverse();
-    const services = instrument.services.add("Quantitative2DSelectionService", {
-      layer
     });
-    services.setSharedVar("attrNameX", attrNameX);
-    services.setSharedVar("extentX", extentX);
-    services.setSharedVar("attrNameY", attrNameY);
-    services.setSharedVar("extentY", extentY);
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: extentXData[0],
-        y: extentYData[0],
-        width: extentXData[1] - extentXData[0],
-        height: extentYData[1] - extentYData[0],
-        fill: "#000",
-        opacity: 0.3
-      }
-    }).add("HighlightSelection", {
-      transient: true,
-      layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: {
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
-      }
-    });
-    await Promise.all(instrument.services.results);
-  }
-});
-Instrument.register("DataBrushXInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const scaleX = instrument.getSharedVar("scaleX");
-        const services = instrument.services.find("QuantitativeSelectionService");
-        const layerPosX = pointer_default(event, layer.getGraphic())[0];
-        instrument.setSharedVar("layerOffsetX", event.clientX - layerPosX);
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("startLayerPosX", layerPosX);
-        const newExtent = [layerPosX, layerPosX + 1].map(scaleX.invert);
-        services.setSharedVar("extent", newExtent);
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: layerPosX,
-          width: 1
-        });
-      }
-    ],
-    drag: [
-      Command.initialize("drawBrushAndSelect", {
-        continuous: true,
-        execute: async ({ event, layer, instrument }) => {
-          if (event.changedTouches)
-            event = event.changedTouches[0];
-          const startx = instrument.getSharedVar("startx");
-          const layerOffsetX = instrument.getSharedVar("layerOffsetX");
-          const scaleX = instrument.getSharedVar("scaleX");
-          const x = Math.min(startx, event.clientX);
-          const width = Math.abs(event.clientX - startx);
-          const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
-          const services = instrument.services.find("QuantitativeSelectionService");
-          instrument.setSharedVar("extent", newExtent);
-          services.setSharedVar("extent", newExtent);
-          await Promise.all(instrument.services.results);
-        },
-        feedback: [
+    Instrument.register("BrushXInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
           async ({ event, layer, instrument }) => {
-            const startLayerPosX = instrument.getSharedVar("startLayerPosX");
-            const layerPosX = pointer_default(event, layer.getGraphic())[0];
-            console.log(startLayerPosX, layerPosX);
-            const x = Math.min(startLayerPosX, layerPosX);
-            const width = Math.abs(layerPosX - startLayerPosX);
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services;
+            services.setSharedVar("x", event.clientX, { layer });
+            services.setSharedVar("width", 1, { layer });
+            services.setSharedVar("startx", event.clientX, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            instrument.setSharedVar("startx", event.offsetX);
             instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x,
+              x: 0,
+              width: 1
+            });
+          }
+        ],
+        drag: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const startx = instrument.getSharedVar("startx");
+            const x = Math.min(startx, event.offsetX);
+            const width = Math.abs(event.offsetX - startx);
+            const layerOffsetX = layer.getGraphic().getBoundingClientRect().left;
+            const services = instrument.services;
+            const scaleX = instrument.getSharedVar("scaleX");
+            if (scaleX && scaleX.invert) {
+              const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
+              instrument.setSharedVar("extent", newExtent);
+            }
+            services.setSharedVar("x", x, { layer });
+            services.setSharedVar("width", width, {
+              layer
+            });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            instrument.setSharedVar("currentx", event.offsetX);
+            instrument.transformers.setSharedVars({
+              x: x - layer._offset?.x,
               width
             });
-          },
-          async ({ instrument }) => {
-            instrument.transformers.find("HighlightSelection").setSharedVars({
-              highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+          }
+        ],
+        dragabort: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services;
+            services.setSharedVar("x", 0, { layer });
+            services.setSharedVar("width", 0, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("endx", event.clientX, { layer });
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: 0,
+              width: 0
             });
           }
         ]
-      })
-    ],
-    dragabort: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-          x: 0,
-          width: 0
+      },
+      preAttach: (instrument, layer) => {
+        const y = instrument.getSharedVar("y") ?? 0;
+        const height = instrument.getSharedVar("height") ?? layer._height;
+        const services = instrument.services.add("RectSelectionService", { layer });
+        const bbox = layer.getGraphic().getBoundingClientRect();
+        services.setSharedVar("y", bbox.y + y);
+        services.setSharedVar("height", height);
+        instrument.transformers.add("TransientRectangleTransformer", {
+          transient: true,
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            x: 0,
+            y: 0,
+            width: 0,
+            height,
+            fill: "#000",
+            opacity: 0.3
+          }
+        }).add("HighlightSelection", {
+          transient: true,
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          sharedVar: { highlightAttrValues: {} }
         });
       }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    const scaleX = instrument.getSharedVar("scaleX");
-    const height = instrument.getSharedVar("height") ?? layer._height;
-    const y = instrument.getSharedVar("y") ?? 0;
-    const attrName = instrument.getSharedVar("attrNameX");
-    const extent = instrument.getSharedVar("extentX") ?? [0, 0];
-    const extentData = extent.map(scaleX);
-    const services = instrument.services.add("QuantitativeSelectionService", {
-      layer
     });
-    services.setSharedVar("attrName", attrName);
-    services.setSharedVar("extent", extent);
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: extentData[0],
-        y,
-        width: extentData[1] - extentData[0],
-        height,
-        fill: "#000",
-        opacity: 0.3
-      }
-    }).add("HighlightSelection", {
-      transient: true,
-      layer: layer.getLayerFromQueue("selectionLayer"),
-      sharedVar: {
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
-      }
-    });
-  }
-});
-Instrument.register("DragInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      ({ layer, event, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.services.setSharedVar("x", event.clientX, { layer });
-        instrument.services.setSharedVar("y", event.clientY, { layer });
-      }
-    ],
-    drag: [
-      ({ layer, event, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
-        const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-        instrument.setSharedVar("offsetx", offsetX, { layer });
-        instrument.setSharedVar("offsety", offsetY, { layer });
-      }
-    ],
-    dragend: [
-      ({ layer, event, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
-        const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-        instrument.services.setSharedVar("x", 0, { layer });
-        instrument.services.setSharedVar("y", 0, { layer });
-        instrument.setSharedVar("offsetx", offsetX, { layer });
-        instrument.setSharedVar("offsety", offsetY, { layer });
-      }
-    ],
-    dragabort: [
-      (options) => {
-        let { layer, event, instrument } = options;
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.services.setSharedVar("x", 0, { layer });
-        instrument.services.setSharedVar("y", 0, { layer });
-        instrument.services.setSharedVar("currentx", event.clientX, { layer });
-        instrument.services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.services.setSharedVar("offsetx", 0, { layer });
-        instrument.services.setSharedVar("offsety", 0, { layer });
-        instrument.emit("dragconfirm", {
-          ...options,
-          self: options.instrument
+    Instrument.register("BrushYInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("RectSelectionService");
+            services.setSharedVar("y", event.clientY, { layer });
+            services.setSharedVar("height", 1, { layer });
+            services.setSharedVar("starty", event.clientY, { layer });
+            services.setSharedVar("currenty", event.clientY, { layer });
+            instrument.setSharedVar("starty", event.clientY);
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              y: 0,
+              height: 1
+            });
+          }
+        ],
+        drag: [
+          Command.initialize("drawBrushAndSelect", {
+            continuous: true,
+            execute: async ({ event, layer, instrument }) => {
+              if (event.changedTouches)
+                event = event.changedTouches[0];
+              const starty = instrument.getSharedVar("starty");
+              const y = Math.min(starty, event.clientY);
+              const height = Math.abs(event.clientY - starty);
+              const services = instrument.services.find("SelectionService");
+              services.setSharedVar("y", y, { layer });
+              services.setSharedVar("height", height, {
+                layer
+              });
+              services.setSharedVar("currenty", event.clientY, { layer });
+              await Promise.all(instrument.services.results);
+            },
+            feedback: [
+              async ({ event, layer, instrument }) => {
+                const starty = instrument.getSharedVar("starty");
+                const y = Math.min(starty, event.clientY);
+                const height = Math.abs(event.clientY - starty);
+                const baseBBox = (layer.getGraphic().querySelector(".ig-layer-background") || layer.getGraphic()).getBoundingClientRect();
+                instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+                  y: y - baseBBox.top,
+                  height
+                });
+              },
+              async ({ instrument }) => {
+                instrument.transformers.find("HighlightSelection").setSharedVars({
+                  highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+                });
+              }
+            ]
+          })
+        ],
+        dragabort: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("y", 0, { layer });
+            services.setSharedVar("height", 0, { layer });
+            services.setSharedVar("currenty", event.clientY, { layer });
+            services.setSharedVar("endy", event.clientY, { layer });
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              y: 0,
+              height: 0
+            });
+          }
+        ]
+      },
+      preAttach: (instrument, layer) => {
+        const x = instrument.getSharedVar("x") ?? 0;
+        const width = instrument.getSharedVar("width") ?? layer._width;
+        const services = instrument.services.add("RectSelectionService", { layer });
+        const bbox = layer.getGraphic().getBoundingClientRect();
+        services.setSharedVar("x", bbox.x + x);
+        services.setSharedVar("width", width);
+        instrument.transformers.add("TransientRectangleTransformer", {
+          transient: true,
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            x: 0,
+            y: 0,
+            width,
+            height: 0,
+            fill: "#000",
+            opacity: 0.3
+          }
+        }).add("HighlightSelection", {
+          transient: true,
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          sharedVar: { highlightAttrValues: {} }
         });
       }
-    ]
-  },
-  preAttach: (instrument, layer) => {
-    instrument.services.add("SurfacePointSelectionService", {
-      layer,
-      sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
     });
-  }
-});
-Instrument.register("SpeechInstrument", {
-  constructor: Instrument,
-  interactors: ["SpeechControlInteractor"]
-});
-Instrument.register("KeyboardHelperBarInstrument", {
-  constructor: Instrument,
-  interactors: ["KeyboardPositionInteractor"],
-  on: {
-    begin: [() => console.log("begin")],
-    left: [
-      ({ event, layer, instrument }) => {
-        const speed = instrument.getSharedVar("speed") || 1;
+    Instrument.register("HelperLineInstrument", {
+      constructor: Instrument,
+      sharedVar: { orientation: ["horizontal"] },
+      interactors: ["MousePositionInteractor", "TouchPositionInteractor"],
+      on: {
+        hover: [
+          ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.transformers.setSharedVars({
+              x: event.offsetX,
+              y: event.offsetY
+            });
+            instrument.setSharedVar("x", event.offsetX, {});
+            instrument.setSharedVar("y", event.offsetY, {});
+          }
+        ]
+      },
+      preAttach: function(instrument, layer) {
+        instrument.transformers.add("HelperLineTransformer", {
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            orientation: instrument.getSharedVar("orientation"),
+            style: instrument.getSharedVar("style") || {},
+            tooltip: instrument.getSharedVar("tooltip"),
+            scaleX: instrument.getSharedVar("scaleX"),
+            scaleY: instrument.getSharedVar("scaleY")
+          }
+        });
+      }
+    });
+    Instrument.register("DataBrushInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const scaleX = instrument.getSharedVar("scaleX");
+            const scaleY = instrument.getSharedVar("scaleY");
+            const services = instrument.services.find("Quantitative2DSelectionService");
+            const layerPos = pointer_default(event, layer.getGraphic());
+            instrument.setSharedVar("layerOffsetX", event.clientX - layerPos[0]);
+            instrument.setSharedVar("layerOffsetY", event.clientY - layerPos[1]);
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("starty", event.clientY);
+            const newExtentX = [layerPos[0], layerPos[0] + 1].map(scaleX.invert);
+            services.setSharedVar("extentX", newExtentX);
+            const newExtentY = [layerPos[1], layerPos[1] + 1].map(scaleY.invert);
+            services.setSharedVar("extentX", newExtentY);
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1
+            });
+          }
+        ],
+        drag: [
+          Command.initialize("drawBrushAndSelect", {
+            continuous: true,
+            execute: async ({ event, layer, instrument }) => {
+              if (event.changedTouches)
+                event = event.changedTouches[0];
+              const startx = instrument.getSharedVar("startx");
+              const starty = instrument.getSharedVar("starty");
+              const layerOffsetX = instrument.getSharedVar("layerOffsetX");
+              const layerOffsetY = instrument.getSharedVar("layerOffsetY");
+              const scaleX = instrument.getSharedVar("scaleX");
+              const scaleY = instrument.getSharedVar("scaleY");
+              const x = Math.min(startx, event.clientX) - layerOffsetX;
+              const y = Math.min(starty, event.clientY) - layerOffsetY;
+              const width = Math.abs(event.clientX - startx);
+              const height = Math.abs(event.clientY - starty);
+              instrument.setSharedVar("x", x);
+              instrument.setSharedVar("y", y);
+              instrument.setSharedVar("width", width);
+              instrument.setSharedVar("height", height);
+              const newExtentDataX = [x, x + width].map(scaleX.invert);
+              const newExtentDataY = [y + height, y].map(scaleY.invert);
+              const services = instrument.services.find("SelectionService");
+              services.setSharedVar("extentX", newExtentDataX);
+              services.setSharedVar("extentY", newExtentDataY);
+              console.log(services);
+              await Promise.all(instrument.services.results);
+            },
+            feedback: [
+              async ({ event, layer, instrument }) => {
+                const x = instrument.getSharedVar("x");
+                const y = instrument.getSharedVar("y");
+                const width = instrument.getSharedVar("width");
+                const height = instrument.getSharedVar("height");
+                instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+                  x,
+                  y,
+                  width,
+                  height
+                });
+              },
+              async ({ instrument }) => {
+                instrument.transformers.find("HighlightSelection").setSharedVars({
+                  highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+                });
+              }
+            ]
+          })
+        ],
+        dragabort: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", 0, { layer });
+            services.setSharedVar("width", 0, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("endx", event.clientX, { layer });
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: 0,
+              width: 0
+            });
+          }
+        ]
+      },
+      preAttach: async (instrument, layer) => {
+        const scaleX = instrument.getSharedVar("scaleX");
+        const scaleY = instrument.getSharedVar("scaleY");
+        const attrNameX = instrument.getSharedVar("attrNameX");
+        const extentX = instrument.getSharedVar("extentX") ?? [0, 0];
+        const extentXData = extentX.map(scaleX);
+        const attrNameY = instrument.getSharedVar("attrNameY");
+        const extentY = instrument.getSharedVar("extentY") ?? [0, 0];
+        const extentYData = extentX.map(scaleY).reverse();
+        const services = instrument.services.add("Quantitative2DSelectionService", {
+          layer
+        });
+        services.setSharedVar("attrNameX", attrNameX);
+        services.setSharedVar("extentX", extentX);
+        services.setSharedVar("attrNameY", attrNameY);
+        services.setSharedVar("extentY", extentY);
+        instrument.transformers.add("TransientRectangleTransformer", {
+          transient: true,
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            x: extentXData[0],
+            y: extentYData[0],
+            width: extentXData[1] - extentXData[0],
+            height: extentYData[1] - extentYData[0],
+            fill: "#000",
+            opacity: 0.3
+          }
+        }).add("HighlightSelection", {
+          transient: true,
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          sharedVar: {
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+          }
+        });
+        await Promise.all(instrument.services.results);
+      }
+    });
+    Instrument.register("DataBrushXInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const scaleX = instrument.getSharedVar("scaleX");
+            const services = instrument.services.find("QuantitativeSelectionService");
+            const layerPosX = pointer_default(event, layer.getGraphic())[0];
+            instrument.setSharedVar("layerOffsetX", event.clientX - layerPosX);
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("startLayerPosX", layerPosX);
+            const newExtent = [layerPosX, layerPosX + 1].map(scaleX.invert);
+            services.setSharedVar("extent", newExtent);
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: layerPosX,
+              width: 1
+            });
+          }
+        ],
+        drag: [
+          Command.initialize("drawBrushAndSelect", {
+            continuous: true,
+            execute: async ({ event, layer, instrument }) => {
+              if (event.changedTouches)
+                event = event.changedTouches[0];
+              const startx = instrument.getSharedVar("startx");
+              const layerOffsetX = instrument.getSharedVar("layerOffsetX");
+              const scaleX = instrument.getSharedVar("scaleX");
+              const x = Math.min(startx, event.clientX);
+              const width = Math.abs(event.clientX - startx);
+              const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
+              const services = instrument.services.find("QuantitativeSelectionService");
+              instrument.setSharedVar("extent", newExtent);
+              services.setSharedVar("extent", newExtent);
+              await Promise.all(instrument.services.results);
+            },
+            feedback: [
+              async ({ event, layer, instrument }) => {
+                const startLayerPosX = instrument.getSharedVar("startLayerPosX");
+                const layerPosX = pointer_default(event, layer.getGraphic())[0];
+                console.log(startLayerPosX, layerPosX);
+                const x = Math.min(startLayerPosX, layerPosX);
+                const width = Math.abs(layerPosX - startLayerPosX);
+                instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+                  x,
+                  width
+                });
+              },
+              async ({ instrument }) => {
+                instrument.transformers.find("HighlightSelection").setSharedVars({
+                  highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+                });
+              }
+            ]
+          })
+        ],
+        dragabort: [
+          async ({ event, layer, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVar("x", 0, { layer });
+            services.setSharedVar("width", 0, { layer });
+            services.setSharedVar("currentx", event.clientX, { layer });
+            services.setSharedVar("endx", event.clientX, { layer });
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: 0,
+              width: 0
+            });
+          }
+        ]
+      },
+      preAttach: (instrument, layer) => {
+        const scaleX = instrument.getSharedVar("scaleX");
+        const height = instrument.getSharedVar("height") ?? layer._height;
+        const y = instrument.getSharedVar("y") ?? 0;
+        const attrName = instrument.getSharedVar("attrNameX");
+        const extent = instrument.getSharedVar("extentX") ?? [0, 0];
+        const extentData = extent.map(scaleX);
+        const services = instrument.services.add("QuantitativeSelectionService", {
+          layer
+        });
+        services.setSharedVar("attrName", attrName);
+        services.setSharedVar("extent", extent);
+        instrument.transformers.add("TransientRectangleTransformer", {
+          transient: true,
+          layer: layer.getLayerFromQueue("transientLayer"),
+          sharedVar: {
+            x: extentData[0],
+            y,
+            width: extentData[1] - extentData[0],
+            height,
+            fill: "#000",
+            opacity: 0.3
+          }
+        }).add("HighlightSelection", {
+          transient: true,
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          sharedVar: {
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues") || {}
+          }
+        });
+      }
+    });
+    Instrument.register("DragInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          ({ layer, event, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.services.setSharedVar("x", event.clientX, { layer });
+            instrument.services.setSharedVar("y", event.clientY, { layer });
+          }
+        ],
+        drag: [
+          ({ layer, event, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+            const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+            instrument.setSharedVar("offsetx", offsetX, { layer });
+            instrument.setSharedVar("offsety", offsetY, { layer });
+          }
+        ],
+        dragend: [
+          ({ layer, event, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
+            const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
+            instrument.services.setSharedVar("x", 0, { layer });
+            instrument.services.setSharedVar("y", 0, { layer });
+            instrument.setSharedVar("offsetx", offsetX, { layer });
+            instrument.setSharedVar("offsety", offsetY, { layer });
+          }
+        ],
+        dragabort: [
+          (options) => {
+            let { layer, event, instrument } = options;
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.services.setSharedVar("x", 0, { layer });
+            instrument.services.setSharedVar("y", 0, { layer });
+            instrument.services.setSharedVar("currentx", event.clientX, { layer });
+            instrument.services.setSharedVar("currenty", event.clientY, { layer });
+            instrument.services.setSharedVar("offsetx", 0, { layer });
+            instrument.services.setSharedVar("offsety", 0, { layer });
+            instrument.emit("dragconfirm", {
+              ...options,
+              self: options.instrument
+            });
+          }
+        ]
+      },
+      preAttach: (instrument, layer) => {
+        instrument.services.add("SurfacePointSelectionService", {
+          layer,
+          sharedVar: { deepClone: instrument.getSharedVar("deepClone") }
+        });
+      }
+    });
+    Instrument.register("SpeechInstrument", {
+      constructor: Instrument,
+      interactors: ["SpeechControlInteractor"]
+    });
+    Instrument.register("KeyboardHelperBarInstrument", {
+      constructor: Instrument,
+      interactors: ["KeyboardPositionInteractor"],
+      on: {
+        begin: [() => console.log("begin")],
+        left: [
+          ({ event, layer, instrument }) => {
+            const speed = instrument.getSharedVar("speed") || 1;
+            const transientLayer = layer.getLayerFromQueue("transientLayer");
+            const helperBar = transientLayer.getGraphic().querySelector("line");
+            const transform2 = getTransform(helperBar);
+            const newX = transform2[0] - speed;
+            helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+            instrument.setSharedVar("barX", newX, {});
+          }
+        ],
+        right: [
+          ({ event, layer, instrument }) => {
+            const speed = instrument.getSharedVar("speed") || 1;
+            const transientLayer = layer.getLayerFromQueue("transientLayer");
+            const helperBar = transientLayer.getGraphic().querySelector("line");
+            const transform2 = getTransform(helperBar);
+            const newX = transform2[0] + speed;
+            helperBar.setAttribute("transform", `translate(${newX}, 0)`);
+            instrument.setSharedVar("barX", newX, {});
+          }
+        ]
+      },
+      preAttach: function(instrument, layer) {
+        layer.getGraphic().setAttribute("tabindex", 0);
+        layer.getGraphic().focus();
+        const height = layer._height;
+        const startPos = instrument.getSharedVar("startPos");
         const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBar = transientLayer.getGraphic().querySelector("line");
-        const transform2 = getTransform(helperBar);
-        const newX = transform2[0] - speed;
-        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
-        instrument.setSharedVar("barX", newX, {});
+        const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        helperBar.setAttribute("x1", startPos);
+        helperBar.setAttribute("y1", "0");
+        helperBar.setAttribute("x2", startPos);
+        helperBar.setAttribute("y2", height);
+        helperBar.setAttribute("stroke", `black`);
+        helperBar.setAttribute("stroke-width", `1px`);
+        transientLayer.getGraphic().append(helperBar);
       }
-    ],
-    right: [
-      ({ event, layer, instrument }) => {
-        const speed = instrument.getSharedVar("speed") || 1;
-        const transientLayer = layer.getLayerFromQueue("transientLayer");
-        const helperBar = transientLayer.getGraphic().querySelector("line");
-        const transform2 = getTransform(helperBar);
-        const newX = transform2[0] + speed;
-        helperBar.setAttribute("transform", `translate(${newX}, 0)`);
-        instrument.setSharedVar("barX", newX, {});
-      }
-    ]
-  },
-  preAttach: function(instrument, layer) {
-    layer.getGraphic().setAttribute("tabindex", 0);
-    layer.getGraphic().focus();
-    const height = layer._height;
-    const startPos = instrument.getSharedVar("startPos");
-    const transientLayer = layer.getLayerFromQueue("transientLayer");
-    const helperBar = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    helperBar.setAttribute("x1", startPos);
-    helperBar.setAttribute("y1", "0");
-    helperBar.setAttribute("x2", startPos);
-    helperBar.setAttribute("y2", height);
-    helperBar.setAttribute("stroke", `black`);
-    helperBar.setAttribute("stroke-width", `1px`);
-    transientLayer.getGraphic().append(helperBar);
-  }
-});
-Instrument.register("PanInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      ({ layer, event, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("starty", event.clientY);
-        const transformers = instrument.transformers;
-        transformers.forEach((transformer) => {
-          const sx = transformer.getSharedVar("scaleX");
-          const sy = transformer.getSharedVar("scaleY");
-          if (sx) {
-            transformer.setSharedVar("$$scaleX", sx.copy());
+    });
+    Instrument.register("PanInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          ({ layer, event, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("starty", event.clientY);
+            const transformers = instrument.transformers;
+            transformers.forEach((transformer) => {
+              const sx = transformer.getSharedVar("scaleX");
+              const sy = transformer.getSharedVar("scaleY");
+              if (sx) {
+                transformer.setSharedVar("$$scaleX", sx.copy());
+              }
+              if (sy) {
+                transformer.setSharedVar("$$scaleY", sy.copy());
+              }
+            });
           }
-          if (sy) {
-            transformer.setSharedVar("$$scaleY", sy.copy());
+        ],
+        drag: [
+          async ({ layer, event, instrument, transformer }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const transformers = instrument.transformers;
+            const startx = instrument.getSharedVar("startx");
+            const starty = instrument.getSharedVar("starty");
+            const fixRange = instrument.getSharedVar("fixRange") ?? false;
+            transformers.forEach((transformer2) => {
+              const sx = transformer2.getSharedVar("scaleX");
+              const sy = transformer2.getSharedVar("scaleY");
+              if (fixRange) {
+                if (sx) {
+                  const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
+                  const startRangeX = scaleXOrigin.range();
+                  const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+                  const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
+                  sx.domain(newDomain);
+                  transformer2.setSharedVar("scaleX", sx);
+                }
+                if (sy) {
+                  const scaleYOrigin = transformer2.getSharedVar("$$scaleY");
+                  const startRangeY = scaleYOrigin.range();
+                  const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
+                  const newDomain = newRangeY.map((y) => scaleYOrigin.invert(y));
+                  sy.domain(newDomain);
+                  transformer2.setSharedVar("scaleY", sy);
+                }
+              } else {
+                if (sx) {
+                  const startRangeX = transformer2.getSharedVar("$$scaleX").range();
+                  const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+                  sx.range(newRangeX);
+                  transformer2.setSharedVar("scaleX", sx);
+                }
+                if (sy) {
+                  const startRangeY = transformer2.getSharedVar("$$scaleY").range();
+                  const newRangeY = startRangeY.map((y, i) => y + event.clientY - starty);
+                  sy.range(newRangeY);
+                  transformer2.setSharedVar("scaleY", sy);
+                }
+              }
+            });
           }
-        });
-      }
-    ],
-    drag: [
-      async ({ layer, event, instrument, transformer }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const transformers = instrument.transformers;
-        const startx = instrument.getSharedVar("startx");
-        const starty = instrument.getSharedVar("starty");
-        const fixRange = instrument.getSharedVar("fixRange") ?? false;
-        transformers.forEach((transformer2) => {
-          const sx = transformer2.getSharedVar("scaleX");
-          const sy = transformer2.getSharedVar("scaleY");
-          if (fixRange) {
-            if (sx) {
-              const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
-              const startRangeX = scaleXOrigin.range();
-              const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
-              const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
-              sx.domain(newDomain);
-              transformer2.setSharedVar("scaleX", sx);
-            }
-            if (sy) {
-              const scaleYOrigin = transformer2.getSharedVar("$$scaleY");
-              const startRangeY = scaleYOrigin.range();
-              const newRangeY = startRangeY.map((y, i) => y - event.clientY + starty);
-              const newDomain = newRangeY.map((y) => scaleYOrigin.invert(y));
-              sy.domain(newDomain);
-              transformer2.setSharedVar("scaleY", sy);
-            }
-          } else {
-            if (sx) {
-              const startRangeX = transformer2.getSharedVar("$$scaleX").range();
-              const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
-              sx.range(newRangeX);
-              transformer2.setSharedVar("scaleX", sx);
-            }
-            if (sy) {
-              const startRangeY = transformer2.getSharedVar("$$scaleY").range();
-              const newRangeY = startRangeY.map((y, i) => y + event.clientY - starty);
-              sy.range(newRangeY);
-              transformer2.setSharedVar("scaleY", sy);
-            }
+        ],
+        dragabort: [
+          ({ layer, event, instrument, transformer }) => {
           }
-        });
+        ]
       }
-    ],
-    dragabort: [
-      ({ layer, event, instrument, transformer }) => {
-      }
-    ]
-  }
-});
-Instrument.register("PanXInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
-  on: {
-    dragstart: [
-      ({ layer, event, instrument }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        instrument.setSharedVar("startx", event.clientX);
-        const transformers = instrument.transformers;
-        transformers.forEach((transformer) => {
-          const sx = transformer.getSharedVar("scaleX");
-          if (sx) {
-            transformer.setSharedVar("$$scaleX", sx.copy());
+    });
+    Instrument.register("PanXInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseTraceInteractor", "TouchTraceInteractor"],
+      on: {
+        dragstart: [
+          ({ layer, event, instrument }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            instrument.setSharedVar("startx", event.clientX);
+            const transformers = instrument.transformers;
+            transformers.forEach((transformer) => {
+              const sx = transformer.getSharedVar("scaleX");
+              if (sx) {
+                transformer.setSharedVar("$$scaleX", sx.copy());
+              }
+            });
           }
-        });
-      }
-    ],
-    drag: [
-      async ({ layer, event, instrument, transformer }) => {
-        if (event.changedTouches)
-          event = event.changedTouches[0];
-        const transformers = instrument.transformers;
-        const startx = instrument.getSharedVar("startx");
-        const fixRange = instrument.getSharedVar("fixRange") ?? false;
-        transformers.forEach((transformer2) => {
-          const sx = transformer2.getSharedVar("scaleX");
-          if (fixRange) {
-            if (sx) {
-              const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
-              const startRangeX = scaleXOrigin.range();
-              const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
-              const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
-              sx.domain(newDomain);
-              transformer2.setSharedVar("scaleX", sx);
-            }
-          } else {
-            if (sx) {
-              const startRangeX = transformer2.getSharedVar("$$scaleX").range();
-              const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
-              sx.range(newRangeX);
-              transformer2.setSharedVar("scaleX", sx);
-            }
+        ],
+        drag: [
+          async ({ layer, event, instrument, transformer }) => {
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const transformers = instrument.transformers;
+            const startx = instrument.getSharedVar("startx");
+            const fixRange = instrument.getSharedVar("fixRange") ?? false;
+            transformers.forEach((transformer2) => {
+              const sx = transformer2.getSharedVar("scaleX");
+              if (fixRange) {
+                if (sx) {
+                  const scaleXOrigin = transformer2.getSharedVar("$$scaleX");
+                  const startRangeX = scaleXOrigin.range();
+                  const newRangeX = startRangeX.map((x, i) => x - event.clientX + startx);
+                  const newDomain = newRangeX.map((x) => scaleXOrigin.invert(x));
+                  sx.domain(newDomain);
+                  transformer2.setSharedVar("scaleX", sx);
+                }
+              } else {
+                if (sx) {
+                  const startRangeX = transformer2.getSharedVar("$$scaleX").range();
+                  const newRangeX = startRangeX.map((x, i) => x + event.clientX - startx);
+                  sx.range(newRangeX);
+                  transformer2.setSharedVar("scaleX", sx);
+                }
+              }
+            });
           }
-        });
-      }
-    ],
-    dragabort: [
-      ({ layer, event, instrument, transformer }) => {
-      }
-    ]
-  }
-});
-Instrument.register("GeometricZoomInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseWheelInteractor"],
-  on: {
-    wheel: [
-      ({ layer, instrument, event }) => {
-        const layerGraphic = layer.getGraphic();
-        const layerRoot = select_default2(layerGraphic);
-        const transformers = instrument.transformers;
-        instrument.setSharedVar("currentx", event.offsetX);
-        instrument.setSharedVar("currenty", event.offsetY);
-        let delta = event.deltaY;
-        instrument.setSharedVar("delta", delta);
-        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
-          defaultValue: 0
-        });
-        cumulativeDelta += delta;
-        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
-        delta /= 1e3;
-        const [x, y] = pointer_default(event, layerGraphic);
-        const offsetX = instrument.getSharedVar("centroidX") || x;
-        const offsetY = instrument.getSharedVar("centroidY") || y;
-        const fixRange = instrument.getSharedVar("fixRange") ?? false;
-        transformers.forEach((transformer) => {
-          const sx = transformer.getSharedVar("scaleX");
-          const sy = transformer.getSharedVar("scaleY");
-          if (fixRange) {
-            if (sx) {
-              const offsetXDomain = sx.invert(offsetX);
-              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
-              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
-            }
-            if (sy) {
-              const offsetYDomain = sy.invert(offsetY);
-              sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
-              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
-            }
-          } else {
-            if (sx) {
-              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
-              sx.range(newRangeX);
-              transformer.setSharedVar("scaleX", sx);
-            }
-            if (sy) {
-              const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
-              sy.range(newRangeY);
-              transformer.setSharedVar("scaleY", sy);
-            }
+        ],
+        dragabort: [
+          ({ layer, event, instrument, transformer }) => {
           }
-        });
+        ]
       }
-    ],
-    abort: [
-      ({ layer, event, instrument, transformer }) => {
+    });
+    Instrument.register("GeometricZoomInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseWheelInteractor"],
+      on: {
+        wheel: [
+          ({ layer, instrument, event }) => {
+            const layerGraphic = layer.getGraphic();
+            const layerRoot = select_default2(layerGraphic);
+            const transformers = instrument.transformers;
+            instrument.setSharedVar("currentx", event.offsetX);
+            instrument.setSharedVar("currenty", event.offsetY);
+            let delta = event.deltaY;
+            instrument.setSharedVar("delta", delta);
+            let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+              defaultValue: 0
+            });
+            cumulativeDelta += delta;
+            instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+            delta /= 1e3;
+            const [x, y] = pointer_default(event, layerGraphic);
+            const offsetX = instrument.getSharedVar("centroidX") || x;
+            const offsetY = instrument.getSharedVar("centroidY") || y;
+            const fixRange = instrument.getSharedVar("fixRange") ?? false;
+            transformers.forEach((transformer) => {
+              const sx = transformer.getSharedVar("scaleX");
+              const sy = transformer.getSharedVar("scaleY");
+              if (fixRange) {
+                if (sx) {
+                  const offsetXDomain = sx.invert(offsetX);
+                  sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+                  transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+                }
+                if (sy) {
+                  const offsetYDomain = sy.invert(offsetY);
+                  sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
+                  transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
+                }
+              } else {
+                if (sx) {
+                  const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+                  sx.range(newRangeX);
+                  transformer.setSharedVar("scaleX", sx);
+                }
+                if (sy) {
+                  const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
+                  sy.range(newRangeY);
+                  transformer.setSharedVar("scaleY", sy);
+                }
+              }
+            });
+          }
+        ],
+        abort: [
+          ({ layer, event, instrument, transformer }) => {
+          }
+        ]
       }
-    ]
-  }
-});
-Instrument.register("SemanticZoomInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseWheelInteractor"],
-  sharedVar: {
-    currentLevel: 0
-  },
-  on: {
-    wheel: [
-      ({ layer, instrument, event }) => {
-        const layerGraphic = layer.getGraphic();
-        const layerRoot = select_default2(layerGraphic);
-        const transformers = instrument.transformers;
+    });
+    Instrument.register("SemanticZoomInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseWheelInteractor"],
+      sharedVar: {
+        currentLevel: 0
+      },
+      on: {
+        wheel: [
+          ({ layer, instrument, event }) => {
+            const layerGraphic = layer.getGraphic();
+            const layerRoot = select_default2(layerGraphic);
+            const transformers = instrument.transformers;
+            const scaleLevels = instrument.getSharedVar("scaleLevels");
+            let currentLevel = instrument.getSharedVar("currentLevel");
+            currentLevel += Math.sign(event.deltaY);
+            instrument.setSharedVar("currentLevel", currentLevel);
+            if (typeof scaleLevels === "object") {
+              const closestLevel = Object.keys(scaleLevels).reduce(function(prev, curr) {
+                return Math.abs(parseInt(curr) - currentLevel) < Math.abs(parseInt(prev) - currentLevel) ? curr : prev;
+              });
+              transformers.setSharedVars(scaleLevels[closestLevel]);
+            }
+            instrument.setSharedVar("currentx", event.offsetX);
+            instrument.setSharedVar("currenty", event.offsetY);
+            let delta = event.deltaY;
+            instrument.setSharedVar("delta", delta);
+            let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+              defaultValue: 0
+            });
+            cumulativeDelta += delta;
+            instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+            delta /= 1e3;
+            const [x, y] = pointer_default(event, layerGraphic);
+            const offsetX = instrument.getSharedVar("centroidX") || x;
+            const offsetY = instrument.getSharedVar("centroidY") || y;
+            const fixRange = instrument.getSharedVar("fixRange") ?? false;
+            transformers.forEach((transformer) => {
+              const sx = transformer.getSharedVar("scaleX");
+              const sy = transformer.getSharedVar("scaleY");
+              if (fixRange) {
+                if (sx) {
+                  const offsetXDomain = sx.invert(offsetX);
+                  sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+                  transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+                }
+                if (sy) {
+                  const offsetYDomain = sy.invert(offsetY);
+                  sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
+                  transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
+                }
+              } else {
+                if (sx) {
+                  const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+                  sx.range(newRangeX);
+                  transformer.setSharedVar("scaleX", sx);
+                }
+                if (sy) {
+                  const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
+                  sy.range(newRangeY);
+                  transformer.setSharedVar("scaleY", sy);
+                }
+              }
+            });
+          }
+        ],
+        abort: [
+          ({ layer, event, instrument, transformer }) => {
+          }
+        ]
+      },
+      postUse(instrument, layer) {
         const scaleLevels = instrument.getSharedVar("scaleLevels");
-        let currentLevel = instrument.getSharedVar("currentLevel");
-        currentLevel += Math.sign(event.deltaY);
-        instrument.setSharedVar("currentLevel", currentLevel);
+        const transformers = instrument.transformers;
+        const currentLevel = instrument.getSharedVar("currentLevel");
         if (typeof scaleLevels === "object") {
           const closestLevel = Object.keys(scaleLevels).reduce(function(prev, curr) {
             return Math.abs(parseInt(curr) - currentLevel) < Math.abs(parseInt(prev) - currentLevel) ? curr : prev;
           });
           transformers.setSharedVars(scaleLevels[closestLevel]);
         }
-        instrument.setSharedVar("currentx", event.offsetX);
-        instrument.setSharedVar("currenty", event.offsetY);
-        let delta = event.deltaY;
-        instrument.setSharedVar("delta", delta);
-        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
-          defaultValue: 0
-        });
-        cumulativeDelta += delta;
-        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
-        delta /= 1e3;
-        const [x, y] = pointer_default(event, layerGraphic);
-        const offsetX = instrument.getSharedVar("centroidX") || x;
-        const offsetY = instrument.getSharedVar("centroidY") || y;
-        const fixRange = instrument.getSharedVar("fixRange") ?? false;
-        transformers.forEach((transformer) => {
-          const sx = transformer.getSharedVar("scaleX");
-          const sy = transformer.getSharedVar("scaleY");
-          if (fixRange) {
-            if (sx) {
-              const offsetXDomain = sx.invert(offsetX);
-              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
-              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
-            }
-            if (sy) {
-              const offsetYDomain = sy.invert(offsetY);
-              sy.domain(sy.domain().map((d) => d - offsetYDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetYDomain));
-              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleY", sy));
-            }
-          } else {
-            if (sx) {
-              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
-              sx.range(newRangeX);
-              transformer.setSharedVar("scaleX", sx);
-            }
-            if (sy) {
-              const newRangeY = sy.range().map((y2) => (y2 - offsetY) * Math.exp(delta) + offsetY);
-              sy.range(newRangeY);
-              transformer.setSharedVar("scaleY", sy);
-            }
+      }
+    });
+    Instrument.register("ZoomXInstrument", {
+      constructor: Instrument,
+      interactors: ["MouseWheelInteractor"],
+      on: {
+        wheel: [
+          ({ layer, instrument, event }) => {
+            const layerGraphic = layer.getGraphic();
+            const layerRoot = select_default2(layerGraphic);
+            const transformers = instrument.transformers;
+            instrument.setSharedVar("currentx", event.offsetX);
+            let delta = event.deltaY;
+            instrument.setSharedVar("delta", delta);
+            let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
+              defaultValue: 0
+            });
+            cumulativeDelta += delta;
+            instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
+            delta /= 1e3;
+            const [x, y] = pointer_default(event, layerGraphic);
+            const offsetX = instrument.getSharedVar("centroidX") || x;
+            const fixRange = instrument.getSharedVar("fixRange") ?? false;
+            transformers.forEach((transformer) => {
+              const sx = transformer.getSharedVar("scaleX");
+              if (fixRange) {
+                if (sx) {
+                  const offsetXDomain = sx.invert(offsetX);
+                  sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
+                  transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
+                }
+              } else {
+                if (sx) {
+                  const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
+                  sx.range(newRangeX);
+                  transformer.setSharedVar("scaleX", sx);
+                }
+              }
+            });
           }
-        });
-      }
-    ],
-    abort: [
-      ({ layer, event, instrument, transformer }) => {
-      }
-    ]
-  },
-  postUse(instrument, layer) {
-    const scaleLevels = instrument.getSharedVar("scaleLevels");
-    const transformers = instrument.transformers;
-    const currentLevel = instrument.getSharedVar("currentLevel");
-    if (typeof scaleLevels === "object") {
-      const closestLevel = Object.keys(scaleLevels).reduce(function(prev, curr) {
-        return Math.abs(parseInt(curr) - currentLevel) < Math.abs(parseInt(prev) - currentLevel) ? curr : prev;
-      });
-      transformers.setSharedVars(scaleLevels[closestLevel]);
-    }
-  }
-});
-Instrument.register("ZoomXInstrument", {
-  constructor: Instrument,
-  interactors: ["MouseWheelInteractor"],
-  on: {
-    wheel: [
-      ({ layer, instrument, event }) => {
-        const layerGraphic = layer.getGraphic();
-        const layerRoot = select_default2(layerGraphic);
-        const transformers = instrument.transformers;
-        instrument.setSharedVar("currentx", event.offsetX);
-        let delta = event.deltaY;
-        instrument.setSharedVar("delta", delta);
-        let cumulativeDelta = instrument.getSharedVar("cumulativeDelta", {
-          defaultValue: 0
-        });
-        cumulativeDelta += delta;
-        instrument.setSharedVar("cumulativeDelta", cumulativeDelta);
-        delta /= 1e3;
-        const [x, y] = pointer_default(event, layerGraphic);
-        const offsetX = instrument.getSharedVar("centroidX") || x;
-        const fixRange = instrument.getSharedVar("fixRange") ?? false;
-        transformers.forEach((transformer) => {
-          const sx = transformer.getSharedVar("scaleX");
-          if (fixRange) {
-            if (sx) {
-              const offsetXDomain = sx.invert(offsetX);
-              sx.domain(sx.domain().map((d) => d - offsetXDomain).map((d) => d * Math.exp(-delta)).map((d) => d + offsetXDomain));
-              transformers.forEach((transformer2) => transformer2.setSharedVar("scaleX", sx));
-            }
-          } else {
-            if (sx) {
-              const newRangeX = sx.range().map((x2) => (x2 - offsetX) * Math.exp(delta) + offsetX);
-              sx.range(newRangeX);
-              transformer.setSharedVar("scaleX", sx);
-            }
+        ],
+        abort: [
+          ({ layer, event, instrument, transformer }) => {
           }
-        });
+        ]
       }
-    ],
-    abort: [
-      ({ layer, event, instrument, transformer }) => {
-      }
-    ]
+    });
   }
 });
 
 // dist/esm/instrument/index.js
-var Instrument2 = Instrument;
-
-// dist/esm/history/index.js
-var historyRecords = [];
-var historyPointer = -1;
-var commitLock = false;
-var HistoryManager = {
-  commit: async (options) => {
-    if (commitLock) {
-      return;
-    }
-    const record = new Map();
-    await Promise.all(instanceServices2.map(async (service) => {
-      if ("results" in service) {
-        record.set(service, [
-          await service.results,
-          (options || {}).command,
-          options
-        ]);
-      }
-    }));
-    historyRecords.splice(historyPointer + 1, historyRecords.length, record);
-    historyPointer++;
-  },
-  async undo() {
-    historyPointer--;
-    if (historyPointer < 0) {
-      historyPointer = 0;
-      return;
-    }
-    const record = historyRecords[historyPointer];
-    commitLock = true;
-    for (let [service, [results, command, options]] of record.entries()) {
-      service._result = results;
-      if (command && options)
-        await command.execute(options);
-    }
-    commitLock = false;
-  },
-  async redo() {
-    historyPointer++;
-    if (historyPointer >= historyRecords.length) {
-      historyPointer = historyRecords.length - 1;
-      return;
-    }
-    const record = historyRecords[historyPointer];
-    commitLock = true;
-    for (let [service, [results, command, options]] of record.entries()) {
-      service._result = results;
-      if (command && options)
-        await command.execute(options);
-    }
-    commitLock = false;
+var instanceInstruments, Instrument2;
+var init_instrument2 = __esm({
+  "dist/esm/instrument/index.js"() {
+    init_instrument();
+    init_instrument();
+    init_builtin3();
+    instanceInstruments = instanceInstruments2;
+    Instrument2 = Instrument;
   }
-};
+});
 
 // dist/esm/index.js
+init_command2();
+init_instrument2();
+init_interactor2();
+init_layer2();
+init_service2();
+init_history();
+init_transformer2();
+init_command2();
+init_instrument2();
+init_interactor2();
+init_layer2();
+init_service2();
+init_history();
+init_transformer2();
 var esm_default = {
   Command: Command2,
   Instrument: Instrument2,
   Interactor: Interactor2,
   Layer: Layer2,
   Service: Service2,
-  HistoryManager,
+  createHistoryTrrack,
   GraphicalTransformer: GraphicalTransformer2
 };
 export {
   Command2 as Command,
   GraphicalTransformer2 as GraphicalTransformer,
-  HistoryManager,
   Instrument2 as Instrument,
   Interactor2 as Interactor,
   Layer2 as Layer,
   Service2 as Service,
+  createHistoryTrrack,
   esm_default as default
 };

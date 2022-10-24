@@ -1,6 +1,6 @@
 import * as helpers from "../helpers";
 const registeredTransformers = {};
-const instanceTransformers = [];
+export const instanceTransformers = [];
 let transientQueue = [];
 const transientCleaner = () => {
     let transientElement;
@@ -30,7 +30,6 @@ export default class GraphicalTransformer {
         this._layer = options.layer;
         this._transient = options.transient ?? false;
         this.redraw();
-        instanceTransformers.push(this);
     }
     getSharedVar(name) {
         return this._sharedVar[name];

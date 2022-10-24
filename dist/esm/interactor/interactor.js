@@ -3,7 +3,7 @@ import Actions from "./actions.jsgf";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 const registeredInteractors = {};
-const instanceInteractors = [];
+export const instanceInteractors = [];
 export default class Interactor {
     constructor(baseName, options) {
         options.preInitialize && options.preInitialize.call(this, this);
@@ -19,7 +19,6 @@ export default class Interactor {
         this._postInitialize = options.postInitialize ?? null;
         this._preUse = options.preUse ?? null;
         this._postUse = options.postUse ?? null;
-        instanceInteractors.push(this);
         options.postInitialize && options.postInitialize.call(this, this);
     }
     enableModality(modal) {
@@ -153,8 +152,9 @@ export default class Interactor {
     }
     static initialize(baseName, options) {
         const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName] ?? {}, options ?? {});
-        const service = new mergedOptions.constructor(baseName, mergedOptions);
-        return service;
+        const interactor = new mergedOptions.constructor(baseName, mergedOptions);
+        instanceInteractors.push(interactor);
+        return interactor;
     }
     static findInteractor(baseNameOrRealName) {
         return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));

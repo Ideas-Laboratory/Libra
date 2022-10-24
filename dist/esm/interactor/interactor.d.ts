@@ -29,6 +29,7 @@ declare type InteractorInitTemplate = InteractorInitOption & {
     [param: string]: any;
     constructor?: typeof Interactor;
 };
+export declare const instanceInteractors: Interactor[];
 export default class Interactor {
     _baseName: string;
     _name: string;

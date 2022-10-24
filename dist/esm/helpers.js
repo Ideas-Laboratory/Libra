@@ -21,17 +21,18 @@ export var DataQueryType;
 })(DataQueryType || (DataQueryType = {}));
 class NonsenseClass {
 }
-export function makeFindableList(list, typing, addFunc, removeFunc) {
+let tryRegisterDynamicInstance;
+export function makeFindableList(list, typing, addFunc, removeFunc, self) {
     return new Proxy(list, {
         get(target, p) {
             if (p === "find") {
                 return function (name, defaultValue) {
-                    if (typing === NonsenseClass) {
+                    if (!("initialize" in typing)) {
                         const filteredResult = target.slice();
                         filteredResult.forEach((newTarget) => {
                             newTarget.find(...arguments);
                         });
-                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
                     }
                     else {
                         const filteredResult = target.filter((item) => item.isInstanceOf(name));
@@ -39,25 +40,27 @@ export function makeFindableList(list, typing, addFunc, removeFunc) {
                             const newElement = typing.initialize(defaultValue);
                             addFunc(newElement);
                             filteredResult.push(newElement);
+                            tryRegisterDynamicInstance(self, newElement);
                         }
-                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
                     }
                 };
             }
             else if (p === "add") {
                 return (...args) => {
                     const filteredResult = target.slice();
-                    if (typing === NonsenseClass) {
+                    if (!("initialize" in typing)) {
                         filteredResult.forEach((newTarget) => {
                             newTarget.add(...args);
                         });
-                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
                     }
                     else {
                         const newElement = typing.initialize(...args);
                         addFunc(newElement);
                         filteredResult.push(newElement);
-                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                        tryRegisterDynamicInstance(self, newElement);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
                     }
                 };
             }
@@ -68,7 +71,7 @@ export function makeFindableList(list, typing, addFunc, removeFunc) {
                         filteredResult.forEach((newTarget) => {
                             newTarget.remove(name);
                         });
-                        return makeFindableList(filteredResult, typing, addFunc, removeFunc);
+                        return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
                     }
                     else {
                         const origin = target.slice();
@@ -77,7 +80,7 @@ export function makeFindableList(list, typing, addFunc, removeFunc) {
                             removeFunc(item);
                             origin.splice(origin.indexOf(item), 1);
                         });
-                        return makeFindableList(origin, typing, addFunc, removeFunc);
+                        return makeFindableList(origin, typing, addFunc, removeFunc, self);
                     }
                 };
             }
@@ -92,11 +95,11 @@ export function makeFindableList(list, typing, addFunc, removeFunc) {
                 }
                 else if (target[0][p] instanceof Function) {
                     return function () {
-                        return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => { }, () => { });
+                        return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => { }, () => { }, self);
                     };
                 }
                 else {
-                    return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => { }, () => { });
+                    return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => { }, () => { }, self);
                 }
             }
         },
@@ -320,3 +323,6 @@ export function deepClone(obj) {
 export const global = {
     stopTransient: false,
 };
+import("./history").then((HM) => {
+    tryRegisterDynamicInstance = HM.tryRegisterDynamicInstance;
+});

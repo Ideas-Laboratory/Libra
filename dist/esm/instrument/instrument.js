@@ -5,7 +5,7 @@ import { Layer } from "../layer";
 import { Service, findService } from "../service";
 import { GraphicalTransformer } from "../transformer";
 const registeredInstruments = {};
-const instanceInstruments = [];
+export const instanceInstruments = [];
 const EventDispatcher = new Map();
 const EventQueue = [];
 let eventHandling = false;
@@ -410,10 +410,10 @@ export default class Instrument {
     get services() {
         return helpers.makeFindableList(this._serviceInstances.slice(0), Service, this.useService.bind(this), () => {
             throw new Error("Do not support dynamic change service yet");
-        });
+        }, this);
     }
     get transformers() {
-        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1));
+        return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1), this);
     }
     static register(baseName, options) {
         registeredInstruments[baseName] = options;
@@ -427,8 +427,9 @@ export default class Instrument {
             on: Object.assign({}, (registeredInstruments[baseName] ?? {}).on ?? {}, options?.on ?? {}),
             sharedVar: Object.assign({}, (registeredInstruments[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
-        const service = new mergedOptions.constructor(baseName, mergedOptions);
-        return service;
+        const instrument = new mergedOptions.constructor(baseName, mergedOptions);
+        instanceInstruments.push(instrument);
+        return instrument;
     }
     static findInstrument(baseNameOrRealName) {
         return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));

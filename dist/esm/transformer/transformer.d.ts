@@ -15,6 +15,7 @@ declare type TransformerInitTemplate = TransformerInitOption & {
     [param: string]: any;
     constructor?: typeof GraphicalTransformer;
 };
+export declare const instanceTransformers: GraphicalTransformer[];
 export default class GraphicalTransformer {
     _baseName: string;
     _name: string;

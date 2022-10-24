@@ -1,8 +1,7 @@
-import { Command } from ".";
 import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
-import { AllRecordingComponents, tryRegisterDynamicInstance } from "./history";
+import { AllRecordingComponents } from "./history";
 
 export enum QueryType {
   Shape,
@@ -147,6 +146,7 @@ export type CommonHandlerInput<T> = {
 
 class NonsenseClass {}
 
+let tryRegisterDynamicInstance;
 export function makeFindableList<T extends AllRecordingComponents>(
   list: any,
   typing:
@@ -557,3 +557,7 @@ export function deepClone(obj) {
 export const global = {
   stopTransient: false,
 };
+
+import("./history").then((HM) => {
+  tryRegisterDynamicInstance = HM.tryRegisterDynamicInstance;
+});

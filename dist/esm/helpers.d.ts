@@ -1,6 +1,7 @@
 import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
+import { AllRecordingComponents } from "./history";
 export declare enum QueryType {
     Shape = 0,
     Data = 1,
@@ -107,7 +108,13 @@ export declare type CommonHandlerInput<T> = {
     interactor: Interactor;
     [parameter: string]: any;
 };
-export declare function makeFindableList<T>(list: any, typing: new (...args: any[]) => T, addFunc: (newElement: T) => void, removeFunc: (element: T) => void): any;
+declare class NonsenseClass {
+}
+export declare function makeFindableList<T extends AllRecordingComponents>(list: any, typing: {
+    new (...args: any[]): NonsenseClass;
+} | {
+    initialize(...args: any[]): T;
+}, addFunc: (newElement: T) => void, removeFunc: (element: T) => void, self: AllRecordingComponents): any;
 export declare function getTransform(elem: SVGElement): number[];
 /**
  * Parse an event selector string.
@@ -137,3 +144,4 @@ export declare function deepClone(obj: any): any;
 export declare const global: {
     stopTransient: boolean;
 };
+export {};

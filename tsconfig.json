@@ -3,7 +3,8 @@
   "compilerOptions": {
     "target": "ES2021",
     "moduleResolution": "Node",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext"
   },
   "exclude": ["src/**/*.jsgf"]
 }

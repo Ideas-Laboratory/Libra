@@ -128,7 +128,7 @@ export default class Service {
                 result: null,
             });
             this._transformers.splice(this._transformers.indexOf(e), 1);
-        });
+        }, this);
     }
     get services() {
         return helpers.makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
@@ -140,7 +140,7 @@ export default class Service {
                 e.setSharedVar(k, v);
             });
             this._services.splice(this._services.indexOf(e), 1);
-        });
+        }, this);
     }
     static register(baseName, options) {
         registeredServices[baseName] = options;

@@ -35,6 +35,7 @@ declare type InstrumentInitTemplate = InstrumentInitOption & {
     [param: string]: any;
     constructor?: typeof Instrument;
 };
+export declare const instanceInstruments: Instrument[];
 export default class Instrument {
     _baseName: string;
     _name: string;
