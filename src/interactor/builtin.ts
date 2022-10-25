@@ -58,7 +58,7 @@ Interactor.register("MouseTraceInteractor", {
     },
     {
       action: "dragabort",
-      events: ["mouseup[event.button==2]", "contextmenu"],
+      events: ["mouseup[event.button==2]"],
       transition: [
         ["drag", "start"],
         ["start", "start"],
@@ -108,7 +108,7 @@ Interactor.register("SpeechControlInteractor", {
     },
     {
       action: "disableSpeech",
-      events: ["mouseup[event.button==2]", "contextmenu"],
+      events: ["mouseup[event.button==2]"],
       transition: [["*", "start"]],
     },
     {
@@ -195,7 +195,7 @@ Interactor.register("MouseWheelInteractor", {
     },
     {
       action: "abort",
-      events: ["mouseup[event.button==2]", "contextmenu"],
+      events: ["mouseup[event.button==2]"],
       transition: [
         ["running", "running"],
         ["start", "start"],

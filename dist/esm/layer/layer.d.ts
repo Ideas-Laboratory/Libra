@@ -34,6 +34,7 @@ export default class Layer<T> {
     _postInitialize?: <T>(layer: Layer<T>) => void;
     _preUpdate?: <T>(layer: Layer<T>) => void;
     _postUpdate?: <T>(layer: Layer<T>) => void;
+    [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: LayerInitOption);
     getGraphic(): T;
     getContainerGraphic(): HTMLElement;

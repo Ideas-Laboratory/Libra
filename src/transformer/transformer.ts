@@ -48,6 +48,8 @@ export default class GraphicalTransformer {
   _layer: Layer<any>;
   _transient: boolean;
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: TransformerInitOption) {
     this._baseName = baseName;
     this._userOptions = options;

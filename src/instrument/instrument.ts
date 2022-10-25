@@ -71,6 +71,8 @@ export default class Instrument {
   _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
   _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: InstrumentInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._preInitialize = options.preInitialize ?? null;
@@ -80,7 +82,8 @@ export default class Instrument {
     this._baseName = baseName;
     this._userOptions = options;
     this._name = options.name ?? baseName;
-    this._on = helpers.deepClone(options.on ?? {});
+    // this._on = helpers.deepClone(options.on ?? {});
+    this._on = Object.assign({}, options.on ?? {});
     this._interactors = [];
     this._layers = [];
     this._layerInteractors = new Map();

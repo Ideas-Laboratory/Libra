@@ -46,6 +46,7 @@ export default class Service {
     _layerInstances: Layer<any>[];
     _transformers: GraphicalTransformer[];
     _services: Service[];
+    [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: ServiceInitOption);
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;

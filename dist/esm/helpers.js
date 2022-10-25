@@ -1,3 +1,4 @@
+export const LibraSymbol = Symbol("Libra");
 export var QueryType;
 (function (QueryType) {
     QueryType[QueryType["Shape"] = 0] = "Shape";
@@ -317,6 +318,9 @@ export function deepClone(obj) {
     }
     if (obj === null)
         return null;
+    if (LibraSymbol in obj && obj[LibraSymbol]) {
+        return obj;
+    }
     const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
     return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
 }

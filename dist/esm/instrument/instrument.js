@@ -1,3 +1,4 @@
+var _a;
 import { Interactor } from "../interactor";
 import * as helpers from "../helpers";
 import { Command } from "../command";
@@ -13,6 +14,7 @@ export default class Instrument {
     constructor(baseName, options) {
         this._transformers = [];
         this._linkCache = {};
+        this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -21,7 +23,8 @@ export default class Instrument {
         this._baseName = baseName;
         this._userOptions = options;
         this._name = options.name ?? baseName;
-        this._on = helpers.deepClone(options.on ?? {});
+        // this._on = helpers.deepClone(options.on ?? {});
+        this._on = Object.assign({}, options.on ?? {});
         this._interactors = [];
         this._layers = [];
         this._layerInteractors = new Map();
@@ -435,6 +438,7 @@ export default class Instrument {
         return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
     }
 }
+_a = helpers.LibraSymbol;
 export const register = Instrument.register;
 export const unregister = Instrument.unregister;
 export const initialize = Instrument.initialize;

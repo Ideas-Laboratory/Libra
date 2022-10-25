@@ -1,3 +1,5 @@
+var _a;
+import * as helpers from "../helpers";
 const registeredLayers = {};
 const instanceLayers = [];
 const siblingLayers = new Map();
@@ -5,6 +7,7 @@ const orderLayers = new Map();
 export default class Layer {
     constructor(baseName, options) {
         this._nextTick = 0;
+        this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
@@ -239,6 +242,7 @@ export default class Layer {
         return this._baseName === name || this._name === name;
     }
 }
+_a = helpers.LibraSymbol;
 export function register(baseName, options) {
     registeredLayers[baseName] = options;
 }

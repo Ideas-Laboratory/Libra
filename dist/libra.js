@@ -9,92 +9,8 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// dist/esm/command/command.js
-var registeredCommands, instanceCommands, Command, register, unregister, initialize, findCommand;
-var init_command = __esm({
-  "dist/esm/command/command.js"() {
-    registeredCommands = {};
-    instanceCommands = [];
-    Command = class {
-      constructor(baseName2, options) {
-        options.preInitialize && options.preInitialize.call(this, this);
-        this._baseName = baseName2;
-        this._userOptions = options;
-        this._name = options.name ?? baseName2;
-        this._feedback = options.feedback ?? [];
-        this._undo = options.undo ?? null;
-        this._redo = options.redo ?? null;
-        this._execute = options.execute ?? null;
-        this._preInitialize = options.preInitialize ?? null;
-        this._postInitialize = options.postInitialize ?? null;
-        this._preExecute = options.preExecute ?? null;
-        this._postExecute = options.postExecute ?? null;
-        options.postInitialize && options.postInitialize.call(this, this);
-      }
-      undo() {
-        this._undo && this._undo.call(this);
-      }
-      redo() {
-        this._redo && this._redo.call(this);
-      }
-      async execute(options) {
-        try {
-          this.preExecute();
-          this._execute && await this._execute.call(this, options);
-          this.postExecute();
-          for (let feedback of this._feedback) {
-            await feedback.call(this, options);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      preExecute() {
-        this._preExecute && this._preExecute.call(this, this);
-      }
-      postExecute() {
-        this._postExecute && this._postExecute.call(this, this);
-      }
-      isInstanceOf(name) {
-        return this._baseName === name || this._name === name;
-      }
-      static register(baseName2, options) {
-        registeredCommands[baseName2] = options;
-      }
-      static unregister(baseName2) {
-        delete registeredCommands[baseName2];
-        return true;
-      }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: Command }, registeredCommands[baseName2] ?? {}, options ?? {});
-        const command = new mergedOptions.constructor(baseName2, mergedOptions);
-        instanceCommands.push(command);
-        return command;
-      }
-      static findCommand(baseNameOrRealName) {
-        return instanceCommands.filter((command) => command.isInstanceOf(baseNameOrRealName));
-      }
-    };
-    register = Command.register;
-    unregister = Command.unregister;
-    initialize = Command.initialize;
-    findCommand = Command.findCommand;
-  }
-});
-
-// dist/esm/command/index.js
-var instanceCommands2, Command2;
-var init_command2 = __esm({
-  "dist/esm/command/index.js"() {
-    init_command();
-    init_command();
-    instanceCommands2 = instanceCommands;
-    Command2 = Command;
-  }
-});
-
 // dist/esm/transformer/transformer.js
-var registeredTransformers, instanceTransformers, transientQueue, transientCleaner, GraphicalTransformer, register2, unregister2, initialize2, findTransformer;
+var _a, registeredTransformers, instanceTransformers, transientQueue, transientCleaner, GraphicalTransformer, register, unregister, initialize, findTransformer;
 var init_transformer = __esm({
   "dist/esm/transformer/transformer.js"() {
     init_helpers();
@@ -117,6 +33,7 @@ var init_transformer = __esm({
     requestAnimationFrame(transientCleaner);
     GraphicalTransformer = class {
       constructor(baseName2, options) {
+        this[_a] = true;
         this._baseName = baseName2;
         this._userOptions = options;
         this._name = options.name ?? this._baseName;
@@ -192,9 +109,10 @@ var init_transformer = __esm({
         return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
       }
     };
-    register2 = GraphicalTransformer.register;
-    unregister2 = GraphicalTransformer.unregister;
-    initialize2 = GraphicalTransformer.initialize;
+    _a = LibraSymbol;
+    register = GraphicalTransformer.register;
+    unregister = GraphicalTransformer.unregister;
+    initialize = GraphicalTransformer.initialize;
     findTransformer = GraphicalTransformer.findTransformer;
   }
 });
@@ -4803,7 +4721,7 @@ var init_transformer2 = __esm({
 });
 
 // dist/esm/service/service.js
-var registeredServices, instanceServices, Service, register3, unregister3, initialize3, findService;
+var _a2, registeredServices, instanceServices, Service, register2, unregister2, initialize2, findService;
 var init_service = __esm({
   "dist/esm/service/service.js"() {
     init_helpers();
@@ -4815,6 +4733,7 @@ var init_service = __esm({
         this._linkCache = {};
         this._transformers = [];
         this._services = [];
+        this[_a2] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName2;
         this._userOptions = options;
@@ -4917,9 +4836,10 @@ var init_service = __esm({
         return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
       }
     };
-    register3 = Service.register;
-    unregister3 = Service.unregister;
-    initialize3 = Service.initialize;
+    _a2 = LibraSymbol;
+    register2 = Service.register;
+    unregister2 = Service.unregister;
+    initialize2 = Service.initialize;
     findService = Service.findService;
   }
 });
@@ -5390,448 +5310,6 @@ var init_service2 = __esm({
   }
 });
 
-// dist/esm/history/index.js
-var history_exports = {};
-__export(history_exports, {
-  createHistoryTrrack: () => createHistoryTrrack,
-  tryGetHistoryTrrackInstance: () => tryGetHistoryTrrackInstance,
-  tryRegisterDynamicInstance: () => tryRegisterDynamicInstance
-});
-function createHistoryTrrack() {
-  let historyTrace = null;
-  let currentHistoryNode = null;
-  let commitLock = false;
-  const HistoryManager = {
-    traceStructure: (node = historyTrace) => {
-      return {
-        recordList: [...node.record.keys()],
-        children: node.children.map((node2) => HistoryManager.traceStructure(node2))
-      };
-    },
-    commit: async () => {
-      if (commitLock) {
-        return;
-      }
-      const record = new Map();
-      [
-        { list: instanceInstruments, fields: ["_sharedVar"] },
-        { list: instanceServices2, fields: ["_sharedVar"] },
-        { list: instanceTransformers2, fields: ["_sharedVar"] },
-        { list: instanceInteractors, fields: ["_state", "_modalities"] }
-      ].forEach(({ list, fields }) => {
-        list.filter((component) => tryGetHistoryTrrackInstance(component) === HistoryManager).forEach((component) => {
-          record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
-        });
-      });
-      const newHistoryNode = {
-        record,
-        prev: currentHistoryNode,
-        next: null,
-        children: []
-      };
-      if (currentHistoryNode) {
-        currentHistoryNode.children.push(newHistoryNode);
-      }
-      currentHistoryNode = newHistoryNode;
-    },
-    async undo() {
-      if (currentHistoryNode && currentHistoryNode.prev) {
-        currentHistoryNode.prev.next = currentHistoryNode;
-        const record = currentHistoryNode.prev.record;
-        commitLock = true;
-        for (let [component, records] of record.entries()) {
-          Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-          if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
-          }
-        }
-        commitLock = false;
-        currentHistoryNode = currentHistoryNode.prev;
-      }
-    },
-    async redo() {
-      if (currentHistoryNode && currentHistoryNode.next) {
-        const record = currentHistoryNode.next.record;
-        commitLock = true;
-        for (let [component, records] of record.entries()) {
-          Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-          if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
-          }
-        }
-        commitLock = false;
-        currentHistoryNode = currentHistoryNode.next;
-      }
-    }
-  };
-  [
-    instanceServices2,
-    instanceTransformers2,
-    instanceCommands2,
-    instanceInstruments,
-    instanceInteractors
-  ].flatMap((x) => x).forEach((component) => {
-    if (!historyInstanceMapping.has(component)) {
-      historyInstanceMapping.set(component, HistoryManager);
-    }
-  });
-  HistoryManager.commit();
-  historyTrace = currentHistoryNode;
-  return HistoryManager;
-}
-function tryGetHistoryTrrackInstance(component) {
-  const directHM = historyInstanceMapping.get(component);
-  if (directHM) {
-    return directHM;
-  }
-  return {
-    traceStructure() {
-      return null;
-    },
-    async commit() {
-    },
-    async undo() {
-    },
-    async redo() {
-    }
-  };
-}
-function tryRegisterDynamicInstance(parentComponent, newComponent) {
-  const HM = historyInstanceMapping.get(parentComponent);
-  if (HM) {
-    historyInstanceMapping.set(newComponent, HM);
-  }
-}
-var historyInstanceMapping;
-var init_history = __esm({
-  "dist/esm/history/index.js"() {
-    init_service2();
-    init_transformer2();
-    init_command2();
-    init_instrument2();
-    init_interactor2();
-    init_helpers();
-    historyInstanceMapping = new Map();
-  }
-});
-
-// dist/esm/helpers.js
-function makeFindableList(list, typing, addFunc, removeFunc, self) {
-  return new Proxy(list, {
-    get(target, p) {
-      if (p === "find") {
-        return function(name, defaultValue) {
-          if (!("initialize" in typing)) {
-            const filteredResult = target.slice();
-            filteredResult.forEach((newTarget) => {
-              newTarget.find(...arguments);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
-          } else {
-            const filteredResult = target.filter((item) => item.isInstanceOf(name));
-            if (filteredResult.length <= 0 && defaultValue) {
-              const newElement = typing.initialize(defaultValue);
-              addFunc(newElement);
-              filteredResult.push(newElement);
-              tryRegisterDynamicInstance2(self, newElement);
-            }
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
-          }
-        };
-      } else if (p === "add") {
-        return (...args) => {
-          const filteredResult = target.slice();
-          if (!("initialize" in typing)) {
-            filteredResult.forEach((newTarget) => {
-              newTarget.add(...args);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
-          } else {
-            const newElement = typing.initialize(...args);
-            addFunc(newElement);
-            filteredResult.push(newElement);
-            tryRegisterDynamicInstance2(self, newElement);
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
-          }
-        };
-      } else if (p === "remove") {
-        return (name) => {
-          if (typing === NonsenseClass) {
-            const filteredResult = target.slice();
-            filteredResult.forEach((newTarget) => {
-              newTarget.remove(name);
-            });
-            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
-          } else {
-            const origin = target.slice();
-            const filteredResult = origin.filter((item) => item.isInstanceOf(name));
-            filteredResult.forEach((item) => {
-              removeFunc(item);
-              origin.splice(origin.indexOf(item), 1);
-            });
-            return makeFindableList(origin, typing, addFunc, removeFunc, self);
-          }
-        };
-      } else if (p in target) {
-        return target[p];
-      } else {
-        if (!target.length) {
-          const f = () => {
-          };
-          f[Symbol.iterator] = function* () {
-          };
-          return f;
-        } else if (target[0][p] instanceof Function) {
-          return function() {
-            return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => {
-            }, () => {
-            }, self);
-          };
-        } else {
-          return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => {
-          }, () => {
-          }, self);
-        }
-      }
-    }
-  });
-}
-function getTransform(elem) {
-  try {
-    const transform2 = elem.getAttribute("transform").split("(")[1].split(")")[0].split(",").map((i) => parseFloat(i));
-    return transform2;
-  } catch (e) {
-    return [0, 0];
-  }
-}
-function parseEventSelector(selector) {
-  return parseMerge(selector.trim()).map(parseSelector);
-}
-function isMarkType(type2) {
-  return MARKS.hasOwnProperty(type2);
-}
-function find2(s, i, endChar, pushChar, popChar) {
-  let count = 0, c;
-  const n = s.length;
-  for (; i < n; ++i) {
-    c = s[i];
-    if (!count && c === endChar)
-      return i;
-    else if (popChar && popChar.indexOf(c) >= 0)
-      --count;
-    else if (pushChar && pushChar.indexOf(c) >= 0)
-      ++count;
-  }
-  return i;
-}
-function parseMerge(s) {
-  const output = [], n = s.length;
-  let start2 = 0, i = 0;
-  while (i < n) {
-    i = find2(s, i, COMMA, LBRACK + LBRACE, RBRACK + RBRACE);
-    output.push(s.substring(start2, i).trim());
-    start2 = ++i;
-  }
-  if (output.length === 0) {
-    throw "Empty event selector: " + s;
-  }
-  return output;
-}
-function parseSelector(s) {
-  return s[0] === "[" ? parseBetween(s) : parseStream(s);
-}
-function parseBetween(s) {
-  const n = s.length;
-  let i = 1, b, stream;
-  i = find2(s, i, RBRACK, LBRACK, RBRACK);
-  if (i === n) {
-    throw "Empty between selector: " + s;
-  }
-  b = parseMerge(s.substring(1, i));
-  if (b.length !== 2) {
-    throw "Between selector must have two elements: " + s;
-  }
-  s = s.slice(i + 1).trim();
-  if (s[0] !== GT) {
-    throw "Expected '>' after between selector: " + s;
-  }
-  const bt = b.map(parseSelector);
-  stream = parseSelector(s.slice(1).trim());
-  if (stream.between) {
-    return {
-      between: bt,
-      stream
-    };
-  } else {
-    stream.between = bt;
-  }
-  return stream;
-}
-function parseStream(s) {
-  const stream = {
-    source: DEFAULT_SOURCE,
-    type: ""
-  }, source = [];
-  let throttle = [0, 0], markname = 0, start2 = 0, n = s.length, i = 0, j, filter2;
-  if (s[n - 1] === RBRACE) {
-    i = s.lastIndexOf(LBRACE);
-    if (i >= 0) {
-      try {
-        throttle = parseThrottle(s.substring(i + 1, n - 1));
-      } catch (e) {
-        throw "Invalid throttle specification: " + s;
-      }
-      s = s.slice(0, i).trim();
-      n = s.length;
-    } else
-      throw "Unmatched right brace: " + s;
-    i = 0;
-  }
-  if (!n)
-    throw s;
-  if (s[0] === NAME)
-    markname = ++i;
-  j = find2(s, i, COLON);
-  if (j < n) {
-    source.push(s.substring(start2, j).trim());
-    start2 = i = ++j;
-  }
-  i = find2(s, i, LBRACK);
-  if (i === n) {
-    source.push(s.substring(start2, n).trim());
-  } else {
-    source.push(s.substring(start2, i).trim());
-    filter2 = [];
-    start2 = ++i;
-    if (start2 === n)
-      throw "Unmatched left bracket: " + s;
-  }
-  while (i < n) {
-    i = find2(s, i, RBRACK);
-    if (i === n)
-      throw "Unmatched left bracket: " + s;
-    filter2.push(s.substring(start2, i).trim());
-    if (i < n - 1 && s[++i] !== LBRACK)
-      throw "Expected left bracket: " + s;
-    start2 = ++i;
-  }
-  if (!(n = source.length) || ILLEGAL.test(source[n - 1])) {
-    throw "Invalid event selector: " + s;
-  }
-  if (n > 1) {
-    stream.type = source[1];
-    if (markname) {
-      stream.markname = source[0].slice(1);
-    } else if (isMarkType(source[0])) {
-      stream.marktype = source[0];
-    } else {
-      stream.source = source[0];
-    }
-  } else {
-    stream.type = source[0];
-  }
-  if (stream.type.slice(-1) === "!") {
-    stream.consume = true;
-    stream.type = stream.type.slice(0, -1);
-  }
-  if (filter2 != null)
-    stream.filter = filter2;
-  if (throttle[0])
-    stream.throttle = throttle[0];
-  if (throttle[1])
-    stream.debounce = throttle[1];
-  return stream;
-}
-function parseThrottle(s) {
-  const a = s.split(COMMA);
-  if (!s.length || a.length > 2)
-    throw s;
-  return a.map(function(_) {
-    const x = +_;
-    if (x !== x)
-      throw s;
-    return x;
-  });
-}
-function deepClone(obj) {
-  if (obj instanceof Array) {
-    return obj.map(deepClone);
-  }
-  if ([
-    "string",
-    "number",
-    "boolean",
-    "undefined",
-    "bigint",
-    "symbol",
-    "function"
-  ].includes(typeof obj)) {
-    return obj;
-  }
-  if (obj === null)
-    return null;
-  const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
-  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
-}
-var QueryType, ShapeQueryType, DataQueryType, NonsenseClass, tryRegisterDynamicInstance2, VIEW, LBRACK, RBRACK, LBRACE, RBRACE, COLON, COMMA, NAME, GT, ILLEGAL, DEFAULT_SOURCE, DEFAULT_MARKS, MARKS, global;
-var init_helpers = __esm({
-  "dist/esm/helpers.js"() {
-    (function(QueryType2) {
-      QueryType2[QueryType2["Shape"] = 0] = "Shape";
-      QueryType2[QueryType2["Data"] = 1] = "Data";
-      QueryType2[QueryType2["Attr"] = 2] = "Attr";
-    })(QueryType || (QueryType = {}));
-    (function(ShapeQueryType2) {
-      ShapeQueryType2[ShapeQueryType2["SurfacePoint"] = 0] = "SurfacePoint";
-      ShapeQueryType2[ShapeQueryType2["Point"] = 1] = "Point";
-      ShapeQueryType2[ShapeQueryType2["Circle"] = 2] = "Circle";
-      ShapeQueryType2[ShapeQueryType2["Rect"] = 3] = "Rect";
-      ShapeQueryType2[ShapeQueryType2["Polygon"] = 4] = "Polygon";
-    })(ShapeQueryType || (ShapeQueryType = {}));
-    (function(DataQueryType2) {
-      DataQueryType2[DataQueryType2["Quantitative"] = 0] = "Quantitative";
-      DataQueryType2[DataQueryType2["Quantitative2D"] = 1] = "Quantitative2D";
-      DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
-      DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
-    })(DataQueryType || (DataQueryType = {}));
-    NonsenseClass = class {
-    };
-    VIEW = "view";
-    LBRACK = "[";
-    RBRACK = "]";
-    LBRACE = "{";
-    RBRACE = "}";
-    COLON = ":";
-    COMMA = ",";
-    NAME = "@";
-    GT = ">";
-    ILLEGAL = /[[\]{}]/;
-    DEFAULT_SOURCE = VIEW;
-    DEFAULT_MARKS = {
-      "*": 1,
-      arc: 1,
-      area: 1,
-      group: 1,
-      image: 1,
-      line: 1,
-      path: 1,
-      rect: 1,
-      rule: 1,
-      shape: 1,
-      symbol: 1,
-      text: 1,
-      trail: 1
-    };
-    MARKS = DEFAULT_MARKS;
-    global = {
-      stopTransient: false
-    };
-    Promise.resolve().then(() => (init_history(), history_exports)).then((HM) => {
-      tryRegisterDynamicInstance2 = HM.tryRegisterDynamicInstance;
-    });
-  }
-});
-
 // dist/esm/interactor/actions.jsgf.js
 var actions_jsgf_default;
 var init_actions_jsgf = __esm({
@@ -5858,7 +5336,7 @@ function transferEventStream(es) {
     filterFuncs: es.filter ? es.filter.map((f) => new Function("event", `return ${f}`)) : []
   } : { ...es };
 }
-var SR, SGL, registeredInteractors, instanceInteractors2, Interactor, register4, unregister4, initialize4, findInteractor;
+var _a3, SR, SGL, registeredInteractors, instanceInteractors, Interactor, register3, unregister3, initialize3, findInteractor;
 var init_interactor = __esm({
   "dist/esm/interactor/interactor.js"() {
     init_helpers();
@@ -5866,9 +5344,10 @@ var init_interactor = __esm({
     SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
     registeredInteractors = {};
-    instanceInteractors2 = [];
+    instanceInteractors = [];
     Interactor = class {
       constructor(baseName2, options) {
+        this[_a3] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName2;
         this._userOptions = options;
@@ -5920,7 +5399,9 @@ var init_interactor = __esm({
         return parseEventSelector(event).flatMap(flatStream);
       }
       getAcceptEvents() {
-        return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
+        return [
+          ...new Set(this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type)).concat(["contextmenu"]))
+        ];
       }
       async dispatch(event, layer) {
         const moveAction = this._actions.find((action) => {
@@ -5944,37 +5425,37 @@ var init_interactor = __esm({
           const moveTransition = moveAction.transition && moveAction.transition.find((transition2) => transition2[0] === this._state || transition2[0] === "*");
           if (moveTransition) {
             this._state = moveTransition[1];
-          }
-          if (this._state.startsWith("speech:")) {
-            this.enableModality("speech");
-            try {
-              this._modalities.speech.start();
-            } catch {
+            if (this._state.startsWith("speech:")) {
+              this.enableModality("speech");
+              try {
+                this._modalities.speech.start();
+              } catch {
+              }
+              this._modalities.speech.onresult = (e) => {
+                const result = e.results[e.resultIndex][0];
+                this.dispatch(result.transcript, layer);
+              };
+              this._modalities.speech.onend = (e) => {
+                this._modalities.speech.start();
+              };
+            } else {
+              this.disableModality("speech");
             }
-            this._modalities.speech.onresult = (e) => {
-              const result = e.results[e.resultIndex][0];
-              this.dispatch(result.transcript, layer);
-            };
-            this._modalities.speech.onend = (e) => {
-              this._modalities.speech.start();
-            };
-          } else {
-            this.disableModality("speech");
-          }
-          if (moveAction.sideEffect) {
-            try {
-              await moveAction.sideEffect({
-                self: this,
-                layer,
-                instrument: null,
-                interactor: this,
-                event
-              });
-            } catch (e) {
-              console.error(e);
+            if (moveAction.sideEffect) {
+              try {
+                await moveAction.sideEffect({
+                  self: this,
+                  layer,
+                  instrument: null,
+                  interactor: this,
+                  event
+                });
+              } catch (e) {
+                console.error(e);
+              }
             }
+            return true;
           }
-          return true;
         }
         return false;
       }
@@ -5997,16 +5478,17 @@ var init_interactor = __esm({
       static initialize(baseName2, options) {
         const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName2] ?? {}, options ?? {});
         const interactor = new mergedOptions.constructor(baseName2, mergedOptions);
-        instanceInteractors2.push(interactor);
+        instanceInteractors.push(interactor);
         return interactor;
       }
       static findInteractor(baseNameOrRealName) {
-        return instanceInteractors2.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+        return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
       }
     };
-    register4 = Interactor.register;
-    unregister4 = Interactor.unregister;
-    initialize4 = Interactor.initialize;
+    _a3 = LibraSymbol;
+    register3 = Interactor.register;
+    unregister3 = Interactor.unregister;
+    initialize3 = Interactor.initialize;
     findInteractor = Interactor.findInteractor;
   }
 });
@@ -6071,7 +5553,7 @@ var init_builtin2 = __esm({
         },
         {
           action: "dragabort",
-          events: ["mouseup[event.button==2]", "contextmenu"],
+          events: ["mouseup[event.button==2]"],
           transition: [
             ["drag", "start"],
             ["start", "start"]
@@ -6111,7 +5593,7 @@ var init_builtin2 = __esm({
         },
         {
           action: "disableSpeech",
-          events: ["mouseup[event.button==2]", "contextmenu"],
+          events: ["mouseup[event.button==2]"],
           transition: [["*", "start"]]
         },
         {
@@ -6188,7 +5670,7 @@ var init_builtin2 = __esm({
         },
         {
           action: "abort",
-          events: ["mouseup[event.button==2]", "contextmenu"],
+          events: ["mouseup[event.button==2]"],
           transition: [
             ["running", "running"],
             ["start", "start"]
@@ -6200,25 +5682,25 @@ var init_builtin2 = __esm({
 });
 
 // dist/esm/interactor/index.js
-var register5, initialize5, findInteractor2, instanceInteractors, Interactor2;
+var register4, initialize4, findInteractor2, instanceInteractors2, Interactor2;
 var init_interactor2 = __esm({
   "dist/esm/interactor/index.js"() {
     init_interactor();
     init_interactor();
     init_builtin2();
-    register5 = Interactor.register;
-    initialize5 = Interactor.initialize;
+    register4 = Interactor.register;
+    initialize4 = Interactor.initialize;
     findInteractor2 = Interactor.findInteractor;
-    instanceInteractors = instanceInteractors2;
+    instanceInteractors2 = instanceInteractors;
     Interactor2 = Interactor;
   }
 });
 
 // dist/esm/layer/layer.js
-function register6(baseName2, options) {
+function register5(baseName2, options) {
   registeredLayers[baseName2] = options;
 }
-function initialize6(baseName2, options) {
+function initialize5(baseName2, options) {
   const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName2] ?? {}, options ?? {}, {});
   const layer = new mergedOptions.constructor(baseName2, mergedOptions);
   return layer;
@@ -6226,9 +5708,10 @@ function initialize6(baseName2, options) {
 function findLayer(baseNameOrRealName) {
   return instanceLayers.filter((layer) => layer.isInstanceOf(baseNameOrRealName));
 }
-var registeredLayers, instanceLayers, siblingLayers, orderLayers, Layer;
+var _a4, registeredLayers, instanceLayers, siblingLayers, orderLayers, Layer;
 var init_layer = __esm({
   "dist/esm/layer/layer.js"() {
+    init_helpers();
     registeredLayers = {};
     instanceLayers = [];
     siblingLayers = new Map();
@@ -6236,6 +5719,7 @@ var init_layer = __esm({
     Layer = class {
       constructor(baseName2, options) {
         this._nextTick = 0;
+        this[_a4] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName2;
         this._userOptions = options;
@@ -6332,8 +5816,9 @@ var init_layer = __esm({
         return this._baseName === name || this._name === name;
       }
     };
-    Layer.register = register6;
-    Layer.initialize = initialize6;
+    _a4 = LibraSymbol;
+    Layer.register = register5;
+    Layer.initialize = initialize5;
     Layer.findLayer = findLayer;
   }
 });
@@ -6540,7 +6025,7 @@ var init_layer2 = __esm({
 });
 
 // dist/esm/instrument/instrument.js
-var registeredInstruments, instanceInstruments2, EventDispatcher, EventQueue, eventHandling, Instrument, register7, unregister5, initialize7, findInstrument;
+var _a5, registeredInstruments, instanceInstruments, EventDispatcher, EventQueue, eventHandling, Instrument, register6, unregister4, initialize6, findInstrument;
 var init_instrument = __esm({
   "dist/esm/instrument/instrument.js"() {
     init_interactor2();
@@ -6550,7 +6035,7 @@ var init_instrument = __esm({
     init_service2();
     init_transformer2();
     registeredInstruments = {};
-    instanceInstruments2 = [];
+    instanceInstruments = [];
     EventDispatcher = new Map();
     EventQueue = [];
     eventHandling = false;
@@ -6558,6 +6043,7 @@ var init_instrument = __esm({
       constructor(baseName2, options) {
         this._transformers = [];
         this._linkCache = {};
+        this[_a5] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
@@ -6566,7 +6052,7 @@ var init_instrument = __esm({
         this._baseName = baseName2;
         this._userOptions = options;
         this._name = options.name ?? baseName2;
-        this._on = deepClone(options.on ?? {});
+        this._on = Object.assign({}, options.on ?? {});
         this._interactors = [];
         this._layers = [];
         this._layerInteractors = new Map();
@@ -6610,7 +6096,7 @@ var init_instrument = __esm({
       emit(action, options) {
         if (this._on[action]) {
           this._on[action].forEach((feedforwardOrCommand) => {
-            if (feedforwardOrCommand instanceof Command2) {
+            if (feedforwardOrCommand instanceof Command) {
               feedforwardOrCommand.execute(Object.assign({
                 self: this,
                 layer: null,
@@ -6697,7 +6183,7 @@ var init_instrument = __esm({
               if (this._on[action.action]) {
                 for (let command of this._on[action.action]) {
                   try {
-                    if (command instanceof Command2) {
+                    if (command instanceof Command) {
                       await command.execute({
                         ...options2,
                         self: this,
@@ -6757,7 +6243,7 @@ var init_instrument = __esm({
         if (this._on[`update:${sharedName}`]) {
           const feedforwardOrCommands = this._on[`update:${sharedName}`];
           feedforwardOrCommands.forEach((feedforwardOrCommand) => {
-            if (feedforwardOrCommand instanceof Command2) {
+            if (feedforwardOrCommand instanceof Command) {
               feedforwardOrCommand.execute({
                 self: this,
                 layer: null,
@@ -6807,7 +6293,7 @@ var init_instrument = __esm({
               if (this._on[action.action]) {
                 for (let command of this._on[action.action]) {
                   try {
-                    if (command instanceof Command2) {
+                    if (command instanceof Command) {
                       await command.execute({
                         ...options2,
                         self: this,
@@ -6918,16 +6404,17 @@ var init_instrument = __esm({
           sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
         });
         const instrument = new mergedOptions.constructor(baseName2, mergedOptions);
-        instanceInstruments2.push(instrument);
+        instanceInstruments.push(instrument);
         return instrument;
       }
       static findInstrument(baseNameOrRealName) {
-        return instanceInstruments2.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
+        return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
       }
     };
-    register7 = Instrument.register;
-    unregister5 = Instrument.unregister;
-    initialize7 = Instrument.initialize;
+    _a5 = LibraSymbol;
+    register6 = Instrument.register;
+    unregister4 = Instrument.unregister;
+    initialize6 = Instrument.initialize;
     findInstrument = Instrument.findInstrument;
   }
 });
@@ -7244,7 +6731,7 @@ var init_builtin3 = __esm({
           }
         ],
         drag: [
-          Command.initialize("drawBrushAndSelect", {
+          Command2.initialize("drawBrushAndSelect", {
             continuous: true,
             execute: async ({ event, layer, instrument }) => {
               if (event.changedTouches)
@@ -7380,7 +6867,7 @@ var init_builtin3 = __esm({
           }
         ],
         drag: [
-          Command.initialize("drawBrushAndSelect", {
+          Command2.initialize("drawBrushAndSelect", {
             continuous: true,
             execute: async ({ event, layer, instrument }) => {
               if (event.changedTouches)
@@ -7504,7 +6991,7 @@ var init_builtin3 = __esm({
           }
         ],
         drag: [
-          Command.initialize("drawBrushAndSelect", {
+          Command2.initialize("drawBrushAndSelect", {
             continuous: true,
             execute: async ({ event, layer, instrument }) => {
               if (event.changedTouches)
@@ -8011,14 +7498,605 @@ var init_builtin3 = __esm({
 });
 
 // dist/esm/instrument/index.js
-var instanceInstruments, Instrument2;
+var instanceInstruments2, Instrument2;
 var init_instrument2 = __esm({
   "dist/esm/instrument/index.js"() {
     init_instrument();
     init_instrument();
     init_builtin3();
-    instanceInstruments = instanceInstruments2;
+    instanceInstruments2 = instanceInstruments;
     Instrument2 = Instrument;
+  }
+});
+
+// dist/esm/history/index.js
+var history_exports = {};
+__export(history_exports, {
+  createHistoryTrrack: () => createHistoryTrrack,
+  tryGetHistoryTrrackInstance: () => tryGetHistoryTrrackInstance,
+  tryRegisterDynamicInstance: () => tryRegisterDynamicInstance
+});
+function createHistoryTrrack() {
+  let historyTrace = null;
+  let currentHistoryNode = null;
+  let commitLock = false;
+  const HistoryManager = {
+    traceStructure: (node = historyTrace) => {
+      return {
+        recordList: [...node.record.keys()],
+        children: node.children.map((node2) => HistoryManager.traceStructure(node2)),
+        current: node === currentHistoryNode
+      };
+    },
+    commit: async () => {
+      if (commitLock) {
+        return;
+      }
+      const record = new Map();
+      [
+        { list: instanceInstruments2, fields: ["_sharedVar"] },
+        { list: instanceServices2, fields: ["_sharedVar"] },
+        { list: instanceTransformers2, fields: ["_sharedVar"] },
+        { list: instanceInteractors2, fields: ["_state", "_modalities"] }
+      ].forEach(({ list, fields }) => {
+        list.filter((component) => tryGetHistoryTrrackInstance(component) === HistoryManager).forEach((component) => {
+          record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
+        });
+      });
+      const newHistoryNode = {
+        record,
+        prev: currentHistoryNode,
+        next: null,
+        children: []
+      };
+      if (currentHistoryNode) {
+        currentHistoryNode.children.push(newHistoryNode);
+      }
+      currentHistoryNode = newHistoryNode;
+    },
+    async undo() {
+      if (currentHistoryNode && currentHistoryNode.prev) {
+        currentHistoryNode.prev.next = currentHistoryNode;
+        const record = currentHistoryNode.prev.record;
+        commitLock = true;
+        try {
+          for (let [component, records] of record.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+          currentHistoryNode = currentHistoryNode.prev;
+        } catch (e) {
+          console.error("Fail to undo history!", e);
+          const record2 = currentHistoryNode.record;
+          for (let [component, records] of record2.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+        }
+        commitLock = false;
+      }
+    },
+    async redo() {
+      if (currentHistoryNode && currentHistoryNode.children.length === 1 && !currentHistoryNode.next) {
+        currentHistoryNode.next = currentHistoryNode.children[0];
+      }
+      if (currentHistoryNode && currentHistoryNode.next) {
+        const record = currentHistoryNode.next.record;
+        commitLock = true;
+        try {
+          for (let [component, records] of record.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+          currentHistoryNode = currentHistoryNode.next;
+        } catch (e) {
+          console.error("Fail to redo history!", e);
+          const record2 = currentHistoryNode.record;
+          for (let [component, records] of record2.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+        }
+        commitLock = false;
+      }
+    },
+    async jump(path = []) {
+      const targetNode = path.reduce((p, v) => p?.children[v], historyTrace);
+      if (targetNode) {
+        const record = targetNode.record;
+        commitLock = true;
+        try {
+          for (let [component, records] of record.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+          currentHistoryNode = targetNode;
+        } catch (e) {
+          console.error("Fail to jump history!", e);
+          const record2 = currentHistoryNode.record;
+          for (let [component, records] of record2.entries()) {
+            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
+              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            }
+          }
+        }
+        commitLock = false;
+      } else {
+        console.error(`History path [${path.join(", ")}] does not exist!`);
+      }
+    }
+  };
+  [
+    instanceServices2,
+    instanceTransformers2,
+    instanceCommands,
+    instanceInstruments2,
+    instanceInteractors2
+  ].flatMap((x) => x).forEach((component) => {
+    if (!historyInstanceMapping.has(component)) {
+      historyInstanceMapping.set(component, HistoryManager);
+    }
+  });
+  HistoryManager.commit();
+  historyTrace = currentHistoryNode;
+  return HistoryManager;
+}
+function tryGetHistoryTrrackInstance(component) {
+  const directHM = historyInstanceMapping.get(component);
+  if (directHM) {
+    return directHM;
+  }
+  return {
+    traceStructure() {
+      return null;
+    },
+    async commit() {
+    },
+    async undo() {
+    },
+    async redo() {
+    }
+  };
+}
+function tryRegisterDynamicInstance(parentComponent, newComponent) {
+  const HM = historyInstanceMapping.get(parentComponent);
+  if (HM) {
+    historyInstanceMapping.set(newComponent, HM);
+  }
+}
+var historyInstanceMapping;
+var init_history = __esm({
+  "dist/esm/history/index.js"() {
+    init_service2();
+    init_transformer2();
+    init_command2();
+    init_instrument2();
+    init_interactor2();
+    init_helpers();
+    historyInstanceMapping = new Map();
+  }
+});
+
+// dist/esm/helpers.js
+function makeFindableList(list, typing, addFunc, removeFunc, self) {
+  return new Proxy(list, {
+    get(target, p) {
+      if (p === "find") {
+        return function(name, defaultValue) {
+          if (!("initialize" in typing)) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.find(...arguments);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const filteredResult = target.filter((item) => item.isInstanceOf(name));
+            if (filteredResult.length <= 0 && defaultValue) {
+              const newElement = typing.initialize(defaultValue);
+              addFunc(newElement);
+              filteredResult.push(newElement);
+              tryRegisterDynamicInstance2(self, newElement);
+            }
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p === "add") {
+        return (...args) => {
+          const filteredResult = target.slice();
+          if (!("initialize" in typing)) {
+            filteredResult.forEach((newTarget) => {
+              newTarget.add(...args);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const newElement = typing.initialize(...args);
+            addFunc(newElement);
+            filteredResult.push(newElement);
+            tryRegisterDynamicInstance2(self, newElement);
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p === "remove") {
+        return (name) => {
+          if (typing === NonsenseClass) {
+            const filteredResult = target.slice();
+            filteredResult.forEach((newTarget) => {
+              newTarget.remove(name);
+            });
+            return makeFindableList(filteredResult, typing, addFunc, removeFunc, self);
+          } else {
+            const origin = target.slice();
+            const filteredResult = origin.filter((item) => item.isInstanceOf(name));
+            filteredResult.forEach((item) => {
+              removeFunc(item);
+              origin.splice(origin.indexOf(item), 1);
+            });
+            return makeFindableList(origin, typing, addFunc, removeFunc, self);
+          }
+        };
+      } else if (p in target) {
+        return target[p];
+      } else {
+        if (!target.length) {
+          const f = () => {
+          };
+          f[Symbol.iterator] = function* () {
+          };
+          return f;
+        } else if (target[0][p] instanceof Function) {
+          return function() {
+            return makeFindableList(target.map((t) => t[p].apply(t, arguments)), NonsenseClass, () => {
+            }, () => {
+            }, self);
+          };
+        } else {
+          return makeFindableList(target.map((t) => t[p]), NonsenseClass, () => {
+          }, () => {
+          }, self);
+        }
+      }
+    }
+  });
+}
+function getTransform(elem) {
+  try {
+    const transform2 = elem.getAttribute("transform").split("(")[1].split(")")[0].split(",").map((i) => parseFloat(i));
+    return transform2;
+  } catch (e) {
+    return [0, 0];
+  }
+}
+function parseEventSelector(selector) {
+  return parseMerge(selector.trim()).map(parseSelector);
+}
+function isMarkType(type2) {
+  return MARKS.hasOwnProperty(type2);
+}
+function find2(s, i, endChar, pushChar, popChar) {
+  let count = 0, c;
+  const n = s.length;
+  for (; i < n; ++i) {
+    c = s[i];
+    if (!count && c === endChar)
+      return i;
+    else if (popChar && popChar.indexOf(c) >= 0)
+      --count;
+    else if (pushChar && pushChar.indexOf(c) >= 0)
+      ++count;
+  }
+  return i;
+}
+function parseMerge(s) {
+  const output = [], n = s.length;
+  let start2 = 0, i = 0;
+  while (i < n) {
+    i = find2(s, i, COMMA, LBRACK + LBRACE, RBRACK + RBRACE);
+    output.push(s.substring(start2, i).trim());
+    start2 = ++i;
+  }
+  if (output.length === 0) {
+    throw "Empty event selector: " + s;
+  }
+  return output;
+}
+function parseSelector(s) {
+  return s[0] === "[" ? parseBetween(s) : parseStream(s);
+}
+function parseBetween(s) {
+  const n = s.length;
+  let i = 1, b, stream;
+  i = find2(s, i, RBRACK, LBRACK, RBRACK);
+  if (i === n) {
+    throw "Empty between selector: " + s;
+  }
+  b = parseMerge(s.substring(1, i));
+  if (b.length !== 2) {
+    throw "Between selector must have two elements: " + s;
+  }
+  s = s.slice(i + 1).trim();
+  if (s[0] !== GT) {
+    throw "Expected '>' after between selector: " + s;
+  }
+  const bt = b.map(parseSelector);
+  stream = parseSelector(s.slice(1).trim());
+  if (stream.between) {
+    return {
+      between: bt,
+      stream
+    };
+  } else {
+    stream.between = bt;
+  }
+  return stream;
+}
+function parseStream(s) {
+  const stream = {
+    source: DEFAULT_SOURCE,
+    type: ""
+  }, source = [];
+  let throttle = [0, 0], markname = 0, start2 = 0, n = s.length, i = 0, j, filter2;
+  if (s[n - 1] === RBRACE) {
+    i = s.lastIndexOf(LBRACE);
+    if (i >= 0) {
+      try {
+        throttle = parseThrottle(s.substring(i + 1, n - 1));
+      } catch (e) {
+        throw "Invalid throttle specification: " + s;
+      }
+      s = s.slice(0, i).trim();
+      n = s.length;
+    } else
+      throw "Unmatched right brace: " + s;
+    i = 0;
+  }
+  if (!n)
+    throw s;
+  if (s[0] === NAME)
+    markname = ++i;
+  j = find2(s, i, COLON);
+  if (j < n) {
+    source.push(s.substring(start2, j).trim());
+    start2 = i = ++j;
+  }
+  i = find2(s, i, LBRACK);
+  if (i === n) {
+    source.push(s.substring(start2, n).trim());
+  } else {
+    source.push(s.substring(start2, i).trim());
+    filter2 = [];
+    start2 = ++i;
+    if (start2 === n)
+      throw "Unmatched left bracket: " + s;
+  }
+  while (i < n) {
+    i = find2(s, i, RBRACK);
+    if (i === n)
+      throw "Unmatched left bracket: " + s;
+    filter2.push(s.substring(start2, i).trim());
+    if (i < n - 1 && s[++i] !== LBRACK)
+      throw "Expected left bracket: " + s;
+    start2 = ++i;
+  }
+  if (!(n = source.length) || ILLEGAL.test(source[n - 1])) {
+    throw "Invalid event selector: " + s;
+  }
+  if (n > 1) {
+    stream.type = source[1];
+    if (markname) {
+      stream.markname = source[0].slice(1);
+    } else if (isMarkType(source[0])) {
+      stream.marktype = source[0];
+    } else {
+      stream.source = source[0];
+    }
+  } else {
+    stream.type = source[0];
+  }
+  if (stream.type.slice(-1) === "!") {
+    stream.consume = true;
+    stream.type = stream.type.slice(0, -1);
+  }
+  if (filter2 != null)
+    stream.filter = filter2;
+  if (throttle[0])
+    stream.throttle = throttle[0];
+  if (throttle[1])
+    stream.debounce = throttle[1];
+  return stream;
+}
+function parseThrottle(s) {
+  const a = s.split(COMMA);
+  if (!s.length || a.length > 2)
+    throw s;
+  return a.map(function(_) {
+    const x = +_;
+    if (x !== x)
+      throw s;
+    return x;
+  });
+}
+function deepClone(obj) {
+  if (obj instanceof Array) {
+    return obj.map(deepClone);
+  }
+  if ([
+    "string",
+    "number",
+    "boolean",
+    "undefined",
+    "bigint",
+    "symbol",
+    "function"
+  ].includes(typeof obj)) {
+    return obj;
+  }
+  if (obj === null)
+    return null;
+  if (LibraSymbol in obj && obj[LibraSymbol]) {
+    return obj;
+  }
+  const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
+  return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);
+}
+var LibraSymbol, QueryType, ShapeQueryType, DataQueryType, NonsenseClass, tryRegisterDynamicInstance2, VIEW, LBRACK, RBRACK, LBRACE, RBRACE, COLON, COMMA, NAME, GT, ILLEGAL, DEFAULT_SOURCE, DEFAULT_MARKS, MARKS, global;
+var init_helpers = __esm({
+  "dist/esm/helpers.js"() {
+    LibraSymbol = Symbol("Libra");
+    (function(QueryType2) {
+      QueryType2[QueryType2["Shape"] = 0] = "Shape";
+      QueryType2[QueryType2["Data"] = 1] = "Data";
+      QueryType2[QueryType2["Attr"] = 2] = "Attr";
+    })(QueryType || (QueryType = {}));
+    (function(ShapeQueryType2) {
+      ShapeQueryType2[ShapeQueryType2["SurfacePoint"] = 0] = "SurfacePoint";
+      ShapeQueryType2[ShapeQueryType2["Point"] = 1] = "Point";
+      ShapeQueryType2[ShapeQueryType2["Circle"] = 2] = "Circle";
+      ShapeQueryType2[ShapeQueryType2["Rect"] = 3] = "Rect";
+      ShapeQueryType2[ShapeQueryType2["Polygon"] = 4] = "Polygon";
+    })(ShapeQueryType || (ShapeQueryType = {}));
+    (function(DataQueryType2) {
+      DataQueryType2[DataQueryType2["Quantitative"] = 0] = "Quantitative";
+      DataQueryType2[DataQueryType2["Quantitative2D"] = 1] = "Quantitative2D";
+      DataQueryType2[DataQueryType2["Nominal"] = 2] = "Nominal";
+      DataQueryType2[DataQueryType2["Temporal"] = 3] = "Temporal";
+    })(DataQueryType || (DataQueryType = {}));
+    NonsenseClass = class {
+    };
+    VIEW = "view";
+    LBRACK = "[";
+    RBRACK = "]";
+    LBRACE = "{";
+    RBRACE = "}";
+    COLON = ":";
+    COMMA = ",";
+    NAME = "@";
+    GT = ">";
+    ILLEGAL = /[[\]{}]/;
+    DEFAULT_SOURCE = VIEW;
+    DEFAULT_MARKS = {
+      "*": 1,
+      arc: 1,
+      area: 1,
+      group: 1,
+      image: 1,
+      line: 1,
+      path: 1,
+      rect: 1,
+      rule: 1,
+      shape: 1,
+      symbol: 1,
+      text: 1,
+      trail: 1
+    };
+    MARKS = DEFAULT_MARKS;
+    global = {
+      stopTransient: false
+    };
+    Promise.resolve().then(() => (init_history(), history_exports)).then((HM) => {
+      tryRegisterDynamicInstance2 = HM.tryRegisterDynamicInstance;
+    });
+  }
+});
+
+// dist/esm/command/command.js
+var _a6, tryGetHistoryTrrackInstance2, registeredCommands, instanceCommands2, Command2, register7, unregister5, initialize7, findCommand;
+var init_command = __esm({
+  "dist/esm/command/command.js"() {
+    init_helpers();
+    registeredCommands = {};
+    instanceCommands2 = [];
+    Command2 = class {
+      constructor(baseName2, options) {
+        this[_a6] = true;
+        options.preInitialize && options.preInitialize.call(this, this);
+        this._baseName = baseName2;
+        this._userOptions = options;
+        this._name = options.name ?? baseName2;
+        this._feedback = options.feedback ?? [];
+        this._undo = options.undo ?? null;
+        this._redo = options.redo ?? null;
+        this._execute = options.execute ?? null;
+        this._preInitialize = options.preInitialize ?? null;
+        this._postInitialize = options.postInitialize ?? null;
+        this._preExecute = options.preExecute ?? null;
+        this._postExecute = options.postExecute ?? null;
+        options.postInitialize && options.postInitialize.call(this, this);
+      }
+      undo() {
+        this._undo && this._undo.call(this);
+      }
+      redo() {
+        this._redo && this._redo.call(this);
+      }
+      async execute(options) {
+        try {
+          this.preExecute();
+          this._execute && await this._execute.call(this, options);
+          this.postExecute();
+          for (let feedback of this._feedback) {
+            await feedback.call(this, options);
+          }
+          await tryGetHistoryTrrackInstance2(this).commit();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      preExecute() {
+        this._preExecute && this._preExecute.call(this, this);
+      }
+      postExecute() {
+        this._postExecute && this._postExecute.call(this, this);
+      }
+      isInstanceOf(name) {
+        return this._baseName === name || this._name === name;
+      }
+      static register(baseName2, options) {
+        registeredCommands[baseName2] = options;
+      }
+      static unregister(baseName2) {
+        delete registeredCommands[baseName2];
+        return true;
+      }
+      static initialize(baseName2, options) {
+        const mergedOptions = Object.assign({ constructor: Command2 }, registeredCommands[baseName2] ?? {}, options ?? {});
+        const command = new mergedOptions.constructor(baseName2, mergedOptions);
+        instanceCommands2.push(command);
+        return command;
+      }
+      static findCommand(baseNameOrRealName) {
+        return instanceCommands2.filter((command) => command.isInstanceOf(baseNameOrRealName));
+      }
+    };
+    _a6 = LibraSymbol;
+    register7 = Command2.register;
+    unregister5 = Command2.unregister;
+    initialize7 = Command2.initialize;
+    findCommand = Command2.findCommand;
+    Promise.resolve().then(() => (init_history(), history_exports)).then((HM) => {
+      tryGetHistoryTrrackInstance2 = HM.tryGetHistoryTrrackInstance;
+    });
+  }
+});
+
+// dist/esm/command/index.js
+var instanceCommands, Command;
+var init_command2 = __esm({
+  "dist/esm/command/index.js"() {
+    init_command();
+    init_command();
+    instanceCommands = instanceCommands2;
+    Command = Command2;
   }
 });
 
@@ -8038,7 +8116,7 @@ init_service2();
 init_history();
 init_transformer2();
 var esm_default = {
-  Command: Command2,
+  Command,
   Instrument: Instrument2,
   Interactor: Interactor2,
   Layer: Layer2,
@@ -8047,7 +8125,7 @@ var esm_default = {
   GraphicalTransformer: GraphicalTransformer2
 };
 export {
-  Command2 as Command,
+  Command,
   GraphicalTransformer2 as GraphicalTransformer,
   Instrument2 as Instrument,
   Interactor2 as Interactor,

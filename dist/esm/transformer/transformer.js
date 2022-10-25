@@ -1,3 +1,4 @@
+var _a;
 import * as helpers from "../helpers";
 const registeredTransformers = {};
 export const instanceTransformers = [];
@@ -22,6 +23,7 @@ const transientCleaner = () => {
 requestAnimationFrame(transientCleaner);
 export default class GraphicalTransformer {
     constructor(baseName, options) {
+        this[_a] = true;
         this._baseName = baseName;
         this._userOptions = options;
         this._name = options.name ?? this._baseName;
@@ -100,6 +102,7 @@ export default class GraphicalTransformer {
         return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
     }
 }
+_a = helpers.LibraSymbol;
 export const register = GraphicalTransformer.register;
 export const unregister = GraphicalTransformer.unregister;
 export const initialize = GraphicalTransformer.initialize;

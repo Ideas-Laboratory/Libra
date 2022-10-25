@@ -28,6 +28,7 @@ export default class Command {
     _postInitialize?: (command: Command) => void;
     _preExecute?: (command: Command) => void;
     _postExecute?: (command: Command) => void;
+    [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: CommandInitOption);
     undo(): void;
     redo(): void;

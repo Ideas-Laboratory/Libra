@@ -3,6 +3,8 @@ import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 import { AllRecordingComponents } from "./history";
 
+export const LibraSymbol = Symbol("Libra");
+
 export enum QueryType {
   Shape,
   Data,
@@ -545,6 +547,9 @@ export function deepClone(obj) {
     return obj;
   }
   if (obj === null) return null;
+  if (LibraSymbol in obj && obj[LibraSymbol]) {
+    return obj;
+  }
   const propertyObject = Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, deepClone(v)])
   );

@@ -55,6 +55,8 @@ export default class Service {
   _transformers: GraphicalTransformer[] = [];
   _services: Service[] = [];
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: ServiceInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;

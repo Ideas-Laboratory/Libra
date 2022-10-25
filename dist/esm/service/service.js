@@ -1,3 +1,4 @@
+var _a;
 import * as helpers from "../helpers";
 import { GraphicalTransformer } from "../transformer";
 const registeredServices = {};
@@ -7,6 +8,7 @@ export default class Service {
         this._linkCache = {};
         this._transformers = [];
         this._services = [];
+        this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
@@ -163,6 +165,7 @@ export default class Service {
         return instanceServices.filter((service) => service.isInstanceOf(baseNameOrRealName));
     }
 }
+_a = helpers.LibraSymbol;
 export const register = Service.register;
 export const unregister = Service.unregister;
 export const initialize = Service.initialize;

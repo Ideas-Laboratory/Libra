@@ -1,3 +1,4 @@
+var _a;
 import * as helpers from "../helpers";
 import Actions from "./actions.jsgf";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -6,6 +7,7 @@ const registeredInteractors = {};
 export const instanceInteractors = [];
 export default class Interactor {
     constructor(baseName, options) {
+        this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
         this._userOptions = options;
@@ -66,7 +68,11 @@ export default class Interactor {
         return helpers.parseEventSelector(event).flatMap(flatStream);
     }
     getAcceptEvents() {
-        return this._actions.flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type));
+        return [
+            ...new Set(this._actions
+                .flatMap((action) => action.eventStreams.flatMap((eventStream) => eventStream.type))
+                .concat(["contextmenu"])),
+        ];
     }
     async dispatch(event, layer) {
         const moveAction = this._actions.find((action) => {
@@ -96,41 +102,41 @@ export default class Interactor {
                 moveAction.transition.find((transition) => transition[0] === this._state || transition[0] === "*");
             if (moveTransition) {
                 this._state = moveTransition[1];
-            }
-            if (this._state.startsWith("speech:")) {
-                this.enableModality("speech");
-                try {
-                    this._modalities.speech.start();
+                if (this._state.startsWith("speech:")) {
+                    this.enableModality("speech");
+                    try {
+                        this._modalities.speech.start();
+                    }
+                    catch {
+                        // just ignore if already started
+                    }
+                    this._modalities.speech.onresult = (e) => {
+                        const result = e.results[e.resultIndex][0];
+                        this.dispatch(result.transcript, layer);
+                    };
+                    this._modalities.speech.onend = (e) => {
+                        this._modalities.speech.start();
+                    };
                 }
-                catch {
-                    // just ignore if already started
+                else {
+                    this.disableModality("speech");
                 }
-                this._modalities.speech.onresult = (e) => {
-                    const result = e.results[e.resultIndex][0];
-                    this.dispatch(result.transcript, layer);
-                };
-                this._modalities.speech.onend = (e) => {
-                    this._modalities.speech.start();
-                };
-            }
-            else {
-                this.disableModality("speech");
-            }
-            if (moveAction.sideEffect) {
-                try {
-                    await moveAction.sideEffect({
-                        self: this,
-                        layer,
-                        instrument: null,
-                        interactor: this,
-                        event,
-                    });
+                if (moveAction.sideEffect) {
+                    try {
+                        await moveAction.sideEffect({
+                            self: this,
+                            layer,
+                            instrument: null,
+                            interactor: this,
+                            event,
+                        });
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 }
-                catch (e) {
-                    console.error(e);
-                }
+                return true;
             }
-            return true;
         }
         return false;
     }
@@ -160,6 +166,7 @@ export default class Interactor {
         return instanceInteractors.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
     }
 }
+_a = helpers.LibraSymbol;
 function transferInteractorInnerAction(originAction) {
     const eventStreams = originAction.events.map((evtSelector) => helpers.parseEventSelector(evtSelector)[0]); // do not accept combinator
     return {

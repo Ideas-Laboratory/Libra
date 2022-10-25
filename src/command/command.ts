@@ -1,5 +1,7 @@
 import * as helpers from "../helpers";
 
+let tryGetHistoryTrrackInstance;
+
 // const commandSymbol = Symbol("command");
 
 type CommandInitOption = {
@@ -37,6 +39,8 @@ export default class Command {
   _preExecute?: (command: Command) => void;
   _postExecute?: (command: Command) => void;
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: CommandInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;
@@ -69,6 +73,7 @@ export default class Command {
       for (let feedback of this._feedback) {
         await feedback.call(this, options);
       }
+      await tryGetHistoryTrrackInstance(this).commit();
     } catch (e) {
       console.error(e);
     }
@@ -121,3 +126,7 @@ export const register = Command.register;
 export const unregister = Command.unregister;
 export const initialize = Command.initialize;
 export const findCommand = Command.findCommand;
+
+import("../history").then((HM) => {
+  tryGetHistoryTrrackInstance = HM.tryGetHistoryTrrackInstance;
+});

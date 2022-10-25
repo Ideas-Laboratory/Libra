@@ -56,6 +56,8 @@ export default class Interactor {
   _postUse?: (interactor: Interactor, instrument: Instrument) => void;
   _modalities: { [key: string]: any };
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: InteractorInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;
@@ -134,9 +136,15 @@ export default class Interactor {
   }
 
   getAcceptEvents(): string[] {
-    return this._actions.flatMap((action) =>
-      action.eventStreams.flatMap((eventStream) => eventStream.type)
-    );
+    return [
+      ...new Set(
+        this._actions
+          .flatMap((action) =>
+            action.eventStreams.flatMap((eventStream) => eventStream.type)
+          )
+          .concat(["contextmenu"])
+      ),
+    ];
   }
 
   async dispatch(event: string | Event, layer?: Layer<any>): Promise<boolean> {
@@ -174,38 +182,38 @@ export default class Interactor {
         );
       if (moveTransition) {
         this._state = moveTransition[1];
-      }
-      if (this._state.startsWith("speech:")) {
-        this.enableModality("speech");
-        try {
-          this._modalities.speech.start();
-        } catch {
-          // just ignore if already started
+        if (this._state.startsWith("speech:")) {
+          this.enableModality("speech");
+          try {
+            this._modalities.speech.start();
+          } catch {
+            // just ignore if already started
+          }
+          this._modalities.speech.onresult = (e) => {
+            const result = e.results[e.resultIndex][0];
+            this.dispatch(result.transcript, layer);
+          };
+          this._modalities.speech.onend = (e) => {
+            this._modalities.speech.start();
+          };
+        } else {
+          this.disableModality("speech");
         }
-        this._modalities.speech.onresult = (e) => {
-          const result = e.results[e.resultIndex][0];
-          this.dispatch(result.transcript, layer);
-        };
-        this._modalities.speech.onend = (e) => {
-          this._modalities.speech.start();
-        };
-      } else {
-        this.disableModality("speech");
-      }
-      if (moveAction.sideEffect) {
-        try {
-          await moveAction.sideEffect({
-            self: this,
-            layer,
-            instrument: null,
-            interactor: this,
-            event,
-          });
-        } catch (e) {
-          console.error(e);
+        if (moveAction.sideEffect) {
+          try {
+            await moveAction.sideEffect({
+              self: this,
+              layer,
+              instrument: null,
+              interactor: this,
+              event,
+            });
+          } catch (e) {
+            console.error(e);
+          }
         }
+        return true;
       }
-      return true;
     }
     return false;
   }

@@ -1,4 +1,5 @@
 import { Layer } from "../layer";
+import * as helpers from "../helpers";
 declare type TransformerInitOption = {
     name?: string;
     layer?: Layer<any>;
@@ -26,6 +27,7 @@ export default class GraphicalTransformer {
     _redraw: (option: any) => void;
     _layer: Layer<any>;
     _transient: boolean;
+    [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: TransformerInitOption);
     getSharedVar(name: string): any;
     setSharedVar(name: string, value: any): void;

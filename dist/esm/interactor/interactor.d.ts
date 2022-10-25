@@ -43,6 +43,7 @@ export default class Interactor {
     _modalities: {
         [key: string]: any;
     };
+    [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: InteractorInitOption);
     enableModality(modal: "speech"): void;
     disableModality(modal: "speech"): void;

@@ -2,6 +2,7 @@ import { Instrument } from "./instrument";
 import { Interactor } from "./interactor";
 import { Layer } from "./layer";
 import { AllRecordingComponents } from "./history";
+export declare const LibraSymbol: unique symbol;
 export declare enum QueryType {
     Shape = 0,
     Data = 1,

@@ -86,6 +86,8 @@ export default class Layer<T> {
   _preUpdate?: <T>(layer: Layer<T>) => void;
   _postUpdate?: <T>(layer: Layer<T>) => void;
 
+  [helpers.LibraSymbol] = true;
+
   constructor(baseName: string, options: LayerInitOption) {
     options.preInitialize && options.preInitialize.call(this, this);
     this._baseName = baseName;

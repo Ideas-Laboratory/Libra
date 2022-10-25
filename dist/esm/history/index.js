@@ -14,6 +14,7 @@ export function createHistoryTrrack() {
             return {
                 recordList: [...node.record.keys()],
                 children: node.children.map((node) => HistoryManager.traceStructure(node)),
+                current: node === currentHistoryNode,
             };
         },
         commit: async () => {
@@ -49,32 +50,102 @@ export function createHistoryTrrack() {
                 currentHistoryNode.prev.next = currentHistoryNode;
                 const record = currentHistoryNode.prev.record;
                 commitLock = true;
-                for (let [component, records] of record.entries()) {
-                    Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
-                    if ("_sharedVar" in records &&
-                        Object.keys(records._sharedVar).length > 0) {
-                        // Invoke update manually
-                        component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                try {
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
+                    }
+                    currentHistoryNode = currentHistoryNode.prev;
+                }
+                catch (e) {
+                    console.error("Fail to undo history!", e);
+                    // Rollback
+                    const record = currentHistoryNode.record;
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
                     }
                 }
                 commitLock = false;
-                currentHistoryNode = currentHistoryNode.prev;
             }
         },
         async redo() {
+            if (currentHistoryNode &&
+                currentHistoryNode.children.length === 1 &&
+                !currentHistoryNode.next) {
+                currentHistoryNode.next = currentHistoryNode.children[0];
+            }
             if (currentHistoryNode && currentHistoryNode.next) {
                 const record = currentHistoryNode.next.record;
                 commitLock = true;
-                for (let [component, records] of record.entries()) {
-                    Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
-                    if ("_sharedVar" in records &&
-                        Object.keys(records._sharedVar).length > 0) {
-                        // Invoke update manually
-                        component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                try {
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
+                    }
+                    currentHistoryNode = currentHistoryNode.next;
+                }
+                catch (e) {
+                    console.error("Fail to redo history!", e);
+                    // Rollback
+                    const record = currentHistoryNode.record;
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
                     }
                 }
                 commitLock = false;
-                currentHistoryNode = currentHistoryNode.next;
+            }
+        },
+        async jump(path = []) {
+            const targetNode = path.reduce((p, v) => p?.children[v], historyTrace);
+            if (targetNode) {
+                const record = targetNode.record;
+                commitLock = true;
+                try {
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
+                    }
+                    currentHistoryNode = targetNode;
+                }
+                catch (e) {
+                    console.error("Fail to jump history!", e);
+                    // Rollback
+                    const record = currentHistoryNode.record;
+                    for (let [component, records] of record.entries()) {
+                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if ("_sharedVar" in records &&
+                            Object.keys(records._sharedVar).length > 0) {
+                            // Invoke update manually
+                            component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+                        }
+                    }
+                }
+                commitLock = false;
+            }
+            else {
+                console.error(`History path [${path.join(", ")}] does not exist!`);
             }
         },
     };
