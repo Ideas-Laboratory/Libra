@@ -7,7 +7,14 @@ export default class Service {
     constructor(baseName, options) {
         this._linkCache = {};
         this._transformers = [];
+        this._joinTransformers = [];
         this._services = [];
+        this._joinServices = [];
+        this._initializing = null;
+        this._nextTick = 0;
+        this._computing = null;
+        this._result = null;
+        this._oldResult = null;
         this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
@@ -16,16 +23,23 @@ export default class Service {
         // this._on = options.on ?? {};
         this._sharedVar = {};
         this._transformers = options.transformers ?? [];
+        this._joinTransformers = options.joinTransformers ?? [];
         this._services = options.services ?? [];
+        this._joinServices = options.joinServices ?? [];
         this._layerInstances = [];
+        this._resultAlias = options.resultAlias;
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
-        this._postUpdate = options.postUpdate ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        Object.entries(options.sharedVar || {}).forEach((entry) => {
-            this.setSharedVar(entry[0], entry[1]);
+        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async () => {
+            requestAnimationFrame(() => {
+                this.join();
+            });
+            options.postUpdate && options.postUpdate.call(this, this);
+            this._postUpdate = options.postUpdate ?? null;
+            this._initializing = null;
         });
         if (options.layer) {
             this._layerInstances.push(options.layer);
@@ -56,45 +70,64 @@ export default class Service {
     async setSharedVar(sharedName, value, options) {
         this.preUpdate();
         this._sharedVar[sharedName] = value;
-        // if (this._on.update) {
-        //   for (let command of this._on.update) {
-        //     if (command instanceof Function) {
-        //       await command({
-        //         self: this,
-        //         layer: options?.layer ?? null,
-        //         instrument: options?.instrument ?? null,
-        //         interactor: options?.interactor ?? null,
-        //       });
-        //     } else {
-        //       await command.execute({
-        //         self: this,
-        //         layer: options?.layer ?? null,
-        //         instrument: options?.instrument ?? null,
-        //         interactor: options?.interactor ?? null,
-        //       });
-        //     }
-        //   }
-        // }
-        // if (this._on[`update:${sharedName}`]) {
-        //   for (let command of this._on[`update:${sharedName}`]) {
-        //     if (command instanceof Function) {
-        //       await command({
-        //         self: this,
-        //         layer: options?.layer ?? null,
-        //         instrument: options?.instrument ?? null,
-        //         interactor: options?.interactor ?? null,
-        //       });
-        //     } else {
-        //       await command.execute({
-        //         self: this,
-        //         layer: options?.layer ?? null,
-        //         instrument: options?.instrument ?? null,
-        //         interactor: options?.interactor ?? null,
-        //       });
-        //     }
-        //   }
-        // }
-        this.postUpdate();
+        if (this._userOptions.evaluate && this._resultAlias) {
+            if (this._nextTick) {
+                return;
+            }
+            this._nextTick = requestAnimationFrame(async () => {
+                this._oldResult = this._result;
+                try {
+                    this._computing = this._userOptions.evaluate({
+                        self: this,
+                        ...(this._userOptions.params ?? {}),
+                        ...this._sharedVar,
+                    });
+                    this._result = await this._computing;
+                    this._computing = null;
+                    this._services.forEach((service) => {
+                        service.setSharedVar(this._resultAlias, this._result);
+                    });
+                    this._transformers.forEach((transformer) => {
+                        transformer.setSharedVars({
+                            [this._resultAlias]: this._result,
+                        });
+                    });
+                }
+                catch (e) {
+                    console.error(e);
+                    this._result = undefined;
+                    this._computing = null;
+                }
+                this._nextTick = 0;
+                this.postUpdate();
+            });
+        }
+        else {
+            this.postUpdate();
+        }
+    }
+    async join() {
+        if (this._resultAlias) {
+            const result = await this._internalResults;
+            if (this._joinServices && this._joinServices.length) {
+                await Promise.all(this._joinServices.map(async (s) => {
+                    await s.setSharedVar(this._resultAlias, result);
+                    return s.results;
+                }));
+            }
+            else if (!this._initializing) {
+                await Promise.all(this._services.map(async (s) => {
+                    await s.setSharedVar(this._resultAlias, result);
+                    return s.results;
+                }));
+            }
+            if (this._joinTransformers && this._joinTransformers.length) {
+                await Promise.all(this._joinTransformers.map((t) => t.setSharedVar(this._resultAlias, result)));
+            }
+            else if (!this._initializing) {
+                await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias, result)));
+            }
+        }
     }
     // watchSharedVar(sharedName: string, handler: Command) {
     //   this.on(`update:${sharedName}`, handler);
@@ -103,14 +136,6 @@ export default class Service {
         this._preUpdate && this._preUpdate.call(this, this);
     }
     postUpdate() {
-        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-        if (this._sharedVar.linking) {
-            for (let prop of linkProps) {
-                if (this._linkCache[prop] === this._sharedVar[prop])
-                    continue;
-                this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
-            }
-        }
         this._postUpdate && this._postUpdate.call(this, this);
     }
     preAttach(instrument) {
@@ -125,6 +150,7 @@ export default class Service {
     get transformers() {
         return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e), (e) => {
             e.setSharedVars({
+                ...(this._resultAlias ? { [this._resultAlias]: null } : {}),
                 selectionResult: [],
                 layoutResult: null,
                 result: null,
@@ -135,6 +161,7 @@ export default class Service {
     get services() {
         return helpers.makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
             Object.entries({
+                ...(this._resultAlias ? { [this._resultAlias]: null } : {}),
                 selectionResult: [],
                 layoutResult: null,
                 result: null,
@@ -143,6 +170,57 @@ export default class Service {
             });
             this._services.splice(this._services.indexOf(e), 1);
         }, this);
+    }
+    get _internalResults() {
+        if (this._nextTick) {
+            return new Promise((res) => {
+                window.requestAnimationFrame(async () => {
+                    if (this._computing) {
+                        res(await this._computing);
+                    }
+                    else {
+                        res(this._result);
+                    }
+                });
+            });
+        }
+        return this._computing || this._result;
+    }
+    get results() {
+        if (this._initializing) {
+            return this._initializing.then(() => {
+                return this._internalResults;
+            });
+        }
+        return this._internalResults;
+    }
+    get oldResults() {
+        if (this._initializing) {
+            return this._initializing.then(() => {
+                if (this._nextTick) {
+                    return new Promise((res) => {
+                        window.requestAnimationFrame(async () => {
+                            if (this._computing) {
+                                await this._computing;
+                            }
+                            res(this._oldResult);
+                        });
+                    });
+                }
+                return this._oldResult;
+            });
+        }
+        if (this._nextTick) {
+            return new Promise((res) => {
+                window.requestAnimationFrame(async () => {
+                    if (this._computing) {
+                        await this._computing;
+                    }
+                    res(this._oldResult);
+                });
+            });
+        }
+        return this._oldResult;
     }
     static register(baseName, options) {
         registeredServices[baseName] = options;

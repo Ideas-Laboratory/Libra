@@ -247,7 +247,7 @@ export function makeFindableList<T extends AllRecordingComponents>(
             return makeFindableList(origin, typing, addFunc, removeFunc, self);
           }
         };
-      } else if (p in target) {
+      } else if (p in target && p !== "join" && p !== "filter") {
         return target[p];
       } else {
         if (!target.length) {

@@ -12,7 +12,7 @@ export default class SelectionService extends Service {
         this._transformers.push(GraphicalTransformer.initialize("SelectionTransformer", {
             transient: true,
             sharedVar: {
-                selectionResult: [],
+                [this._resultAlias || "selectionResult"]: [],
                 layer: null,
                 highlightColor: options?.sharedVar?.highlightColor,
                 highlightAttrValues: options?.sharedVar?.highlightAttrValues,
@@ -68,139 +68,31 @@ export default class SelectionService extends Service {
                     }
                 });
                 this._services.forEach((service) => {
-                    service.setSharedVar("selectionResult", resultNodes);
+                    service.setSharedVar(this._resultAlias || "selectionResult", resultNodes);
                 });
                 this._transformers.forEach((transformer) => {
                     transformer.setSharedVars({
                         layer: layer.getLayerFromQueue("selectionLayer"),
-                        selectionResult: resultNodes,
+                        [this._resultAlias || "selectionResult"]: resultNodes,
                     });
                 });
             }
             else {
                 this._services.forEach((service) => {
-                    service.setSharedVar("selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
+                    service.setSharedVar(this._resultAlias || "selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
                 });
                 this._transformers.forEach((transformer) => {
                     transformer.setSharedVars({
                         layer: layer.getLayerFromQueue("selectionLayer"),
-                        selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false)),
+                        [this._resultAlias || "selectionResult"]: this._result.map((node) => layer.cloneVisualElements(node, false)),
                     });
                 });
             }
             // this._nextTick = 0;
-            // if (this._on.update) {
-            //   for (let command of this._on.update) {
-            //     if (command instanceof Function) {
-            //       await command({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     } else {
-            //       await command.execute({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     }
-            //   }
-            // }
-            // if (this._on[`update:${sharedName}`]) {
-            //   for (let command of this._on[`update:${sharedName}`]) {
-            //     if (command instanceof Function) {
-            //       await command({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     } else {
-            //       await command.execute({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     }
-            //   }
-            // }
             this.postUpdate();
             // });
         }
         else {
-            // if (this._on.update) {
-            //   for (let command of this._on.update) {
-            //     if (command instanceof Function) {
-            //       await command({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     } else {
-            //       await command.execute({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     }
-            //   }
-            // }
-            // if (this._on[`update:${sharedName}`]) {
-            //   for (let command of this._on[`update:${sharedName}`]) {
-            //     if (command instanceof Function) {
-            //       await command({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     } else {
-            //       await command.execute({
-            //         self: this,
-            //         layer:
-            //           options?.layer ??
-            //           (this._layerInstances.length == 1
-            //             ? this._layerInstances[0]
-            //             : null),
-            //         instrument: options?.instrument ?? null,
-            //         interactor: options?.interactor ?? null,
-            //       });
-            //     }
-            //   }
-            // }
             this.postUpdate();
         }
     }
@@ -212,25 +104,26 @@ export default class SelectionService extends Service {
     /** Cross filter */
     dimension() { }
     filter() { }
-    get results() {
-        // if (this._nextTick) {
-        //   return new Promise((res) => {
-        //     window.requestAnimationFrame(() => {
-        //       res(this._result);
-        //     });
-        //   });
-        // }
-        return this._result;
-    }
-    get oldResults() {
-        // if (this._nextTick) {
-        //   return new Promise((res) => {
-        //     window.requestAnimationFrame(() => {
-        //       res(this._oldResult);
-        //     });
-        //   });
-        // }
-        return this._oldResult;
+    async join() {
+        const result = await this.results;
+        if (this._joinServices && this._joinServices.length) {
+            await Promise.all(this._joinServices.map(async (s) => {
+                await s.setSharedVar(this._resultAlias || "selectionResult", result);
+                return s.results;
+            }));
+        }
+        else {
+            await Promise.all(this._services.map(async (s) => {
+                await s.setSharedVar(this._resultAlias || "selectionResult", result);
+                return s.results;
+            }));
+        }
+        if (this._joinTransformers && this._joinTransformers.length) {
+            await Promise.all(this._joinTransformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
+        }
+        else {
+            await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
+        }
     }
 }
 Service.SelectionService = SelectionService;

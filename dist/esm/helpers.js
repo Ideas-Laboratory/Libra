@@ -85,7 +85,7 @@ export function makeFindableList(list, typing, addFunc, removeFunc, self) {
                     }
                 };
             }
-            else if (p in target) {
+            else if (p in target && p !== "join" && p !== "filter") {
                 return target[p];
             }
             else {

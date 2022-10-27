@@ -42,7 +42,7 @@ const historyInstanceMapping = new Map<
   HistoryManagerTrrackInstance
 >();
 
-export function createHistoryTrrack() {
+export async function createHistoryTrrack() {
   let historyTrace: HistoryNode = null;
   let currentHistoryNode: HistoryNode = null;
   let commitLock = false;
@@ -64,34 +64,34 @@ export function createHistoryTrrack() {
         return;
       }
       const record = new Map<AllRecordingComponents, any>();
-      [
+      for (let { component, fields } of [
+        { list: instanceInteractors, fields: ["_state", "_modalities"] },
         { list: instanceInstruments, fields: ["_sharedVar"] },
         { list: instanceServices, fields: ["_sharedVar"] },
         { list: instanceTransformers, fields: ["_sharedVar"] },
-        { list: instanceInteractors, fields: ["_state", "_modalities"] },
-      ].forEach(
+      ].flatMap(
         ({
           list,
           fields,
         }: {
           list: AllRecordingComponents[];
           fields: string[];
-        }) => {
+        }) =>
           list
             .filter(
               (component) =>
                 tryGetHistoryTrrackInstance(component) === HistoryManager
             )
-            .forEach((component) => {
-              record.set(
-                component,
-                Object.fromEntries(
-                  fields.map((field) => [field, deepClone(component[field])])
-                )
-              );
-            });
-        }
-      );
+            .map((component) => ({ component, fields }))
+      )) {
+        await (component as any).results; // Ensure all works have been done
+        record.set(
+          component,
+          Object.fromEntries(
+            fields.map((field) => [field, deepClone(component[field])])
+          )
+        );
+      }
       const newHistoryNode = {
         record,
         prev: currentHistoryNode,
@@ -113,14 +113,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
           currentHistoryNode = currentHistoryNode.prev;
@@ -132,14 +129,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
         }
@@ -162,14 +156,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
           currentHistoryNode = currentHistoryNode.next;
@@ -181,14 +172,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
         }
@@ -205,14 +193,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
           currentHistoryNode = targetNode;
@@ -224,14 +209,11 @@ export function createHistoryTrrack() {
             Object.entries(records).forEach(
               ([k, v]) => (component[k] = deepClone(v))
             );
-            if (
-              "_sharedVar" in records &&
-              Object.keys(records._sharedVar).length > 0
-            ) {
+            if ("_sharedVar" in records) {
               // Invoke update manually
-              (
+              await (
                 component as RecordingComponentsWithSharedVariables
-              ).setSharedVar(...Object.entries(records._sharedVar)[0]);
+              ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
             }
           }
         }
@@ -256,7 +238,7 @@ export function createHistoryTrrack() {
       }
     });
 
-  HistoryManager.commit();
+  await HistoryManager.commit();
   historyTrace = currentHistoryNode;
 
   return HistoryManager;

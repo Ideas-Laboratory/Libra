@@ -23,13 +23,13 @@ declare type HistoryManagerTrrackInstance = {
     undo(): Promise<void>;
     redo(): Promise<void>;
 };
-export declare function createHistoryTrrack(): {
+export declare function createHistoryTrrack(): Promise<{
     traceStructure: (node?: HistoryNode) => HistoryTrrackNodeDescription;
     commit: () => Promise<void>;
     undo(): Promise<void>;
     redo(): Promise<void>;
     jump(path?: number[]): Promise<void>;
-};
+}>;
 export declare function tryGetHistoryTrrackInstance(component: AllRecordingComponents): HistoryManagerTrrackInstance;
 export declare function tryRegisterDynamicInstance(parentComponent: AllRecordingComponents, newComponent: AllRecordingComponents): void;
 export {};

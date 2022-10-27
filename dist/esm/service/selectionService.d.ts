@@ -11,6 +11,5 @@ export default class SelectionService extends Service {
     /** Cross filter */
     dimension(): void;
     filter(): void;
-    get results(): any;
-    get oldResults(): any;
+    join(): Promise<void>;
 }

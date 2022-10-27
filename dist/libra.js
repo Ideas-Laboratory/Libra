@@ -4732,7 +4732,14 @@ var init_service = __esm({
       constructor(baseName2, options) {
         this._linkCache = {};
         this._transformers = [];
+        this._joinTransformers = [];
         this._services = [];
+        this._joinServices = [];
+        this._initializing = null;
+        this._nextTick = 0;
+        this._computing = null;
+        this._result = null;
+        this._oldResult = null;
         this[_a2] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName2;
@@ -4740,16 +4747,23 @@ var init_service = __esm({
         this._name = options.name ?? baseName2;
         this._sharedVar = {};
         this._transformers = options.transformers ?? [];
+        this._joinTransformers = options.joinTransformers ?? [];
         this._services = options.services ?? [];
+        this._joinServices = options.joinServices ?? [];
         this._layerInstances = [];
+        this._resultAlias = options.resultAlias;
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
-        this._postUpdate = options.postUpdate ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        Object.entries(options.sharedVar || {}).forEach((entry) => {
-          this.setSharedVar(entry[0], entry[1]);
+        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async () => {
+          requestAnimationFrame(() => {
+            this.join();
+          });
+          options.postUpdate && options.postUpdate.call(this, this);
+          this._postUpdate = options.postUpdate ?? null;
+          this._initializing = null;
         });
         if (options.layer) {
           this._layerInstances.push(options.layer);
@@ -4769,20 +4783,65 @@ var init_service = __esm({
       async setSharedVar(sharedName, value, options) {
         this.preUpdate();
         this._sharedVar[sharedName] = value;
-        this.postUpdate();
+        if (this._userOptions.evaluate && this._resultAlias) {
+          if (this._nextTick) {
+            return;
+          }
+          this._nextTick = requestAnimationFrame(async () => {
+            this._oldResult = this._result;
+            try {
+              this._computing = this._userOptions.evaluate({
+                self: this,
+                ...this._userOptions.params ?? {},
+                ...this._sharedVar
+              });
+              this._result = await this._computing;
+              this._computing = null;
+              this._services.forEach((service) => {
+                service.setSharedVar(this._resultAlias, this._result);
+              });
+              this._transformers.forEach((transformer) => {
+                transformer.setSharedVars({
+                  [this._resultAlias]: this._result
+                });
+              });
+            } catch (e) {
+              console.error(e);
+              this._result = void 0;
+              this._computing = null;
+            }
+            this._nextTick = 0;
+            this.postUpdate();
+          });
+        } else {
+          this.postUpdate();
+        }
+      }
+      async join() {
+        if (this._resultAlias) {
+          const result = await this._internalResults;
+          if (this._joinServices && this._joinServices.length) {
+            await Promise.all(this._joinServices.map(async (s) => {
+              await s.setSharedVar(this._resultAlias, result);
+              return s.results;
+            }));
+          } else if (!this._initializing) {
+            await Promise.all(this._services.map(async (s) => {
+              await s.setSharedVar(this._resultAlias, result);
+              return s.results;
+            }));
+          }
+          if (this._joinTransformers && this._joinTransformers.length) {
+            await Promise.all(this._joinTransformers.map((t) => t.setSharedVar(this._resultAlias, result)));
+          } else if (!this._initializing) {
+            await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias, result)));
+          }
+        }
       }
       preUpdate() {
         this._preUpdate && this._preUpdate.call(this, this);
       }
       postUpdate() {
-        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-        if (this._sharedVar.linking) {
-          for (let prop of linkProps) {
-            if (this._linkCache[prop] === this._sharedVar[prop])
-              continue;
-            this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
-          }
-        }
         this._postUpdate && this._postUpdate.call(this, this);
       }
       preAttach(instrument) {
@@ -4797,6 +4856,7 @@ var init_service = __esm({
       get transformers() {
         return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => {
           e.setSharedVars({
+            ...this._resultAlias ? { [this._resultAlias]: null } : {},
             selectionResult: [],
             layoutResult: null,
             result: null
@@ -4807,6 +4867,7 @@ var init_service = __esm({
       get services() {
         return makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
           Object.entries({
+            ...this._resultAlias ? { [this._resultAlias]: null } : {},
             selectionResult: [],
             layoutResult: null,
             result: null
@@ -4815,6 +4876,56 @@ var init_service = __esm({
           });
           this._services.splice(this._services.indexOf(e), 1);
         }, this);
+      }
+      get _internalResults() {
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(async () => {
+              if (this._computing) {
+                res(await this._computing);
+              } else {
+                res(this._result);
+              }
+            });
+          });
+        }
+        return this._computing || this._result;
+      }
+      get results() {
+        if (this._initializing) {
+          return this._initializing.then(() => {
+            return this._internalResults;
+          });
+        }
+        return this._internalResults;
+      }
+      get oldResults() {
+        if (this._initializing) {
+          return this._initializing.then(() => {
+            if (this._nextTick) {
+              return new Promise((res) => {
+                window.requestAnimationFrame(async () => {
+                  if (this._computing) {
+                    await this._computing;
+                  }
+                  res(this._oldResult);
+                });
+              });
+            }
+            return this._oldResult;
+          });
+        }
+        if (this._nextTick) {
+          return new Promise((res) => {
+            window.requestAnimationFrame(async () => {
+              if (this._computing) {
+                await this._computing;
+              }
+              res(this._oldResult);
+            });
+          });
+        }
+        return this._oldResult;
       }
       static register(baseName2, options) {
         registeredServices[baseName2] = options;
@@ -4861,7 +4972,7 @@ var init_selectionService = __esm({
         this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
           transient: true,
           sharedVar: {
-            selectionResult: [],
+            [this._resultAlias || "selectionResult"]: [],
             layer: null,
             highlightColor: options?.sharedVar?.highlightColor,
             highlightAttrValues: options?.sharedVar?.highlightAttrValues
@@ -4907,22 +5018,22 @@ var init_selectionService = __esm({
               }
             });
             this._services.forEach((service) => {
-              service.setSharedVar("selectionResult", resultNodes);
+              service.setSharedVar(this._resultAlias || "selectionResult", resultNodes);
             });
             this._transformers.forEach((transformer) => {
               transformer.setSharedVars({
                 layer: layer.getLayerFromQueue("selectionLayer"),
-                selectionResult: resultNodes
+                [this._resultAlias || "selectionResult"]: resultNodes
               });
             });
           } else {
             this._services.forEach((service) => {
-              service.setSharedVar("selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
+              service.setSharedVar(this._resultAlias || "selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
             });
             this._transformers.forEach((transformer) => {
               transformer.setSharedVars({
                 layer: layer.getLayerFromQueue("selectionLayer"),
-                selectionResult: this._result.map((node) => layer.cloneVisualElements(node, false))
+                [this._resultAlias || "selectionResult"]: this._result.map((node) => layer.cloneVisualElements(node, false))
               });
             });
           }
@@ -4938,11 +5049,24 @@ var init_selectionService = __esm({
       }
       filter() {
       }
-      get results() {
-        return this._result;
-      }
-      get oldResults() {
-        return this._oldResult;
+      async join() {
+        const result = await this.results;
+        if (this._joinServices && this._joinServices.length) {
+          await Promise.all(this._joinServices.map(async (s) => {
+            await s.setSharedVar(this._resultAlias || "selectionResult", result);
+            return s.results;
+          }));
+        } else {
+          await Promise.all(this._services.map(async (s) => {
+            await s.setSharedVar(this._resultAlias || "selectionResult", result);
+            return s.results;
+          }));
+        }
+        if (this._joinTransformers && this._joinTransformers.length) {
+          await Promise.all(this._joinTransformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
+        } else {
+          await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
+        }
       }
     };
     Service.SelectionService = SelectionService;
@@ -5147,67 +5271,17 @@ var init_layoutService = __esm({
     init_service();
     LayoutService = class extends Service {
       constructor(baseName2, options) {
-        super(baseName2, options);
+        super(baseName2, {
+          ...options,
+          resultAlias: options.resultAlias ?? "layoutResult"
+        });
         this._oldResult = null;
         this._result = null;
         this._nextTick = 0;
-      }
-      async setSharedVar(sharedName, value, options) {
-        this.preUpdate();
-        this._sharedVar[sharedName] = value;
-        if (this._userOptions.evaluate) {
-          if (this._nextTick) {
-            return;
-          }
-          this._nextTick = requestAnimationFrame(async () => {
-            this._oldResult = this._result;
-            try {
-              this._result = await this._userOptions.evaluate({
-                self: this,
-                ...this._userOptions.params ?? {},
-                ...this._sharedVar
-              });
-              this._services.forEach((service) => {
-                service.setSharedVar("layoutResult", this._result);
-              });
-              this._transformers.forEach((transformer) => {
-                transformer.setSharedVars({
-                  layoutResult: this._result
-                });
-              });
-            } catch (e) {
-              console.error(e);
-              this._result = void 0;
-            }
-            this._nextTick = 0;
-            this.postUpdate();
-          });
-        } else {
-          this.postUpdate();
-        }
+        this._computing = null;
       }
       isInstanceOf(name) {
         return name === "LayoutService" || this._baseName === name || this._name === name;
-      }
-      get results() {
-        if (this._nextTick) {
-          return new Promise((res) => {
-            window.requestAnimationFrame(() => {
-              res(this._result);
-            });
-          });
-        }
-        return this._result;
-      }
-      get oldResults() {
-        if (this._nextTick) {
-          return new Promise((res) => {
-            window.requestAnimationFrame(() => {
-              res(this._oldResult);
-            });
-          });
-        }
-        return this._oldResult;
       }
     };
     Service.LayoutService = LayoutService;
@@ -5224,67 +5298,17 @@ var init_algorithmService = __esm({
     init_service();
     AnalysisService = class extends Service {
       constructor(baseName2, options) {
-        super(baseName2, options);
+        super(baseName2, {
+          ...options,
+          resultAlias: options.resultAlias ?? "result"
+        });
         this._oldResult = null;
         this._result = null;
         this._nextTick = 0;
-      }
-      async setSharedVar(sharedName, value, options) {
-        this.preUpdate();
-        this._sharedVar[sharedName] = value;
-        if (this._userOptions.evaluate && this._userOptions.params) {
-          if (this._nextTick) {
-            return;
-          }
-          this._nextTick = requestAnimationFrame(async () => {
-            this._oldResult = this._result;
-            try {
-              this._result = await this._userOptions.evaluate({
-                self: this,
-                ...this._userOptions.params,
-                ...this._sharedVar
-              });
-              this._services.forEach((service) => {
-                service.setSharedVar("result", this._result);
-              });
-              this._transformers.forEach((transformer) => {
-                transformer.setSharedVars({
-                  result: this._result
-                });
-              });
-            } catch (e) {
-              console.error(e);
-              this._result = void 0;
-            }
-            this._nextTick = 0;
-            this.postUpdate();
-          });
-        } else {
-          this.postUpdate();
-        }
+        this._computing = null;
       }
       isInstanceOf(name) {
         return name === "AnalysisService" || this._baseName === name || this._name === name;
-      }
-      get results() {
-        if (this._nextTick) {
-          return new Promise((res) => {
-            window.requestAnimationFrame(() => {
-              res(this._result);
-            });
-          });
-        }
-        return this._result;
-      }
-      get oldResults() {
-        if (this._nextTick) {
-          return new Promise((res) => {
-            window.requestAnimationFrame(() => {
-              res(this._oldResult);
-            });
-          });
-        }
-        return this._oldResult;
       }
     };
     Service.AnalysisService = AnalysisService;
@@ -7516,7 +7540,7 @@ __export(history_exports, {
   tryGetHistoryTrrackInstance: () => tryGetHistoryTrrackInstance,
   tryRegisterDynamicInstance: () => tryRegisterDynamicInstance
 });
-function createHistoryTrrack() {
+async function createHistoryTrrack() {
   let historyTrace = null;
   let currentHistoryNode = null;
   let commitLock = false;
@@ -7533,16 +7557,15 @@ function createHistoryTrrack() {
         return;
       }
       const record = new Map();
-      [
+      for (let { component, fields } of [
+        { list: instanceInteractors2, fields: ["_state", "_modalities"] },
         { list: instanceInstruments2, fields: ["_sharedVar"] },
         { list: instanceServices2, fields: ["_sharedVar"] },
-        { list: instanceTransformers2, fields: ["_sharedVar"] },
-        { list: instanceInteractors2, fields: ["_state", "_modalities"] }
-      ].forEach(({ list, fields }) => {
-        list.filter((component) => tryGetHistoryTrrackInstance(component) === HistoryManager).forEach((component) => {
-          record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
-        });
-      });
+        { list: instanceTransformers2, fields: ["_sharedVar"] }
+      ].flatMap(({ list, fields: fields2 }) => list.filter((component2) => tryGetHistoryTrrackInstance(component2) === HistoryManager).map((component2) => ({ component: component2, fields: fields2 })))) {
+        await component.results;
+        record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
+      }
       const newHistoryNode = {
         record,
         prev: currentHistoryNode,
@@ -7562,8 +7585,8 @@ function createHistoryTrrack() {
         try {
           for (let [component, records] of record.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
           currentHistoryNode = currentHistoryNode.prev;
@@ -7572,8 +7595,8 @@ function createHistoryTrrack() {
           const record2 = currentHistoryNode.record;
           for (let [component, records] of record2.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
         }
@@ -7590,8 +7613,8 @@ function createHistoryTrrack() {
         try {
           for (let [component, records] of record.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
           currentHistoryNode = currentHistoryNode.next;
@@ -7600,8 +7623,8 @@ function createHistoryTrrack() {
           const record2 = currentHistoryNode.record;
           for (let [component, records] of record2.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
         }
@@ -7616,8 +7639,8 @@ function createHistoryTrrack() {
         try {
           for (let [component, records] of record.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
           currentHistoryNode = targetNode;
@@ -7626,8 +7649,8 @@ function createHistoryTrrack() {
           const record2 = currentHistoryNode.record;
           for (let [component, records] of record2.entries()) {
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records && Object.keys(records._sharedVar).length > 0) {
-              component.setSharedVar(...Object.entries(records._sharedVar)[0]);
+            if ("_sharedVar" in records) {
+              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
           }
         }
@@ -7648,7 +7671,7 @@ function createHistoryTrrack() {
       historyInstanceMapping.set(component, HistoryManager);
     }
   });
-  HistoryManager.commit();
+  await HistoryManager.commit();
   historyTrace = currentHistoryNode;
   return HistoryManager;
 }
@@ -7745,7 +7768,7 @@ function makeFindableList(list, typing, addFunc, removeFunc, self) {
             return makeFindableList(origin, typing, addFunc, removeFunc, self);
           }
         };
-      } else if (p in target) {
+      } else if (p in target && p !== "join" && p !== "filter") {
         return target[p];
       } else {
         if (!target.length) {
