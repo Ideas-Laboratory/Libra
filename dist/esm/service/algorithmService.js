@@ -5,10 +5,6 @@ export default class AnalysisService extends Service {
             ...options,
             resultAlias: options.resultAlias ?? "result",
         });
-        this._oldResult = null;
-        this._result = null;
-        this._nextTick = 0;
-        this._computing = null;
     }
     isInstanceOf(name) {
         return ("AnalysisService" === name ||

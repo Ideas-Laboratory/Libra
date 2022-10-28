@@ -178,6 +178,7 @@ export default class Instrument {
       }
       this._on[action].push(feedforwardOrCommand);
     }
+    return this;
   }
 
   off(
@@ -193,6 +194,7 @@ export default class Instrument {
         1
       );
     }
+    return this;
   }
 
   _use(service: Service, options?: any) {
@@ -554,10 +556,12 @@ export default class Instrument {
       registeredInstruments[baseName] ?? {},
       options ?? {},
       {
-        on: Object.assign(
-          {},
-          (registeredInstruments[baseName] ?? {}).on ?? {},
-          options?.on ?? {}
+        on: helpers.deepClone(
+          Object.assign(
+            {},
+            (registeredInstruments[baseName] ?? {}).on ?? {},
+            options?.on ?? {}
+          )
         ),
         sharedVar: Object.assign(
           {},

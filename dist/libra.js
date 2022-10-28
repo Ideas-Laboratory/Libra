@@ -4757,10 +4757,7 @@ var init_service = __esm({
         this._preUpdate = options.preUpdate ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async () => {
-          requestAnimationFrame(() => {
-            this.join();
-          });
+        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async (d) => {
           options.postUpdate && options.postUpdate.call(this, this);
           this._postUpdate = options.postUpdate ?? null;
           this._initializing = null;
@@ -4815,6 +4812,14 @@ var init_service = __esm({
           });
         } else {
           this.postUpdate();
+        }
+      }
+      async setSharedVars(obj, options) {
+        Object.entries(obj).forEach(([key, value]) => {
+          this._sharedVar[key] = value;
+        });
+        if (Object.keys(obj).length > 0) {
+          await this.setSharedVar(...Object.entries(obj)[0], options);
         }
       }
       async join() {
@@ -4964,15 +4969,15 @@ var init_selectionService = __esm({
     init_transformer2();
     SelectionService = class extends Service {
       constructor(baseName2, options) {
-        super(baseName2, options);
-        this._oldResult = [];
-        this._result = [];
-        this._transformers = [];
+        super(baseName2, {
+          ...options,
+          resultAlias: options?.resultAlias ?? "selectionResult"
+        });
         this._currentDimension = [];
         this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
           transient: true,
           sharedVar: {
-            [this._resultAlias || "selectionResult"]: [],
+            [this._resultAlias]: [],
             layer: null,
             highlightColor: options?.sharedVar?.highlightColor,
             highlightAttrValues: options?.sharedVar?.highlightAttrValues
@@ -4987,57 +4992,63 @@ var init_selectionService = __esm({
         this._sharedVar[sharedName] = value;
         if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
           const layer = options?.layer || this._layerInstances[0];
-          this._oldResult = this._result;
-          this._result = layer.picking({
-            ...this._userOptions.query,
-            ...this._sharedVar
-          });
-          const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
-          while (selectionLayer.firstChild) {
-            selectionLayer.removeChild(selectionLayer.lastChild);
+          if (this._nextTick) {
+            return;
           }
-          if (this._sharedVar.deepClone) {
-            let resultNodes = [];
-            let refNodes = [];
-            this._result.forEach((node) => {
-              if (node !== layer.getGraphic()) {
-                let k = refNodes.length;
-                for (let i = 0; i < k; i++) {
-                  const refNode = refNodes[i];
-                  const resultNode = resultNodes[i];
-                  if (node.contains(refNode)) {
-                    refNodes.splice(i, 1);
-                    resultNodes.splice(i, 1);
-                    resultNode.remove();
-                    i--;
-                    k--;
+          this._nextTick = requestAnimationFrame(async () => {
+            this._oldResult = this._result;
+            this._result = layer.picking({
+              ...this._userOptions.query,
+              ...this._sharedVar
+            });
+            const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
+            while (selectionLayer.firstChild) {
+              selectionLayer.removeChild(selectionLayer.lastChild);
+            }
+            if (this._sharedVar.deepClone) {
+              let resultNodes = [];
+              let refNodes = [];
+              this._result.forEach((node) => {
+                if (node !== layer.getGraphic()) {
+                  let k = refNodes.length;
+                  for (let i = 0; i < k; i++) {
+                    const refNode = refNodes[i];
+                    const resultNode = resultNodes[i];
+                    if (node.contains(refNode)) {
+                      refNodes.splice(i, 1);
+                      resultNodes.splice(i, 1);
+                      resultNode.remove();
+                      i--;
+                      k--;
+                    }
                   }
+                  resultNodes.push(layer.cloneVisualElements(node, true));
+                  refNodes.push(node);
                 }
-                resultNodes.push(layer.cloneVisualElements(node, true));
-                refNodes.push(node);
-              }
-            });
-            this._services.forEach((service) => {
-              service.setSharedVar(this._resultAlias || "selectionResult", resultNodes);
-            });
-            this._transformers.forEach((transformer) => {
-              transformer.setSharedVars({
-                layer: layer.getLayerFromQueue("selectionLayer"),
-                [this._resultAlias || "selectionResult"]: resultNodes
               });
-            });
-          } else {
-            this._services.forEach((service) => {
-              service.setSharedVar(this._resultAlias || "selectionResult", this._result.map((node) => layer.cloneVisualElements(node, false)));
-            });
-            this._transformers.forEach((transformer) => {
-              transformer.setSharedVars({
-                layer: layer.getLayerFromQueue("selectionLayer"),
-                [this._resultAlias || "selectionResult"]: this._result.map((node) => layer.cloneVisualElements(node, false))
+              this._services.forEach((service) => {
+                service.setSharedVar(this._resultAlias, resultNodes);
               });
-            });
-          }
-          this.postUpdate();
+              this._transformers.forEach((transformer) => {
+                transformer.setSharedVars({
+                  layer: layer.getLayerFromQueue("selectionLayer"),
+                  [this._resultAlias]: resultNodes
+                });
+              });
+            } else {
+              this._services.forEach((service) => {
+                service.setSharedVar(this._resultAlias, this._result.map((node) => layer.cloneVisualElements(node, false)));
+              });
+              this._transformers.forEach((transformer) => {
+                transformer.setSharedVars({
+                  layer: layer.getLayerFromQueue("selectionLayer"),
+                  [this._resultAlias]: this._result.map((node) => layer.cloneVisualElements(node, false))
+                });
+              });
+            }
+            this._nextTick = 0;
+            this.postUpdate();
+          });
         } else {
           this.postUpdate();
         }
@@ -5048,25 +5059,6 @@ var init_selectionService = __esm({
       dimension() {
       }
       filter() {
-      }
-      async join() {
-        const result = await this.results;
-        if (this._joinServices && this._joinServices.length) {
-          await Promise.all(this._joinServices.map(async (s) => {
-            await s.setSharedVar(this._resultAlias || "selectionResult", result);
-            return s.results;
-          }));
-        } else {
-          await Promise.all(this._services.map(async (s) => {
-            await s.setSharedVar(this._resultAlias || "selectionResult", result);
-            return s.results;
-          }));
-        }
-        if (this._joinTransformers && this._joinTransformers.length) {
-          await Promise.all(this._joinTransformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
-        } else {
-          await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias || "selectionResult", result)));
-        }
       }
     };
     Service.SelectionService = SelectionService;
@@ -5275,10 +5267,6 @@ var init_layoutService = __esm({
           ...options,
           resultAlias: options.resultAlias ?? "layoutResult"
         });
-        this._oldResult = null;
-        this._result = null;
-        this._nextTick = 0;
-        this._computing = null;
       }
       isInstanceOf(name) {
         return name === "LayoutService" || this._baseName === name || this._name === name;
@@ -5302,10 +5290,6 @@ var init_algorithmService = __esm({
           ...options,
           resultAlias: options.resultAlias ?? "result"
         });
-        this._oldResult = null;
-        this._result = null;
-        this._nextTick = 0;
-        this._computing = null;
       }
       isInstanceOf(name) {
         return name === "AnalysisService" || this._baseName === name || this._name === name;
@@ -6152,6 +6136,7 @@ var init_instrument = __esm({
           }
           this._on[action].push(feedforwardOrCommand);
         }
+        return this;
       }
       off(action, feedforwardOrCommand) {
         if (!this._on[action])
@@ -6159,6 +6144,7 @@ var init_instrument = __esm({
         if (this._on[action].includes(feedforwardOrCommand)) {
           this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
         }
+        return this;
       }
       _use(service, options) {
         service.preAttach(this);
@@ -6424,7 +6410,7 @@ var init_instrument = __esm({
       }
       static initialize(baseName2, options) {
         const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
-          on: Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
+          on: deepClone(Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {})),
           sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
         });
         const instrument = new mergedOptions.constructor(baseName2, mergedOptions);
@@ -7107,8 +7093,7 @@ var init_builtin3 = __esm({
           ({ layer, event, instrument }) => {
             if (event.changedTouches)
               event = event.changedTouches[0];
-            instrument.services.setSharedVar("x", event.clientX, { layer });
-            instrument.services.setSharedVar("y", event.clientY, { layer });
+            instrument.services.setSharedVars({ x: event.clientX, y: event.clientY }, { layer });
           }
         ],
         drag: [
@@ -7127,8 +7112,7 @@ var init_builtin3 = __esm({
               event = event.changedTouches[0];
             const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
             const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-            instrument.services.setSharedVar("x", 0, { layer });
-            instrument.services.setSharedVar("y", 0, { layer });
+            instrument.services.setSharedVars({ x: 0, y: 0 }, { layer });
             instrument.setSharedVar("offsetx", offsetX, { layer });
             instrument.setSharedVar("offsety", offsetY, { layer });
           }
@@ -7138,12 +7122,14 @@ var init_builtin3 = __esm({
             let { layer, event, instrument } = options;
             if (event.changedTouches)
               event = event.changedTouches[0];
-            instrument.services.setSharedVar("x", 0, { layer });
-            instrument.services.setSharedVar("y", 0, { layer });
-            instrument.services.setSharedVar("currentx", event.clientX, { layer });
-            instrument.services.setSharedVar("currenty", event.clientY, { layer });
-            instrument.services.setSharedVar("offsetx", 0, { layer });
-            instrument.services.setSharedVar("offsety", 0, { layer });
+            instrument.services.setSharedVars({
+              x: 0,
+              y: 0,
+              currentx: event.clientX,
+              currenty: event.clientY,
+              offsetx: 0,
+              offsety: 0
+            }, { layer });
             instrument.emit("dragconfirm", {
               ...options,
               self: options.instrument

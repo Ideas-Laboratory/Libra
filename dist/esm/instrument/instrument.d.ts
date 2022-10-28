@@ -71,8 +71,8 @@ export default class Instrument {
     [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: InstrumentInitOption);
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;
-    on(action: string | string[], feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
-    off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): void;
+    on(action: string | string[], feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): this;
+    off(action: string, feedforwardOrCommand: (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void>) | Command): this;
     _use(service: Service, options?: any): void;
     useService(service: string | Service, options?: any): void;
     useInteractor(interactor: Interactor, options?: any): void;

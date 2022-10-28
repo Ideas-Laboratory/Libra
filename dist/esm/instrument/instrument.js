@@ -107,6 +107,7 @@ export default class Instrument {
             }
             this._on[action].push(feedforwardOrCommand);
         }
+        return this;
     }
     off(action, feedforwardOrCommand) {
         if (!this._on[action])
@@ -114,6 +115,7 @@ export default class Instrument {
         if (this._on[action].includes(feedforwardOrCommand)) {
             this._on[action].splice(this._on[action].indexOf(feedforwardOrCommand), 1);
         }
+        return this;
     }
     _use(service, options) {
         service.preAttach(this);
@@ -427,7 +429,7 @@ export default class Instrument {
     }
     static initialize(baseName, options) {
         const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName] ?? {}, options ?? {}, {
-            on: Object.assign({}, (registeredInstruments[baseName] ?? {}).on ?? {}, options?.on ?? {}),
+            on: helpers.deepClone(Object.assign({}, (registeredInstruments[baseName] ?? {}).on ?? {}, options?.on ?? {})),
             sharedVar: Object.assign({}, (registeredInstruments[baseName] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
         });
         const instrument = new mergedOptions.constructor(baseName, mergedOptions);

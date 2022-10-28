@@ -33,10 +33,8 @@ export default class Service {
         this._preUpdate = options.preUpdate ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async () => {
-            requestAnimationFrame(() => {
-                this.join();
-            });
+        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async (d) => {
+            // await this.join();
             options.postUpdate && options.postUpdate.call(this, this);
             this._postUpdate = options.postUpdate ?? null;
             this._initializing = null;
@@ -104,6 +102,14 @@ export default class Service {
         }
         else {
             this.postUpdate();
+        }
+    }
+    async setSharedVars(obj, options) {
+        Object.entries(obj).forEach(([key, value]) => {
+            this._sharedVar[key] = value;
+        });
+        if (Object.keys(obj).length > 0) {
+            await this.setSharedVar(...Object.entries(obj)[0], options);
         }
     }
     async join() {

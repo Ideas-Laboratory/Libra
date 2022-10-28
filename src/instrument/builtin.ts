@@ -779,8 +779,10 @@ Instrument.register("DragInstrument", {
     dragstart: [
       ({ layer, event, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.setSharedVar("x", event.clientX, { layer });
-        instrument.services.setSharedVar("y", event.clientY, { layer });
+        instrument.services.setSharedVars(
+          { x: event.clientX, y: event.clientY },
+          { layer }
+        );
       },
     ],
     drag: [
@@ -801,8 +803,7 @@ Instrument.register("DragInstrument", {
           event.clientX - instrument.services.getSharedVar("x", { layer })[0];
         const offsetY =
           event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-        instrument.services.setSharedVar("x", 0, { layer });
-        instrument.services.setSharedVar("y", 0, { layer });
+        instrument.services.setSharedVars({ x: 0, y: 0 }, { layer });
         instrument.setSharedVar("offsetx", offsetX, { layer });
         instrument.setSharedVar("offsety", offsetY, { layer });
       },
@@ -811,12 +812,17 @@ Instrument.register("DragInstrument", {
       (options) => {
         let { layer, event, instrument } = options;
         if (event.changedTouches) event = event.changedTouches[0];
-        instrument.services.setSharedVar("x", 0, { layer });
-        instrument.services.setSharedVar("y", 0, { layer });
-        instrument.services.setSharedVar("currentx", event.clientX, { layer });
-        instrument.services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.services.setSharedVar("offsetx", 0, { layer });
-        instrument.services.setSharedVar("offsety", 0, { layer });
+        instrument.services.setSharedVars(
+          {
+            x: 0,
+            y: 0,
+            currentx: event.clientX,
+            currenty: event.clientY,
+            offsetx: 0,
+            offsety: 0,
+          },
+          { layer }
+        );
         instrument.emit("dragconfirm", {
           ...options,
           self: options.instrument,

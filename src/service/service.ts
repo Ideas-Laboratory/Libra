@@ -91,9 +91,7 @@ export default class Service {
         this.setSharedVar(entry[0], entry[1])
       )
     ).then(async () => {
-      requestAnimationFrame(() => {
-        this.join();
-      });
+      // await this.join();
       options.postUpdate && options.postUpdate.call(this, this);
       this._postUpdate = options.postUpdate ?? null;
       this._initializing = null;
@@ -168,6 +166,15 @@ export default class Service {
       });
     } else {
       this.postUpdate();
+    }
+  }
+
+  async setSharedVars(obj: any, options: any) {
+    Object.entries(obj).forEach(([key, value]) => {
+      this._sharedVar[key] = value;
+    });
+    if (Object.keys(obj).length > 0) {
+      await this.setSharedVar(...Object.entries(obj)[0], options);
     }
   }
 
