@@ -236,40 +236,69 @@ export default class D3Layer extends Layer {
         const visualElements = d3.selectAll(this.getVisualElements());
         if (options.type === helpers.DataQueryType.Quantitative) {
             const { attrName, extent } = options;
-            result = visualElements
-                .filter((d) => d &&
-                d[attrName] &&
-                extent[0] < d[attrName] &&
-                d[attrName] < extent[1])
-                .nodes();
-        }
-        if (options.type === helpers.DataQueryType.Quantitative2D) {
-            const { attrNameX, extentX, attrNameY, extentY } = options;
-            result = visualElements
-                .filter((d) => d &&
-                d[attrNameX] &&
-                d[attrNameY] &&
-                extentX[0] < d[attrNameX] &&
-                d[attrNameX] < extentX[1] &&
-                extentY[0] < d[attrNameY] &&
-                d[attrNameY] < extentY[1])
-                .nodes();
+            if (attrName instanceof Array) {
+                let intermediateResult = visualElements;
+                attrName.forEach((attrName, i) => {
+                    const ext = extent[i];
+                    intermediateResult = intermediateResult.filter((d) => d &&
+                        d[attrName] !== undefined &&
+                        ext[0] < d[attrName] &&
+                        d[attrName] < ext[1]);
+                });
+                result = intermediateResult.nodes();
+            }
+            else {
+                result = visualElements
+                    .filter((d) => d &&
+                    d[attrName] !== undefined &&
+                    extent[0] < d[attrName] &&
+                    d[attrName] < extent[1])
+                    .nodes();
+            }
         }
         else if (options.type === helpers.DataQueryType.Nominal) {
             const { attrName, extent } = options;
-            result = visualElements
-                .filter((d) => d && d[attrName] && extent.find(d[attrName]))
-                .nodes();
+            if (attrName instanceof Array) {
+                let intermediateResult = visualElements;
+                attrName.forEach((attrName, i) => {
+                    const ext = extent[i];
+                    intermediateResult = intermediateResult.filter((d) => d && d[attrName] !== undefined && ext.findIndex(d[attrName]) >= 0);
+                });
+                result = intermediateResult.nodes();
+            }
+            else {
+                result = visualElements
+                    .filter((d) => d &&
+                    d[attrName] !== undefined &&
+                    extent.findIndex(d[attrName]) >= 0)
+                    .nodes();
+            }
         }
         else if (options.type === helpers.DataQueryType.Temporal) {
             const { attrName, extent } = options;
-            const dateParser = options.dateParser || ((d) => d);
-            result = visualElements
-                .filter((d) => d &&
-                d[attrName] &&
-                extent[0].getTime() < dateParser(d[attrName]).getTime() &&
-                dateParser(d[attrName]).getTime() < extent[1].getTime())
-                .nodes();
+            if (attrName instanceof Array) {
+                let intermediateResult = visualElements;
+                attrName.forEach((attrName, i) => {
+                    const ext = extent[i];
+                    const dateParser = options.dateParser?.[i] ?? ((d) => d);
+                    intermediateResult = intermediateResult.filter((d) => d &&
+                        d[attrName] !== undefined &&
+                        ext[0].getTime() < dateParser(d[attrName]).getTime() &&
+                        dateParser(d[attrName]).getTime() < ext[1].getTime());
+                });
+                result = intermediateResult.nodes();
+            }
+            else {
+                const dateParser = options.dateParser || ((d) => d);
+                result = visualElements
+                    .filter((d) => d &&
+                    d[attrName] !== undefined &&
+                    extent[0].getTime() <
+                        dateParser(d[attrName]).getTime() &&
+                    dateParser(d[attrName]).getTime() <
+                        extent[1].getTime())
+                    .nodes();
+            }
         }
         return result;
     }

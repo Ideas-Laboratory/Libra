@@ -39,7 +39,7 @@ export default class Layer<T> {
     getGraphic(): T;
     getContainerGraphic(): HTMLElement;
     getVisualElements(): T[];
-    cloneVisualElements(element: Element, deep?: boolean): Node;
+    cloneVisualElements(element: Element, deep?: boolean): Element;
     join(rightTable: any[], joinKey: string): any[];
     preUpdate(): void;
     postUpdate(): void;

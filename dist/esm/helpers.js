@@ -16,9 +16,8 @@ export var ShapeQueryType;
 export var DataQueryType;
 (function (DataQueryType) {
     DataQueryType[DataQueryType["Quantitative"] = 0] = "Quantitative";
-    DataQueryType[DataQueryType["Quantitative2D"] = 1] = "Quantitative2D";
-    DataQueryType[DataQueryType["Nominal"] = 2] = "Nominal";
-    DataQueryType[DataQueryType["Temporal"] = 3] = "Temporal";
+    DataQueryType[DataQueryType["Nominal"] = 1] = "Nominal";
+    DataQueryType[DataQueryType["Temporal"] = 2] = "Temporal";
 })(DataQueryType || (DataQueryType = {}));
 class NonsenseClass {
 }

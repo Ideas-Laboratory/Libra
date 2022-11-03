@@ -33,7 +33,7 @@ export default class Service {
         this._preUpdate = options.preUpdate ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async (d) => {
+        this._initializing = Promise.all(Object.entries(options.sharedVar || {}).map((entry) => this.setSharedVar(entry[0], entry[1]))).then(async () => {
             // await this.join();
             options.postUpdate && options.postUpdate.call(this, this);
             this._postUpdate = options.postUpdate ?? null;

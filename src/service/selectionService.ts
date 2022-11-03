@@ -1,10 +1,11 @@
 import Service from "./service";
 import * as helpers from "../helpers";
-import * as d3 from "d3";
 import { GraphicalTransformer } from "../transformer";
+import { Layer } from "../layer";
 
 export default class SelectionService extends Service {
   _currentDimension = [];
+  _selectionMapping: Map<string, any[]>;
 
   constructor(baseName: string, options: any) {
     super(baseName, {
@@ -22,6 +23,37 @@ export default class SelectionService extends Service {
         },
       })
     );
+
+    this._selectionMapping = new Map();
+    Object.entries<any[]>({
+      ...(this._userOptions?.query?.attrName
+        ? typeof this._userOptions.query.attrName === "string"
+          ? {
+              [this._userOptions.query.attrName]:
+                this._userOptions?.query?.extent ?? [],
+            }
+          : Object.fromEntries(
+              this._userOptions.query.attrName.map((attr, i) => [
+                attr,
+                this._userOptions?.query?.extent?.[i] ?? [],
+              ])
+            )
+        : {}),
+      ...(this._sharedVar?.attrName
+        ? typeof this._sharedVar.attrName === "string"
+          ? {
+              [this._sharedVar.attrName]: this._sharedVar?.extent ?? [],
+            }
+          : Object.fromEntries(
+              this._sharedVar.attrName.map((attr, i) => [
+                attr,
+                this._sharedVar?.extent?.[i] ?? [],
+              ])
+            )
+        : {}),
+    })
+      .filter(([_, v]) => v instanceof Array)
+      .forEach(([key, value]) => this._selectionMapping.set(key, value));
   }
 
   async setSharedVar(sharedName: string, value: any, options?: any) {
@@ -44,70 +76,75 @@ export default class SelectionService extends Service {
         return;
       }
       this._nextTick = requestAnimationFrame(async () => {
-        this._oldResult = this._result;
-        this._result = layer.picking({
-          ...this._userOptions.query,
-          ...this._sharedVar,
-        });
-        const selectionLayer = layer
-          .getLayerFromQueue("selectionLayer")
-          .getGraphic();
-        while (selectionLayer.firstChild) {
-          selectionLayer.removeChild(selectionLayer.lastChild);
-        }
-        if (this._sharedVar.deepClone) {
-          let resultNodes: Element[] = [];
-          let refNodes: Element[] = [];
-          this._result.forEach((node) => {
-            if (node !== layer.getGraphic()) {
-              let k = refNodes.length;
-              for (let i = 0; i < k; i++) {
-                const refNode = refNodes[i];
-                const resultNode = resultNodes[i];
-                if (node.contains(refNode)) {
-                  refNodes.splice(i, 1);
-                  resultNodes.splice(i, 1);
-                  resultNode.remove();
-                  i--;
-                  k--;
-                }
-              }
-              resultNodes.push(layer.cloneVisualElements(node, true));
-              refNodes.push(node);
-            }
-          });
-          this._services.forEach((service) => {
-            service.setSharedVar(this._resultAlias, resultNodes);
-          });
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              layer: layer.getLayerFromQueue("selectionLayer"),
-              [this._resultAlias]: resultNodes,
-            });
-          });
-        } else {
-          this._services.forEach((service) => {
-            service.setSharedVar(
-              this._resultAlias,
-              this._result.map((node) => layer.cloneVisualElements(node, false))
-            );
-          });
-          this._transformers.forEach((transformer) => {
-            transformer.setSharedVars({
-              layer: layer.getLayerFromQueue("selectionLayer"),
-              [this._resultAlias]: this._result.map((node) =>
-                layer.cloneVisualElements(node, false)
-              ),
-            });
-          });
-        }
-
-        this._nextTick = 0;
-        this.postUpdate();
+        this._evaluate(layer);
       });
     } else {
       this.postUpdate();
     }
+  }
+
+  _evaluate(layer: Layer<any>) {
+    if (!layer) return;
+    this._oldResult = this._result;
+    this._result = layer.picking({
+      ...this._userOptions.query,
+      ...this._sharedVar,
+    });
+    const selectionLayer = layer
+      .getLayerFromQueue("selectionLayer")
+      .getGraphic();
+    while (selectionLayer.firstChild) {
+      selectionLayer.removeChild(selectionLayer.lastChild);
+    }
+    if (this._sharedVar.deepClone) {
+      let resultNodes: Element[] = [];
+      let refNodes: Element[] = [];
+      this._result.forEach((node) => {
+        if (node !== layer.getGraphic()) {
+          let k = refNodes.length;
+          for (let i = 0; i < k; i++) {
+            const refNode = refNodes[i];
+            const resultNode = resultNodes[i];
+            if (node.contains(refNode)) {
+              refNodes.splice(i, 1);
+              resultNodes.splice(i, 1);
+              resultNode.remove();
+              i--;
+              k--;
+            }
+          }
+          resultNodes.push(layer.cloneVisualElements(node, true));
+          refNodes.push(node);
+        }
+      });
+      this._services.forEach((service) => {
+        service.setSharedVar(this._resultAlias, resultNodes);
+      });
+      this._transformers.forEach((transformer) => {
+        transformer.setSharedVars({
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          [this._resultAlias]: resultNodes,
+        });
+      });
+    } else {
+      this._services.forEach((service) => {
+        service.setSharedVar(
+          this._resultAlias,
+          this._result.map((node) => layer.cloneVisualElements(node, false))
+        );
+      });
+      this._transformers.forEach((transformer) => {
+        transformer.setSharedVars({
+          layer: layer.getLayerFromQueue("selectionLayer"),
+          [this._resultAlias]: this._result.map((node) =>
+            layer.cloneVisualElements(node, false)
+          ),
+        });
+      });
+    }
+
+    this._nextTick = 0;
+    this.postUpdate();
   }
 
   isInstanceOf(name: string): boolean {
@@ -119,9 +156,111 @@ export default class SelectionService extends Service {
   }
 
   /** Cross filter */
-  dimension() {}
+  dimension(
+    dimension: string | string[],
+    formatter?: ((value: any) => any) | ((value: any) => any)[]
+  ) {
+    let dimArr: string[] = [];
+    let fmtArr: ((value: any) => any)[] = [];
+    if (typeof dimension === "string") {
+      dimArr = [dimension];
+      fmtArr = [(formatter as (value: any) => any) ?? ((d) => d)];
+    } else {
+      dimArr = helpers.deepClone(dimension);
+      fmtArr =
+        (formatter as ((value: any) => any)[]) ?? dimArr.map(() => (d) => d);
+    }
+    const zipArr = dimArr.map((d, i) => [d, fmtArr[i]]);
+    this._currentDimension = zipArr;
+    return new Proxy(this, {
+      get(target, p) {
+        if (p === "dimension") {
+          return target.dimension.bind(target);
+        } else if (p === "_currentDimension") {
+          return zipArr;
+        } else {
+          return target[p];
+        }
+      },
+      set(target, p, value) {
+        target[p] = value;
+        return true;
+      },
+    });
+  }
 
-  filter() {}
+  filter(extent: any[] | any[][], options?: any) {
+    if (
+      options &&
+      options.layer &&
+      this._layerInstances.length !== 0 &&
+      !this._layerInstances.includes(options.layer)
+    ) {
+      return this;
+    }
+    const layer = options?.layer || this._layerInstances[0];
+    if (
+      this._currentDimension.length === 0 &&
+      extent instanceof Array &&
+      extent.length > 0
+    ) {
+      if (this._sharedVar.attrName) {
+        this._userOptions.query.attrName = this._sharedVar.attrName;
+      }
+      if (this._userOptions.query.attrName) {
+        this.dimension(this._userOptions.query.attrName).filter(extent);
+      }
+    } else if (
+      this._currentDimension.length === 1 &&
+      extent instanceof Array &&
+      extent.length > 0 &&
+      !(extent[0] instanceof Array)
+    ) {
+      this._selectionMapping.set(
+        this._currentDimension[0][0],
+        this._currentDimension[0]
+          [1](extent)
+          .sort((a, b) =>
+            typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1
+          )
+      );
+      this._sharedVar.attrName = [...this._selectionMapping.keys()];
+      this._sharedVar.extent = [...this._selectionMapping.values()];
+      this._evaluate(layer);
+      this._services.forEach((service) => {
+        service.setSharedVar("extents", this.extents);
+      });
+      this._transformers.forEach((transformer) => {
+        transformer.setSharedVar("extents", this.extents);
+      });
+    } else if (
+      this._currentDimension.length === extent.length &&
+      extent.every((ex) => ex instanceof Array)
+    ) {
+      this._currentDimension.forEach((dim, i) => {
+        this._selectionMapping.set(
+          dim[0],
+          dim[1](extent[i]).sort((a, b) =>
+            typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1
+          )
+        );
+      });
+      this._sharedVar.attrName = [...this._selectionMapping.keys()];
+      this._sharedVar.extent = [...this._selectionMapping.values()];
+      this._evaluate(layer);
+      this._services.forEach((service) => {
+        service.setSharedVar("extents", this.extents);
+      });
+      this._transformers.forEach((transformer) => {
+        transformer.setSharedVar("extents", this.extents);
+      });
+    }
+    return this;
+  }
+
+  get extents() {
+    return Object.fromEntries(this._selectionMapping.entries());
+  }
 }
 
 (Service as any).SelectionService = SelectionService;
@@ -189,17 +328,5 @@ Service.register("QuantitativeSelectionService", {
     type: helpers.DataQueryType.Quantitative,
     attrName: "",
     extent: [0, 0],
-  },
-});
-
-Service.register("Quantitative2DSelectionService", {
-  constructor: SelectionService,
-  query: {
-    baseOn: helpers.QueryType.Data,
-    type: helpers.DataQueryType.Quantitative2D,
-    attrNameX: "",
-    attrNameY: "",
-    extentX: [0, 0],
-    extentY: [0, 0],
   },
 });

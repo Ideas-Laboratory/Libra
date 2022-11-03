@@ -21,7 +21,6 @@ export enum ShapeQueryType {
 
 export enum DataQueryType {
   Quantitative,
-  Quantitative2D,
   Nominal,
   Temporal,
 }
@@ -91,39 +90,49 @@ export type PolygonQuery = {
   points: { x: number; y: number }[];
 };
 
-export type DataBasedQuery =
-  | QuantitativeQuery
-  | Quantitative2DQuery
-  | NominalQuery
-  | TemporalQuery;
+export type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
 
 export type QuantitativeQuery = {
   baseOn: QueryType.Data;
   type: DataQueryType.Quantitative;
-  attrName: string;
-  extent: [number, number];
-};
-export type Quantitative2DQuery = {
-  baseOn: QueryType.Data;
-  type: DataQueryType.Quantitative2D;
-  attrNameX: string;
-  extentX: [number, number];
-  attrNameY: string;
-  extentY: [number, number];
-};
+} & (
+  | {
+      attrName: string;
+      extent: [number, number];
+    }
+  | {
+      attrName: string[];
+      extent: [number, number][];
+    }
+);
 export type NominalQuery = {
   baseOn: QueryType.Data;
   type: DataQueryType.Nominal;
-  attrName: string;
-  extent: unknown[];
-};
+} & (
+  | {
+      attrName: string;
+      extent: unknown[];
+    }
+  | {
+      attrName: string[];
+      extent: unknown[][];
+    }
+);
 export type TemporalQuery = {
   baseOn: QueryType.Data;
   type: DataQueryType.Temporal;
-  attrName: string;
-  extent: [Date, Date];
-  dateParser?: (value: unknown) => Date;
-};
+} & (
+  | {
+      attrName: string;
+      extent: [Date, Date];
+      dateParser?: (value: unknown) => Date;
+    }
+  | {
+      attrName: string[];
+      extent: [Date, Date][];
+      dateParser?: ((value: unknown) => Date)[];
+    }
+);
 
 export type AttributeBasedQuery = {
   baseOn: QueryType.Attr;

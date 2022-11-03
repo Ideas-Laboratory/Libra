@@ -127,7 +127,7 @@ export default class Layer<T> {
     return [];
   }
   cloneVisualElements(element: Element, deep: boolean = false) {
-    const copiedElement = element.cloneNode(deep);
+    const copiedElement = element.cloneNode(deep) as Element;
     const frag = document.createDocumentFragment();
     frag.append(copiedElement);
     return copiedElement;
