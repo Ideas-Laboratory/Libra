@@ -3,7 +3,7 @@ import { Instrument } from "../instrument";
 import { Layer } from "../layer";
 import * as helpers from "../helpers";
 import { GraphicalTransformer } from "../transformer";
-declare type ServiceInitOption = {
+type ServiceInitOption = {
     name?: string;
     on?: {
         [action: string]: ((<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void) | Command)[];
@@ -25,7 +25,7 @@ declare type ServiceInitOption = {
     postUse?: (service: Service, instrument: Instrument) => void;
     [param: string]: any;
 };
-declare type ServiceInitTemplate = ServiceInitOption & {
+type ServiceInitTemplate = ServiceInitOption & {
     [param: string]: any;
     constructor?: typeof Service;
 };

@@ -32,9 +32,9 @@ var init_transformer = __esm({
     };
     requestAnimationFrame(transientCleaner);
     GraphicalTransformer = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this[_a] = true;
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
         this._name = options.name ?? this._baseName;
         this._sharedVar = options.sharedVar ?? {};
@@ -90,18 +90,18 @@ var init_transformer = __esm({
       isInstanceOf(name) {
         return this._baseName === name || this._name === name;
       }
-      static register(baseName2, options) {
-        registeredTransformers[baseName2] = options;
+      static register(baseName3, options) {
+        registeredTransformers[baseName3] = options;
       }
-      static unregister(baseName2) {
-        delete registeredTransformers[baseName2];
+      static unregister(baseName3) {
+        delete registeredTransformers[baseName3];
         return true;
       }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName2] ?? {}, options ?? {}, {
-          sharedVar: Object.assign({}, (registeredTransformers[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+      static initialize(baseName3, options) {
+        const mergedOptions = Object.assign({ constructor: GraphicalTransformer }, registeredTransformers[baseName3] ?? {}, options ?? {}, {
+          sharedVar: Object.assign({}, (registeredTransformers[baseName3] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
         });
-        const transformer = new mergedOptions.constructor(baseName2, mergedOptions);
+        const transformer = new mergedOptions.constructor(baseName3, mergedOptions);
         instanceTransformers.push(transformer);
         return transformer;
       }
@@ -123,9 +123,9 @@ var init_package = __esm({
   }
 });
 
-// node_modules/d3-array/src/index.js
+// node_modules/d3/node_modules/d3-array/src/index.js
 var init_src = __esm({
-  "node_modules/d3-array/src/index.js"() {
+  "node_modules/d3/node_modules/d3-array/src/index.js"() {
   }
 });
 
@@ -3553,9 +3553,9 @@ var init_src20 = __esm({
   }
 });
 
-// node_modules/d3-geo/src/index.js
+// node_modules/d3/node_modules/d3-geo/src/index.js
 var init_src21 = __esm({
-  "node_modules/d3-geo/src/index.js"() {
+  "node_modules/d3/node_modules/d3-geo/src/index.js"() {
   }
 });
 
@@ -4729,7 +4729,7 @@ var init_service = __esm({
     registeredServices = {};
     instanceServices = [];
     Service = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this._linkCache = {};
         this._transformers = [];
         this._joinTransformers = [];
@@ -4742,9 +4742,9 @@ var init_service = __esm({
         this._oldResult = null;
         this[_a2] = true;
         options.preInitialize && options.preInitialize.call(this, this);
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
-        this._name = options.name ?? baseName2;
+        this._name = options.name ?? baseName3;
         this._sharedVar = {};
         this._transformers = options.transformers ?? [];
         this._joinTransformers = options.joinTransformers ?? [];
@@ -4932,20 +4932,20 @@ var init_service = __esm({
         }
         return this._oldResult;
       }
-      static register(baseName2, options) {
-        registeredServices[baseName2] = options;
+      static register(baseName3, options) {
+        registeredServices[baseName3] = options;
       }
-      static unregister(baseName2) {
-        delete registeredServices[baseName2];
+      static unregister(baseName3) {
+        delete registeredServices[baseName3];
         return true;
       }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName2] ?? {}, options ?? {}, {
-          on: Object.assign({}, (registeredServices[baseName2] ?? {}).on ?? {}, options?.on ?? {}),
-          sharedVar: Object.assign({}, (registeredServices[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
-          params: Object.assign({}, (registeredServices[baseName2] ?? {}).params ?? {}, options?.params ?? {})
+      static initialize(baseName3, options) {
+        const mergedOptions = Object.assign({ constructor: Service }, registeredServices[baseName3] ?? {}, options ?? {}, {
+          on: Object.assign({}, (registeredServices[baseName3] ?? {}).on ?? {}, options?.on ?? {}),
+          sharedVar: Object.assign({}, (registeredServices[baseName3] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {}),
+          params: Object.assign({}, (registeredServices[baseName3] ?? {}).params ?? {}, options?.params ?? {})
         });
-        const service = new mergedOptions.constructor(baseName2, mergedOptions);
+        const service = new mergedOptions.constructor(baseName3, mergedOptions);
         return service;
       }
       static findService(baseNameOrRealName) {
@@ -4968,8 +4968,8 @@ var init_selectionService = __esm({
     init_helpers();
     init_transformer2();
     SelectionService = class extends Service {
-      constructor(baseName2, options) {
-        super(baseName2, {
+      constructor(baseName3, options) {
+        super(baseName3, {
           ...options,
           resultAlias: options?.resultAlias ?? "selectionResult"
         });
@@ -5216,8 +5216,8 @@ var init_layoutService = __esm({
   "dist/esm/service/layoutService.js"() {
     init_service();
     LayoutService = class extends Service {
-      constructor(baseName2, options) {
-        super(baseName2, {
+      constructor(baseName3, options) {
+        super(baseName3, {
           ...options,
           resultAlias: options.resultAlias ?? "layoutResult"
         });
@@ -5239,8 +5239,8 @@ var init_algorithmService = __esm({
   "dist/esm/service/algorithmService.js"() {
     init_service();
     AnalysisService = class extends Service {
-      constructor(baseName2, options) {
-        super(baseName2, {
+      constructor(baseName3, options) {
+        super(baseName3, {
           ...options,
           resultAlias: options.resultAlias ?? "result"
         });
@@ -5307,12 +5307,12 @@ var init_interactor = __esm({
     registeredInteractors = {};
     instanceInteractors = [];
     Interactor = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this[_a3] = true;
         options.preInitialize && options.preInitialize.call(this, this);
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
-        this._name = options.name ?? baseName2;
+        this._name = options.name ?? baseName3;
         this._state = options.state;
         this._actions = deepClone(options.actions ?? []).map(transferInteractorInnerAction);
         this._modalities = {};
@@ -5429,16 +5429,16 @@ var init_interactor = __esm({
       isInstanceOf(name) {
         return this._baseName === name || this._name === name;
       }
-      static register(baseName2, options) {
-        registeredInteractors[baseName2] = options;
+      static register(baseName3, options) {
+        registeredInteractors[baseName3] = options;
       }
-      static unregister(baseName2) {
-        delete registeredInteractors[baseName2];
+      static unregister(baseName3) {
+        delete registeredInteractors[baseName3];
         return true;
       }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName2] ?? {}, options ?? {});
-        const interactor = new mergedOptions.constructor(baseName2, mergedOptions);
+      static initialize(baseName3, options) {
+        const mergedOptions = Object.assign({ constructor: Interactor }, registeredInteractors[baseName3] ?? {}, options ?? {});
+        const interactor = new mergedOptions.constructor(baseName3, mergedOptions);
         instanceInteractors.push(interactor);
         return interactor;
       }
@@ -5658,12 +5658,12 @@ var init_interactor2 = __esm({
 });
 
 // dist/esm/layer/layer.js
-function register5(baseName2, options) {
-  registeredLayers[baseName2] = options;
+function register5(baseName3, options) {
+  registeredLayers[baseName3] = options;
 }
-function initialize5(baseName2, options) {
-  const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName2] ?? {}, options ?? {}, {});
-  const layer = new mergedOptions.constructor(baseName2, mergedOptions);
+function initialize5(baseName3, options) {
+  const mergedOptions = Object.assign({ constructor: Layer }, registeredLayers[baseName3] ?? {}, options ?? {}, {});
+  const layer = new mergedOptions.constructor(baseName3, mergedOptions);
   return layer;
 }
 function findLayer(baseNameOrRealName) {
@@ -5678,13 +5678,13 @@ var init_layer = __esm({
     siblingLayers = new Map();
     orderLayers = new Map();
     Layer = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this._nextTick = 0;
         this[_a4] = true;
         options.preInitialize && options.preInitialize.call(this, this);
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
-        this._name = options.name ?? baseName2;
+        this._name = options.name ?? baseName3;
         this._container = options.container;
         this._order = 0;
         this._preInitialize = options.preInitialize ?? null;
@@ -5733,6 +5733,7 @@ var init_layer = __esm({
           const layer = Layer.initialize(this._baseName, {
             ...this._userOptions,
             name: siblingLayerName,
+            group: "",
             redraw() {
             }
           });
@@ -5794,8 +5795,8 @@ var init_d3Layer = __esm({
     baseName = "D3Layer";
     backgroundClassName = "ig-layer-background";
     D3Layer = class extends Layer {
-      constructor(baseName2, options) {
-        super(baseName2, options);
+      constructor(baseName3, options) {
+        super(baseName3, options);
         this._width = options.width;
         this._height = options.height;
         this._offset = options.offset;
@@ -5998,6 +5999,182 @@ var init_d3Layer = __esm({
   }
 });
 
+// dist/esm/layer/vegaLayer.js
+var baseName2, backgroundClassName2, VegaLayer;
+var init_vegaLayer = __esm({
+  "dist/esm/layer/vegaLayer.js"() {
+    init_layer();
+    init_d3();
+    init_helpers();
+    baseName2 = "VegaLayer";
+    backgroundClassName2 = "background";
+    VegaLayer = class extends Layer {
+      constructor(baseName3, options) {
+        super(baseName3, options);
+        this._name = options.name;
+        this._container = options.container;
+        if (options.group) {
+          this._graphic = this._container.querySelector(`.${options.group}`);
+          this._graphic.style.pointerEvents = "visiblepainted";
+        } else {
+          this._graphic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          options.container.appendChild(this._graphic);
+        }
+        let tempElem = this._container;
+        while (tempElem && tempElem.tagName !== "svg")
+          tempElem = tempElem.parentElement;
+        if (tempElem.tagName !== "svg")
+          throw Error("Container must be wrapped in SVGSVGElement");
+        this._svg = tempElem;
+        this._postInitialize && this._postInitialize.call(this, this);
+      }
+      getVisualElements() {
+        const elems = [
+          ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName2})`)
+        ];
+        return elems;
+      }
+      getGraphic() {
+        if (this._userOptions.group)
+          return this._container;
+        return this._graphic;
+      }
+      cloneVisualElements(element, deep = false) {
+        const copiedElement = select_default2(element).clone(deep).node();
+        let currentElement = copiedElement.parentElement;
+        let transform2 = copiedElement.getAttribute("transform");
+        while (currentElement && currentElement != this._container) {
+          if (currentElement.getAttribute("transform")) {
+            transform2 += ` ${currentElement.getAttribute("transform")}`;
+          }
+          currentElement = currentElement.parentElement;
+        }
+        copiedElement.setAttribute("transform", transform2);
+        const frag = document.createDocumentFragment();
+        frag.append(copiedElement);
+        return copiedElement;
+      }
+      select(selector) {
+        return this._graphic.querySelectorAll(selector);
+      }
+      picking(options) {
+        if (options.baseOn === QueryType.Shape) {
+          return this._shapeQuery(options);
+        } else if (options.baseOn === QueryType.Data) {
+          return this._dataQuery(options);
+        } else if (options.baseOn === QueryType.Attr) {
+          return this._attrQuery(options);
+        }
+        return [];
+      }
+      _isElementInLayer(elem) {
+        return this._graphic.contains(elem) && !elem.classList.contains(backgroundClassName2);
+      }
+      _shapeQuery(options) {
+        let result = [];
+        const svgBCR = this._svg.getBoundingClientRect();
+        const layerBCR = this._graphic.getBoundingClientRect();
+        if (options.type === ShapeQueryType.SurfacePoint) {
+          const { x, y } = options;
+          if (!isFinite(x) || !isFinite(y)) {
+            return [];
+          }
+          result = [...document.elementsFromPoint(x, y)].filter((elem) => {
+            if (!this._isElementInLayer(elem))
+              return false;
+            const rect = elem.getBoundingClientRect();
+            return rect.right >= x && rect.left <= x && rect.bottom >= y && rect.top <= y;
+          });
+          if (result.length >= 1) {
+            result = [result[0]];
+          }
+        } else if (options.type === ShapeQueryType.Point) {
+          const { x, y } = options;
+          if (!isFinite(x) || !isFinite(y)) {
+            return [];
+          }
+          result = document.elementsFromPoint(x, y).filter((elem) => {
+            if (!this._isElementInLayer(elem))
+              return false;
+            const rect = elem.getBoundingClientRect();
+            return rect.right >= x && rect.left <= x && rect.bottom >= y && rect.top <= y;
+          });
+        } else if (options.type === ShapeQueryType.Circle) {
+          const rawX = options.x, rawY = options.y;
+          const x = options.x - svgBCR.left, y = options.y - svgBCR.top, r = options.r;
+          const outerRectWidth = r;
+          const outerRectX = x - r;
+          const outerRectY = y - r;
+          const outerElemSet = new Set();
+          const outerRect = this._svg.createSVGRect();
+          outerRect.x = outerRectX;
+          outerRect.y = outerRectY;
+          outerRect.width = outerRectWidth * 2;
+          outerRect.height = outerRectWidth * 2;
+          this._svg.getIntersectionList(outerRect, this._graphic).forEach((elem) => outerElemSet.add(elem));
+          result = [...outerElemSet].filter((elem) => {
+            if (!this._isElementInLayer(elem))
+              return false;
+            const rect = elem.getBoundingClientRect();
+            const circleDistanceX = Math.abs(rawX - rect.left);
+            const circleDistanceY = Math.abs(rawY - rect.top);
+            if (circleDistanceX > rect.width / 2 + r) {
+              return false;
+            }
+            if (circleDistanceY > rect.height / 2 + r) {
+              return false;
+            }
+            if (circleDistanceX <= rect.width / 2) {
+              return true;
+            }
+            if (circleDistanceY <= rect.height / 2) {
+              return true;
+            }
+            const cornerDistance = Math.pow(circleDistanceX - rect.width / 2, 2) + Math.pow(circleDistanceY - rect.height / 2, 2);
+            return cornerDistance <= r * r;
+          });
+        } else if (options.type === ShapeQueryType.Rect) {
+          const { x, y, width, height } = options;
+          const x0 = Math.min(x, x + width) - svgBCR.left, y0 = Math.min(y, y + height) - svgBCR.top, absWidth = Math.abs(width), absHeight = Math.abs(height);
+          const rect = this._svg.createSVGRect();
+          rect.x = x0;
+          rect.y = y0;
+          rect.width = absWidth;
+          rect.height = absHeight;
+          result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => {
+            if (!this._isElementInLayer(elem))
+              return false;
+            const rect2 = elem.getBoundingClientRect();
+            return !(rect2.right < x0 + svgBCR.left || rect2.left > x0 + absWidth + svgBCR.left || rect2.bottom < y0 + svgBCR.top || rect2.top > y0 + absHeight + svgBCR.top);
+          });
+        } else if (options.type === ShapeQueryType.Polygon) {
+        }
+        const resultWithSVGGElement = [];
+        while (result.length > 0) {
+          const elem = result.shift();
+          if (elem.classList.contains(backgroundClassName2))
+            continue;
+          resultWithSVGGElement.push(elem);
+          if (elem.parentElement.tagName === "g" && this._graphic.contains(elem.parentElement) && this._graphic !== elem.parentElement)
+            result.push(elem.parentElement);
+        }
+        return resultWithSVGGElement;
+      }
+      _dataQuery(options) {
+        let result = [];
+        return result;
+      }
+      _attrQuery(options) {
+        const { attrName, value } = options;
+        return [];
+      }
+    };
+    Layer.VegaLayer = VegaLayer;
+    Layer.register(baseName2, { constructor: VegaLayer });
+    Layer.register(baseName2, { constructor: VegaLayer });
+  }
+});
+
 // dist/esm/layer/index.js
 var Layer2;
 var init_layer2 = __esm({
@@ -6005,6 +6182,7 @@ var init_layer2 = __esm({
     init_layer();
     init_layer();
     init_d3Layer();
+    init_vegaLayer();
     Layer2 = Layer;
   }
 });
@@ -6025,7 +6203,7 @@ var init_instrument = __esm({
     EventQueue = [];
     eventHandling = false;
     Instrument = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this._transformers = [];
         this._linkCache = {};
         this[_a5] = true;
@@ -6034,9 +6212,9 @@ var init_instrument = __esm({
         this._postInitialize = options.postInitialize ?? null;
         this._preAttach = options.preAttach ?? null;
         this._postUse = options.postUse ?? null;
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
-        this._name = options.name ?? baseName2;
+        this._name = options.name ?? baseName3;
         this._on = Object.assign({}, options.on ?? {});
         this._interactors = [];
         this._layers = [];
@@ -6378,19 +6556,19 @@ var init_instrument = __esm({
       get transformers() {
         return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => this._transformers.splice(this._transformers.indexOf(e), 1), this);
       }
-      static register(baseName2, options) {
-        registeredInstruments[baseName2] = options;
+      static register(baseName3, options) {
+        registeredInstruments[baseName3] = options;
       }
-      static unregister(baseName2) {
-        delete registeredInstruments[baseName2];
+      static unregister(baseName3) {
+        delete registeredInstruments[baseName3];
         return true;
       }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName2] ?? {}, options ?? {}, {
-          on: deepClone(Object.assign({}, (registeredInstruments[baseName2] ?? {}).on ?? {}, options?.on ?? {})),
-          sharedVar: Object.assign({}, (registeredInstruments[baseName2] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
+      static initialize(baseName3, options) {
+        const mergedOptions = Object.assign({ constructor: Instrument }, registeredInstruments[baseName3] ?? {}, options ?? {}, {
+          on: deepClone(Object.assign({}, (registeredInstruments[baseName3] ?? {}).on ?? {}, options?.on ?? {})),
+          sharedVar: Object.assign({}, (registeredInstruments[baseName3] ?? {}).sharedVar ?? {}, options?.sharedVar ?? {})
         });
-        const instrument = new mergedOptions.constructor(baseName2, mergedOptions);
+        const instrument = new mergedOptions.constructor(baseName3, mergedOptions);
         instanceInstruments.push(instrument);
         return instrument;
       }
@@ -8038,12 +8216,12 @@ var init_command = __esm({
     registeredCommands = {};
     instanceCommands2 = [];
     Command2 = class {
-      constructor(baseName2, options) {
+      constructor(baseName3, options) {
         this[_a6] = true;
         options.preInitialize && options.preInitialize.call(this, this);
-        this._baseName = baseName2;
+        this._baseName = baseName3;
         this._userOptions = options;
-        this._name = options.name ?? baseName2;
+        this._name = options.name ?? baseName3;
         this._feedback = options.feedback ?? [];
         this._undo = options.undo ?? null;
         this._redo = options.redo ?? null;
@@ -8082,16 +8260,16 @@ var init_command = __esm({
       isInstanceOf(name) {
         return this._baseName === name || this._name === name;
       }
-      static register(baseName2, options) {
-        registeredCommands[baseName2] = options;
+      static register(baseName3, options) {
+        registeredCommands[baseName3] = options;
       }
-      static unregister(baseName2) {
-        delete registeredCommands[baseName2];
+      static unregister(baseName3) {
+        delete registeredCommands[baseName3];
         return true;
       }
-      static initialize(baseName2, options) {
-        const mergedOptions = Object.assign({ constructor: Command2 }, registeredCommands[baseName2] ?? {}, options ?? {});
-        const command = new mergedOptions.constructor(baseName2, mergedOptions);
+      static initialize(baseName3, options) {
+        const mergedOptions = Object.assign({ constructor: Command2 }, registeredCommands[baseName3] ?? {}, options ?? {});
+        const command = new mergedOptions.constructor(baseName3, mergedOptions);
         instanceCommands2.push(command);
         return command;
       }

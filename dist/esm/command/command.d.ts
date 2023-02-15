@@ -1,5 +1,5 @@
 import * as helpers from "../helpers";
-declare type CommandInitOption = {
+type CommandInitOption = {
     name?: string;
     feedback?: (<T>(options: helpers.CommonHandlerInput<T>) => void)[];
     undo?: () => void;
@@ -11,7 +11,7 @@ declare type CommandInitOption = {
     postExecute?: (command: Command) => void;
     [param: string]: any;
 };
-declare type CommandInitTemplate = CommandInitOption & {
+type CommandInitTemplate = CommandInitOption & {
     [param: string]: any;
     constructor?: typeof Command;
 };

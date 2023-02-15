@@ -8,5 +8,5 @@ export declare const register: typeof ServiceConstructor.default.register;
 export declare const initialize: typeof ServiceConstructor.default.initialize;
 export declare const findService: typeof ServiceConstructor.default.findService;
 export declare const instanceServices: ServiceConstructor.default[];
-export declare type Service = ServiceClass;
+export type Service = ServiceClass;
 export declare const Service: typeof ServiceConstructor.default;

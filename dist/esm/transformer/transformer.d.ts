@@ -1,6 +1,6 @@
 import { Layer } from "../layer";
 import * as helpers from "../helpers";
-declare type TransformerInitOption = {
+type TransformerInitOption = {
     name?: string;
     layer?: Layer<any>;
     sharedVar?: {
@@ -12,7 +12,7 @@ declare type TransformerInitOption = {
     transient?: boolean;
     [param: string]: any;
 };
-declare type TransformerInitTemplate = TransformerInitOption & {
+type TransformerInitTemplate = TransformerInitOption & {
     [param: string]: any;
     constructor?: typeof GraphicalTransformer;
 };

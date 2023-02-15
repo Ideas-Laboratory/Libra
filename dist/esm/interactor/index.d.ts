@@ -7,4 +7,4 @@ export declare const initialize: typeof InstrumentConstructor.default.initialize
 export declare const findInteractor: typeof InstrumentConstructor.default.findInteractor;
 export declare const instanceInteractors: InstrumentConstructor.default[];
 export declare const Interactor: typeof InstrumentConstructor.default;
-export declare type Interactor = InteractorClass;
+export type Interactor = InteractorClass;

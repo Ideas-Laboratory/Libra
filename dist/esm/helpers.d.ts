@@ -20,7 +20,7 @@ export declare enum DataQueryType {
     Nominal = 1,
     Temporal = 2
 }
-export declare type Transformation = {
+export type Transformation = {
     (domain: any): number;
     invert(range: number): any;
     copy(): Transformation;
@@ -30,27 +30,27 @@ export declare type Transformation = {
     range?(newRange: number[]): Transformation;
     clamp?(bool: boolean): Transformation;
 };
-export declare type ShapeBasedQuery = SurfacePointQuery | PointQuery | CircleQuery | RectQuery | PolygonQuery;
-export declare type SurfacePointQuery = {
+export type ShapeBasedQuery = SurfacePointQuery | PointQuery | CircleQuery | RectQuery | PolygonQuery;
+export type SurfacePointQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.SurfacePoint;
     x: number;
     y: number;
 };
-export declare type PointQuery = {
+export type PointQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.Point;
     x: number;
     y: number;
 };
-export declare type CircleQuery = {
+export type CircleQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.Circle;
     x: number;
     y: number;
     r: number;
 };
-export declare type RectQuery = {
+export type RectQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.Rect;
     x: number;
@@ -58,7 +58,7 @@ export declare type RectQuery = {
     width: number;
     height: number;
 };
-export declare type PolygonQuery = {
+export type PolygonQuery = {
     baseOn: QueryType.Shape;
     type: ShapeQueryType.Polygon;
     points: {
@@ -66,8 +66,8 @@ export declare type PolygonQuery = {
         y: number;
     }[];
 };
-export declare type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
-export declare type QuantitativeQuery = {
+export type DataBasedQuery = QuantitativeQuery | NominalQuery | TemporalQuery;
+export type QuantitativeQuery = {
     baseOn: QueryType.Data;
     type: DataQueryType.Quantitative;
 } & ({
@@ -77,7 +77,7 @@ export declare type QuantitativeQuery = {
     attrName: string[];
     extent: [number, number][];
 });
-export declare type NominalQuery = {
+export type NominalQuery = {
     baseOn: QueryType.Data;
     type: DataQueryType.Nominal;
 } & ({
@@ -87,7 +87,7 @@ export declare type NominalQuery = {
     attrName: string[];
     extent: unknown[][];
 });
-export declare type TemporalQuery = {
+export type TemporalQuery = {
     baseOn: QueryType.Data;
     type: DataQueryType.Temporal;
 } & ({
@@ -99,14 +99,14 @@ export declare type TemporalQuery = {
     extent: [Date, Date][];
     dateParser?: ((value: unknown) => Date)[];
 });
-export declare type AttributeBasedQuery = {
+export type AttributeBasedQuery = {
     baseOn: QueryType.Attr;
     type: string;
     attrName: string;
     value: unknown;
 };
-export declare type ArbitraryQuery = ShapeBasedQuery | DataBasedQuery | AttributeBasedQuery;
-export declare type CommonHandlerInput<T> = {
+export type ArbitraryQuery = ShapeBasedQuery | DataBasedQuery | AttributeBasedQuery;
+export type CommonHandlerInput<T> = {
     self: T;
     layer: Layer<any>;
     instrument: Instrument;
@@ -129,7 +129,7 @@ export declare function parseEventSelector(selector: string): (EventStream | {
     between: (EventStream | BetweenEventStream)[];
     stream: BetweenEventStream[];
 })[];
-export declare type EventStream = {
+export type EventStream = {
     source: string;
     type: string;
     markname?: string;
@@ -139,7 +139,7 @@ export declare type EventStream = {
     throttle?: number;
     debounce?: number;
 };
-export declare type BetweenEventStream = (EventStream & {
+export type BetweenEventStream = (EventStream & {
     between: (EventStream | BetweenEventStream)[];
 }) | {
     between: (EventStream | BetweenEventStream)[];

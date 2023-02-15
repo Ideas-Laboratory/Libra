@@ -1,21 +1,21 @@
 import { Instrument } from "../instrument";
 import * as helpers from "../helpers";
 import { Layer } from "../layer";
-declare type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
-declare type OriginInteractorInnerAction = {
+type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
+type OriginInteractorInnerAction = {
     action: string;
     events: string[];
     transition?: [string, string][];
     sideEffect?: SideEffect;
 };
-declare type EventFilterFunc = (event: Event) => boolean;
-declare type LibraEventStream = helpers.EventStream & {
+type EventFilterFunc = (event: Event) => boolean;
+type LibraEventStream = helpers.EventStream & {
     filterFuncs?: EventFilterFunc[];
 };
-declare type InteractorInnerAction = OriginInteractorInnerAction & {
+type InteractorInnerAction = OriginInteractorInnerAction & {
     eventStreams: LibraEventStream[];
 };
-declare type InteractorInitOption = {
+type InteractorInitOption = {
     name?: string;
     state: string;
     actions?: OriginInteractorInnerAction[];
@@ -25,7 +25,7 @@ declare type InteractorInitOption = {
     postUse?: (interactor: Interactor, instrument: Instrument) => void;
     [param: string]: any;
 };
-declare type InteractorInitTemplate = InteractorInitOption & {
+type InteractorInitTemplate = InteractorInitOption & {
     [param: string]: any;
     constructor?: typeof Interactor;
 };

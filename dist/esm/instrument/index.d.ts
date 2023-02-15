@@ -7,4 +7,4 @@ export declare const initialize: typeof InstrumentConstructor.default.initialize
 export declare const findInstrument: typeof InstrumentConstructor.default.findInstrument;
 export declare const instanceInstruments: InstrumentConstructor.default[];
 export declare const Instrument: typeof InstrumentConstructor.default;
-export declare type Instrument = InstrumentClass;
+export type Instrument = InstrumentClass;

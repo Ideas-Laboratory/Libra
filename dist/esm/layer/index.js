@@ -1,6 +1,7 @@
 import * as LayerConstructor from "./layer";
 import LayerClass from "./layer";
 import "./d3Layer";
+import "./vegaLayer";
 export default LayerClass;
 export const register = LayerConstructor.register;
 export const initialize = LayerConstructor.initialize;

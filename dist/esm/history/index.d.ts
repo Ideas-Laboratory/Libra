@@ -3,8 +3,8 @@ import { GraphicalTransformer } from "../transformer";
 import { Command } from "../command";
 import { Instrument } from "../instrument";
 import { Interactor } from "../interactor";
-export declare type AllRecordingComponents = Service | GraphicalTransformer | Command | Instrument | Interactor;
-declare type HistoryNode = {
+export type AllRecordingComponents = Service | GraphicalTransformer | Command | Instrument | Interactor;
+type HistoryNode = {
     record: Map<AllRecordingComponents, {
         [key: string]: any;
     }>;
@@ -12,12 +12,12 @@ declare type HistoryNode = {
     next?: HistoryNode;
     children: HistoryNode[];
 };
-declare type HistoryTrrackNodeDescription = {
+type HistoryTrrackNodeDescription = {
     recordList: AllRecordingComponents[];
     children: HistoryTrrackNodeDescription[];
     current: boolean;
 };
-declare type HistoryManagerTrrackInstance = {
+type HistoryManagerTrrackInstance = {
     traceStructure: (node?: HistoryNode) => HistoryTrrackNodeDescription;
     commit(): Promise<void>;
     undo(): Promise<void>;

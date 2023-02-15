@@ -1,11 +1,11 @@
 import * as helpers from "../helpers";
-declare type LayerInitRequiredOption = Required<{
+type LayerInitRequiredOption = Required<{
     container: HTMLElement;
 }>;
-declare type LayerRegisterRequiredOption = Required<{
+type LayerRegisterRequiredOption = Required<{
     constructor: typeof Layer;
 }>;
-declare type LayerPartialOption = Partial<{
+type LayerPartialOption = Partial<{
     name: string;
     offset: {
         x: number;
@@ -17,8 +17,8 @@ declare type LayerPartialOption = Partial<{
     postUpdate: <T>(layer: Layer<T>) => void;
     [param: string]: any;
 }>;
-export declare type LayerInitOption = LayerInitRequiredOption & LayerPartialOption;
-export declare type LayerRegisterOption = LayerRegisterRequiredOption & LayerPartialOption;
+export type LayerInitOption = LayerInitRequiredOption & LayerPartialOption;
+export type LayerRegisterOption = LayerRegisterRequiredOption & LayerPartialOption;
 export default class Layer<T> {
     static register: (baseName: string, options: LayerRegisterOption) => void;
     static initialize: <T>(baseName: string, options: LayerInitOption) => Layer<T>;
