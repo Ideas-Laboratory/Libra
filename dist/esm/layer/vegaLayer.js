@@ -45,8 +45,22 @@ export default class VegaLayer extends Layer {
     //   };
     // }
     get _offset() {
-        const matrix = compose(fromDefinition(fromTransformAttribute(this._container.querySelector("g")?.getAttribute("transform") ??
-            "translate(0,0)")));
+        let matrixStr = "translate(0, 0)";
+        if ([...this._container.children].includes(this._graphic)) {
+            matrixStr =
+                this._container.querySelector("g")?.getAttribute("transform") ??
+                    "translate(0,0)";
+        }
+        else {
+            let currDom = this._graphic;
+            while (currDom != this._container) {
+                if (currDom.getAttribute("transform")) {
+                    matrixStr += ` ${currDom.getAttribute("transform")}`;
+                }
+                currDom = currDom.parentElement;
+            }
+        }
+        const matrix = compose(fromDefinition(fromTransformAttribute(matrixStr ?? "translate(0,0)")));
         return { x: matrix.e, y: matrix.f };
     }
     getVisualElements() {
@@ -55,9 +69,13 @@ export default class VegaLayer extends Layer {
         ];
         return elems;
     }
-    getGraphic() {
-        if (this._userOptions.group)
+    getGraphic(real = false) {
+        if (this._userOptions.group) {
+            if (real) {
+                return [...this._container.children].find((el) => el.contains(this._graphic));
+            }
             return this._container;
+        }
         return this._graphic;
     }
     cloneVisualElements(element, deep = false) {

@@ -13,7 +13,7 @@ export default class VegaLayer extends Layer<SVGElement> {
         y: number;
     };
     getVisualElements(): SVGElement[];
-    getGraphic(): SVGElement;
+    getGraphic(real?: boolean): SVGElement;
     cloneVisualElements(element: Element, deep?: boolean): Element;
     select(selector: string): NodeListOf<Element>;
     picking(options: helpers.ArbitraryQuery): SVGElement[];

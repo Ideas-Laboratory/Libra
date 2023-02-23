@@ -69,13 +69,27 @@ export default class VegaLayer extends Layer<SVGElement> {
   // }
 
   get _offset() {
-    const matrix = compose(
-      fromDefinition(
-        fromTransformAttribute(
-          this._container.querySelector("g")?.getAttribute("transform") ??
-            "translate(0,0)"
-        )
+    let matrixStr = "translate(0, 0)";
+    if (
+      [...this._container.children].includes(
+        this._graphic as unknown as HTMLElement
       )
+    ) {
+      matrixStr =
+        this._container.querySelector("g")?.getAttribute("transform") ??
+        "translate(0,0)";
+    } else {
+      let currDom = this._graphic as unknown as HTMLElement;
+      while (currDom != this._container) {
+        if (currDom.getAttribute("transform")) {
+          matrixStr += ` ${currDom.getAttribute("transform")}`;
+        }
+        currDom = currDom.parentElement;
+      }
+    }
+
+    const matrix = compose(
+      fromDefinition(fromTransformAttribute(matrixStr ?? "translate(0,0)"))
     );
 
     return { x: matrix.e, y: matrix.f };
@@ -88,9 +102,15 @@ export default class VegaLayer extends Layer<SVGElement> {
     return elems as SVGElement[];
   }
 
-  getGraphic() {
-    if (this._userOptions.group)
+  getGraphic(real = false) {
+    if (this._userOptions.group) {
+      if (real) {
+        return [...this._container.children].find((el) =>
+          el.contains(this._graphic)
+        ) as unknown as SVGElement;
+      }
       return this._container as unknown as SVGElement;
+    }
     return this._graphic;
   }
 

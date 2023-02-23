@@ -225,17 +225,17 @@ export default class Layer {
             orders[layerName] = order;
             orderLayers.set(this.getLayerFromQueue(layerName), orders);
             if (order >= 0) {
-                const graphic = this.getLayerFromQueue(layerName).getGraphic();
+                const graphic = this.getLayerFromQueue(layerName).getGraphic(true);
                 // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
                 graphic && graphic.style && (graphic.style.display = "initial");
             }
             else {
-                const graphic = this.getLayerFromQueue(layerName).getGraphic();
+                const graphic = this.getLayerFromQueue(layerName).getGraphic(true);
                 // graphic && graphic.style && (graphic.style.pointerEvents = "none");
                 graphic && graphic.style && (graphic.style.display = "none");
             }
             this.getLayerFromQueue(layerName)._order = order;
-            frag.append(this.getLayerFromQueue(layerName).getGraphic());
+            frag.append(this.getLayerFromQueue(layerName).getGraphic(true));
         });
         this.getContainerGraphic().appendChild(frag);
     }

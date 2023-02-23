@@ -306,17 +306,23 @@ export default class Layer<T> {
         orders[layerName] = order;
         orderLayers.set(this.getLayerFromQueue(layerName), orders);
         if (order >= 0) {
-          const graphic: any = this.getLayerFromQueue(layerName).getGraphic();
+          const graphic: any = (
+            this.getLayerFromQueue(layerName).getGraphic as any
+          )(true);
           // graphic && graphic.style && (graphic.style.pointerEvents = "auto");
           graphic && graphic.style && (graphic.style.display = "initial");
         } else {
-          const graphic: any = this.getLayerFromQueue(layerName).getGraphic();
+          const graphic: any = (
+            this.getLayerFromQueue(layerName).getGraphic as any
+          )(true);
           // graphic && graphic.style && (graphic.style.pointerEvents = "none");
           graphic && graphic.style && (graphic.style.display = "none");
         }
         this.getLayerFromQueue(layerName)._order = order;
         frag.append(
-          this.getLayerFromQueue(layerName).getGraphic() as unknown as Node
+          (this.getLayerFromQueue(layerName).getGraphic as any)(
+            true
+          ) as unknown as Node
         );
       });
     this.getContainerGraphic().appendChild(frag);
