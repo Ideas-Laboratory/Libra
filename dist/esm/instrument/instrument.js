@@ -359,7 +359,9 @@ export default class Instrument {
                 else if (!layerOption || layerOption.pointerEvents === "viewport") {
                     // Default is `viewport` for layers
                     const maybeD3Layer = layr;
-                    if (maybeD3Layer._offset) {
+                    if (maybeD3Layer._offset &&
+                        maybeD3Layer._width &&
+                        maybeD3Layer._height) {
                         if (e.offsetX < maybeD3Layer._offset.x ||
                             e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width ||
                             e.offsetY < maybeD3Layer._offset.y ||

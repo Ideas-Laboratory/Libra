@@ -8,6 +8,10 @@ export default class VegaLayer extends Layer<SVGElement> {
     _name: string;
     _svg: SVGSVGElement;
     constructor(baseName: string, options: VegaLayerInitOption);
+    get _offset(): {
+        x: number;
+        y: number;
+    };
     getVisualElements(): SVGElement[];
     getGraphic(): SVGElement;
     cloneVisualElements(element: Element, deep?: boolean): Element;

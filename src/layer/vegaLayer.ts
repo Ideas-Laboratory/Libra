@@ -3,6 +3,11 @@ import vega from "vega-embed";
 import * as d3 from "d3";
 import * as helpers from "../helpers";
 import {} from "../helpers";
+import {
+  fromTransformAttribute,
+  fromDefinition,
+  compose,
+} from "transformation-matrix";
 
 const baseName = "VegaLayer";
 const backgroundClassName = "background";
@@ -24,12 +29,26 @@ export default class VegaLayer extends Layer<SVGElement> {
     this._container = options.container;
     if (options.group) {
       this._graphic = this._container.querySelector(`.${options.group}`);
-      this._graphic.style.pointerEvents = "visiblepainted";
+
+      // const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      // bg.setAttribute("class", backgroundClassName);
+      // bg.setAttribute("x", "0");
+      // bg.setAttribute("y", "0");
+      // bg.setAttribute("width", "100%");
+      // bg.setAttribute("height", "100%");
+      // bg.setAttribute("fill", "transparent");
+      // bg.setAttribute("pointer-events", "none");
+
+      // this._graphic.prepend(bg);
     } else {
       this._graphic = document.createElementNS(
         "http://www.w3.org/2000/svg",
-        "svg"
+        "g"
       );
+      // this._graphic.setAttribute(
+      //   "transform",
+      //   options.container.querySelector("g")?.getAttribute("transform") ?? ""
+      // ); // Make the offset same as the Vega output
       options.container.appendChild(this._graphic);
     }
     let tempElem = this._container;
@@ -48,6 +67,19 @@ export default class VegaLayer extends Layer<SVGElement> {
   //     extraParams: [this._width, this._height],
   //   };
   // }
+
+  get _offset() {
+    const matrix = compose(
+      fromDefinition(
+        fromTransformAttribute(
+          this._container.querySelector("g")?.getAttribute("transform") ??
+            "translate(0,0)"
+        )
+      )
+    );
+
+    return { x: matrix.e, y: matrix.f };
+  }
 
   getVisualElements() {
     const elems = [
@@ -77,31 +109,6 @@ export default class VegaLayer extends Layer<SVGElement> {
     frag.append(copiedElement);
     return copiedElement;
   }
-
-  // onObject(pointer: { x: number, y: number }): boolean {
-  //   const elements = document.elementsFromPoint(pointer.x, pointer.y);
-  //   return (
-  //     this._root.node().contains(element) &&
-  //     !element.classList.contains(backgroundClassName)
-  //   );
-  // }
-  // join(rightTable: any[], joinKey: string): any[] {
-  //   const leftTable = vega.select(this._graphic).selectChildren("*").data();
-  //   const joinTable = leftTable.flatMap((obj) => {
-  //     if (typeof obj !== "object" || obj === undefined || obj === null)
-  //       return [];
-  //     return rightTable
-  //       .filter(
-  //         (rObj) =>
-  //           typeof obj === "object" &&
-  //           obj !== undefined &&
-  //           obj !== null &&
-  //           rObj[joinKey] === obj[joinKey]
-  //       )
-  //       .map((rObj) => ({ ...obj, ...rObj }));
-  //   });
-  //   return joinTable;
-  // }
 
   select(selector: string): NodeListOf<Element> {
     return this._graphic.querySelectorAll(selector);

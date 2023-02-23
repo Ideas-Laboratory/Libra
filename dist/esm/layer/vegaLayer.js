@@ -1,6 +1,7 @@
 import Layer from "./layer";
 import * as d3 from "d3";
 import * as helpers from "../helpers";
+import { fromTransformAttribute, fromDefinition, compose, } from "transformation-matrix";
 const baseName = "VegaLayer";
 const backgroundClassName = "background";
 export default class VegaLayer extends Layer {
@@ -10,10 +11,22 @@ export default class VegaLayer extends Layer {
         this._container = options.container;
         if (options.group) {
             this._graphic = this._container.querySelector(`.${options.group}`);
-            this._graphic.style.pointerEvents = "visiblepainted";
+            // const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            // bg.setAttribute("class", backgroundClassName);
+            // bg.setAttribute("x", "0");
+            // bg.setAttribute("y", "0");
+            // bg.setAttribute("width", "100%");
+            // bg.setAttribute("height", "100%");
+            // bg.setAttribute("fill", "transparent");
+            // bg.setAttribute("pointer-events", "none");
+            // this._graphic.prepend(bg);
         }
         else {
-            this._graphic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            this._graphic = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            // this._graphic.setAttribute(
+            //   "transform",
+            //   options.container.querySelector("g")?.getAttribute("transform") ?? ""
+            // ); // Make the offset same as the Vega output
             options.container.appendChild(this._graphic);
         }
         let tempElem = this._container;
@@ -31,6 +44,11 @@ export default class VegaLayer extends Layer {
     //     extraParams: [this._width, this._height],
     //   };
     // }
+    get _offset() {
+        const matrix = compose(fromDefinition(fromTransformAttribute(this._container.querySelector("g")?.getAttribute("transform") ??
+            "translate(0,0)")));
+        return { x: matrix.e, y: matrix.f };
+    }
     getVisualElements() {
         const elems = [
             ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`),
@@ -57,30 +75,6 @@ export default class VegaLayer extends Layer {
         frag.append(copiedElement);
         return copiedElement;
     }
-    // onObject(pointer: { x: number, y: number }): boolean {
-    //   const elements = document.elementsFromPoint(pointer.x, pointer.y);
-    //   return (
-    //     this._root.node().contains(element) &&
-    //     !element.classList.contains(backgroundClassName)
-    //   );
-    // }
-    // join(rightTable: any[], joinKey: string): any[] {
-    //   const leftTable = vega.select(this._graphic).selectChildren("*").data();
-    //   const joinTable = leftTable.flatMap((obj) => {
-    //     if (typeof obj !== "object" || obj === undefined || obj === null)
-    //       return [];
-    //     return rightTable
-    //       .filter(
-    //         (rObj) =>
-    //           typeof obj === "object" &&
-    //           obj !== undefined &&
-    //           obj !== null &&
-    //           rObj[joinKey] === obj[joinKey]
-    //       )
-    //       .map((rObj) => ({ ...obj, ...rObj }));
-    //   });
-    //   return joinTable;
-    // }
     select(selector) {
         return this._graphic.querySelectorAll(selector);
     }
@@ -196,6 +190,23 @@ export default class VegaLayer extends Layer {
         }
         else if (options.type === helpers.ShapeQueryType.Polygon) {
             // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
+            const { points } = options;
+            const x0 = Math.min(...points.map((p) => p.x)) - svgBCR.left, y0 = Math.min(...points.map((p) => p.y)) - svgBCR.top, x1 = Math.max(...points.map((p) => p.x)) - svgBCR.left, y1 = Math.max(...points.map((p) => p.y)) - svgBCR.top;
+            const rect = this._svg.createSVGRect();
+            rect.x = x0;
+            rect.y = y0;
+            rect.width = x1 - x0;
+            rect.height = y1 - y0;
+            result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => {
+                if (!this._isElementInLayer(elem))
+                    return false;
+                // fix chrome bug for stroke-width
+                const rect = elem.getBoundingClientRect();
+                return !(rect.right < x0 + svgBCR.left ||
+                    rect.left > x1 + svgBCR.left ||
+                    rect.bottom < y0 + svgBCR.top ||
+                    rect.top > y1 + svgBCR.top);
+            });
         }
         // getElementsFromPoint cannot get the SVGGElement since it will never be touched directly.
         const resultWithSVGGElement = [];
