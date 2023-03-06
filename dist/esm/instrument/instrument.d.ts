@@ -35,6 +35,39 @@ type InstrumentInitTemplate = InstrumentInitOption & {
     [param: string]: any;
     constructor?: typeof Instrument;
 };
+type InstrumentFlowOption = {
+    type: string;
+    id?: string;
+    sharedVar?: {
+        [varName: string]: any;
+    };
+    dimension?: string | string[];
+    [params: string]: any;
+};
+type InstrumentBuildTemplate = {
+    inherit: string;
+    layers?: (Layer<any> | {
+        layer: Layer<any>;
+        options: any;
+    })[];
+    sharedVar?: {
+        [varName: string]: any;
+    };
+    remove?: {
+        find: string;
+        cascade: boolean;
+    }[];
+    override?: {
+        find: string;
+        replace: string;
+        id?: string;
+        sharedVar?: {
+            [varName: string]: any;
+        };
+        [params: string]: any;
+    }[];
+    flow?: (InstrumentFlowOption | InstrumentFlowOption[] | Service | GraphicalTransformer | Service[] | GraphicalTransformer[] | ((...args: any) => InstrumentFlowOption))[];
+};
 export declare const instanceInstruments: Instrument[];
 export default class Instrument {
     _baseName: string;
@@ -90,6 +123,7 @@ export default class Instrument {
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: InstrumentInitOption): Instrument;
     static findInstrument(baseNameOrRealName: string): Instrument[];
+    static build(options: InstrumentBuildTemplate): Instrument;
 }
 export declare const register: typeof Instrument.register;
 export declare const unregister: typeof Instrument.unregister;

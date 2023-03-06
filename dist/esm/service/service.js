@@ -83,10 +83,14 @@ export default class Service {
                     this._result = await this._computing;
                     this._computing = null;
                     this._services.forEach((service) => {
-                        service.setSharedVar(this._resultAlias, this._result);
+                        service.setSharedVars({
+                            ...this._sharedVar,
+                            [this._resultAlias]: this._result,
+                        });
                     });
                     this._transformers.forEach((transformer) => {
                         transformer.setSharedVars({
+                            ...this._sharedVar,
                             [this._resultAlias]: this._result,
                         });
                     });

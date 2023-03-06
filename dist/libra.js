@@ -4788,10 +4788,14 @@ var init_service = __esm({
               this._result = await this._computing;
               this._computing = null;
               this._services.forEach((service) => {
-                service.setSharedVar(this._resultAlias, this._result);
+                service.setSharedVars({
+                  ...this._sharedVar,
+                  [this._resultAlias]: this._result
+                });
               });
               this._transformers.forEach((transformer) => {
                 transformer.setSharedVars({
+                  ...this._sharedVar,
                   [this._resultAlias]: this._result
                 });
               });
@@ -5063,6 +5067,29 @@ var init_selectionService = __esm({
             });
           });
         }
+        if (this._sharedVar.scaleX && this._sharedVar.scaleX.invert && this._sharedVar.scaleY && this._sharedVar.scaleY.invert) {
+          const x = this._sharedVar.offsetx;
+          const y = this._sharedVar.offsety;
+          const width = this._sharedVar.width;
+          const height = this._sharedVar.height;
+          const layerOffsetX = layer._offset?.x ?? 0;
+          const layerOffsetY = layer._offset?.y ?? 0;
+          const newExtentX = [x - layerOffsetX, x - layerOffsetX + width].map(this._sharedVar.scaleX.invert);
+          const newExtentY = [y - layerOffsetY, y - layerOffsetY + height].map(this._sharedVar.scaleY.invert);
+          this.filter([newExtentX, newExtentY], { passive: true });
+        } else if (this._sharedVar.scaleX && this._sharedVar.scaleX.invert) {
+          const x = this._sharedVar.offsetx;
+          const width = this._sharedVar.width;
+          const layerOffsetX = layer._offset?.x ?? 0;
+          const newExtentX = [x - layerOffsetX, x - layerOffsetX + width].map(this._sharedVar.scaleX.invert);
+          this.filter(newExtentX, { passive: true });
+        } else if (this._sharedVar.scaleY && this._sharedVar.scaleY.invert) {
+          const y = this._sharedVar.offsety;
+          const height = this._sharedVar.height;
+          const layerOffsetY = layer._offset?.y ?? 0;
+          const newExtentY = [y - layerOffsetY, y - layerOffsetY + height].map(this._sharedVar.scaleY.invert);
+          this.filter(newExtentY, { passive: true });
+        }
         this._nextTick = 0;
         this.postUpdate();
       }
@@ -5080,18 +5107,36 @@ var init_selectionService = __esm({
           fmtArr = formatter ?? dimArr.map(() => (d) => d);
         }
         const zipArr = dimArr.map((d, i) => [d, fmtArr[i]]);
+        const scopeSharedVar = { ...this._sharedVar };
+        let scopeLayerInstances = [];
         this._currentDimension = zipArr;
         return new Proxy(this, {
-          get(target, p) {
+          get(target, p, receiver) {
             if (p === "dimension") {
               return target.dimension.bind(target);
             } else if (p === "_currentDimension") {
               return zipArr;
+            } else if (p === "_scopeMode") {
+              return true;
+            } else if (p === "_sharedVar") {
+              return scopeSharedVar;
+            } else if (p === "_layerInstances") {
+              if (scopeLayerInstances.length) {
+                return scopeLayerInstances;
+              } else {
+                return target._layerInstances;
+              }
+            } else if (target[p] instanceof Function) {
+              return target[p].bind(receiver);
             } else {
               return target[p];
             }
           },
           set(target, p, value) {
+            if (p === "_layerInstances") {
+              scopeLayerInstances = value;
+              return true;
+            }
             target[p] = value;
             return true;
           }
@@ -5111,9 +5156,11 @@ var init_selectionService = __esm({
           }
         } else if (this._currentDimension.length === 1 && extent instanceof Array && extent.length > 0 && !(extent[0] instanceof Array)) {
           this._selectionMapping.set(this._currentDimension[0][0], this._currentDimension[0][1](extent).sort((a, b) => typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1));
-          this._sharedVar.attrName = [...this._selectionMapping.keys()];
-          this._sharedVar.extent = [...this._selectionMapping.values()];
-          this._evaluate(layer);
+          if (!options?.passive) {
+            this._sharedVar.attrName = [...this._selectionMapping.keys()];
+            this._sharedVar.extent = [...this._selectionMapping.values()];
+            this._evaluate(layer);
+          }
           this._services.forEach((service) => {
             service.setSharedVar("extents", this.extents);
           });
@@ -5124,9 +5171,11 @@ var init_selectionService = __esm({
           this._currentDimension.forEach((dim, i) => {
             this._selectionMapping.set(dim[0], dim[1](extent[i]).sort((a, b) => typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1));
           });
-          this._sharedVar.attrName = [...this._selectionMapping.keys()];
-          this._sharedVar.extent = [...this._selectionMapping.values()];
-          this._evaluate(layer);
+          if (!options?.passive) {
+            this._sharedVar.attrName = [...this._selectionMapping.keys()];
+            this._sharedVar.extent = [...this._selectionMapping.values()];
+            this._evaluate(layer);
+          }
           this._services.forEach((service) => {
             service.setSharedVar("extents", this.extents);
           });
@@ -7858,6 +7907,7 @@ var init_instrument = __esm({
     init_layer2();
     init_service2();
     init_transformer2();
+    init_selectionService();
     registeredInstruments = {};
     instanceInstruments = [];
     EventDispatcher = new Map();
@@ -8086,14 +8136,6 @@ var init_instrument = __esm({
             }
           });
         }
-        const linkProps = this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-        if (this._sharedVar.linking) {
-          for (let prop of linkProps) {
-            if (this._linkCache[prop] === this._sharedVar[prop])
-              continue;
-            this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
-          }
-        }
       }
       watchSharedVar(sharedName, handler) {
         this.on(`update:${sharedName}`, handler);
@@ -8236,6 +8278,221 @@ var init_instrument = __esm({
       static findInstrument(baseNameOrRealName) {
         return instanceInstruments.filter((instrument) => instrument.isInstanceOf(baseNameOrRealName));
       }
+      static build(options) {
+        if (!(options.inherit in registeredInstruments)) {
+          throw new Error(`Instrument ${options.inherit} is not registered, please register it first`);
+        }
+        const inheritOption = Object.assign({ constructor: Instrument }, registeredInstruments[options.inherit], {
+          sharedVar: Object.assign({}, registeredInstruments[options.inherit].sharedVar ?? {}, options.sharedVar ?? {})
+        });
+        if (options.layers) {
+          inheritOption.layers = options.layers;
+        }
+        if (options.flow) {
+          let prevComponent = null;
+          let prevType = null;
+          for (let i = options.flow.length - 1; i >= 0; i--) {
+            const componentOption = options.flow[i];
+            if (componentOption instanceof Function) {
+              prevComponent = [];
+              for (let j = 0; j < inheritOption.layers.length; j++) {
+                const layer = inheritOption.layers[j];
+                const generatedOption = componentOption(layer, j);
+                if (generatedOption.type.includes("Transformer")) {
+                  let transformer;
+                  if (generatedOption.id) {
+                    if (GraphicalTransformer2.findTransformer(generatedOption.id).length > 0) {
+                      transformer = GraphicalTransformer2.findTransformer(generatedOption.id)[0];
+                    }
+                  }
+                  if (!transformer)
+                    transformer = GraphicalTransformer2.initialize(generatedOption.type, {
+                      sharedVar: {
+                        ...options.sharedVar || {},
+                        ...generatedOption.sharedVar || {}
+                      }
+                    });
+                  prevComponent.push(transformer);
+                  prevType = "Transformer";
+                } else if (generatedOption.type.includes("Service")) {
+                  let service;
+                  if (generatedOption.id) {
+                    if (Service2.findService(generatedOption.id).length > 0) {
+                      service = Service2.findService(generatedOption.id)[0];
+                    }
+                  }
+                  if (!service)
+                    service = Service2.initialize(generatedOption.type, {
+                      ...generatedOption,
+                      ...prevComponent ? prevType == "Transformer" ? {
+                        transformers: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                      } : {
+                        services: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                      } : {},
+                      sharedVar: {
+                        ...options.sharedVar || {},
+                        ...generatedOption.sharedVar || {}
+                      }
+                    });
+                  if (generatedOption.dimension && service instanceof SelectionService) {
+                    service = service.dimension(generatedOption.dimension);
+                    if (generatedOption.layers) {
+                      service._layerInstances = generatedOption.layers.slice(0);
+                    }
+                    if (generatedOption.sharedVar) {
+                      service.setSharedVars(generatedOption.sharedVar);
+                    }
+                  }
+                  prevComponent.push(service);
+                  prevType = "Service";
+                }
+              }
+            } else if (componentOption instanceof Array) {
+              prevComponent = [];
+              for (let j = 0; j < componentOption.length; j++) {
+                const component = componentOption[j];
+                if (component instanceof GraphicalTransformer2) {
+                  prevComponent.push(component);
+                  prevType = "Transformer";
+                } else if (component instanceof Service2) {
+                  if (prevType == "Transformer") {
+                    component._transformers.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
+                  } else {
+                    component._services.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
+                  }
+                  prevComponent.push(component);
+                  prevType = "Service";
+                } else if (component.type.includes("Transformer")) {
+                  let transformer;
+                  if (component.id) {
+                    if (GraphicalTransformer2.findTransformer(component.id).length > 0) {
+                      transformer = GraphicalTransformer2.findTransformer(component.id)[0];
+                    }
+                  }
+                  if (!transformer)
+                    transformer = GraphicalTransformer2.initialize(component.type, {
+                      sharedVar: {
+                        ...options.sharedVar || {},
+                        ...component.sharedVar || {}
+                      }
+                    });
+                  prevComponent.push(transformer);
+                  prevType = "Transformer";
+                } else if (component.type.includes("Service")) {
+                  let service;
+                  if (component.id) {
+                    if (Service2.findService(component.id).length > 0) {
+                      service = Service2.findService(component.id)[0];
+                    }
+                  }
+                  if (!service)
+                    service = Service2.initialize(component.type, {
+                      ...component,
+                      ...prevComponent ? prevType == "Transformer" ? {
+                        transformers: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                      } : {
+                        services: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                      } : {},
+                      sharedVar: {
+                        ...options.sharedVar || {},
+                        ...component.sharedVar || {}
+                      }
+                    });
+                  if (component.dimension && service instanceof SelectionService) {
+                    service = service.dimension(component.dimension);
+                    if (component.layers) {
+                      service._layerInstances = component.layers.slice(0);
+                    }
+                    if (component.sharedVar) {
+                      service.setSharedVars(component.sharedVar);
+                    }
+                  }
+                  prevComponent.push(service);
+                  prevType = "Service";
+                }
+              }
+            } else if (componentOption instanceof GraphicalTransformer2) {
+              prevComponent = componentOption;
+              prevType = "Transformer";
+            } else if (componentOption instanceof Service2) {
+              if (prevType == "Transformer") {
+                componentOption._transformers.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
+              } else {
+                componentOption._services.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
+              }
+              prevComponent = componentOption;
+              prevType = "Service";
+            } else if (componentOption.type.includes("Transformer")) {
+              let transformer;
+              if (componentOption.id) {
+                if (GraphicalTransformer2.findTransformer(componentOption.id).length > 0) {
+                  transformer = GraphicalTransformer2.findTransformer(componentOption.id)[0];
+                }
+              }
+              if (!transformer)
+                transformer = GraphicalTransformer2.initialize(componentOption.type, {
+                  sharedVar: {
+                    ...options.sharedVar || {},
+                    ...componentOption.sharedVar || {}
+                  }
+                });
+              prevComponent = transformer;
+              prevType = "Transformer";
+            } else if (componentOption.type.includes("Service")) {
+              let service;
+              if (componentOption.id) {
+                if (Service2.findService(componentOption.id).length > 0) {
+                  service = Service2.findService(componentOption.id)[0];
+                }
+              }
+              if (!service)
+                service = Service2.initialize(componentOption.type, {
+                  ...componentOption,
+                  ...prevComponent ? prevType == "Transformer" ? {
+                    transformers: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                  } : {
+                    services: prevComponent instanceof Array ? prevComponent : [prevComponent]
+                  } : {},
+                  sharedVar: {
+                    ...options.sharedVar || {},
+                    ...componentOption.sharedVar || {}
+                  }
+                });
+              if (componentOption.dimension && service.isInstanceOf("SelectionService")) {
+                service = service.dimension(componentOption.dimension);
+                if (componentOption.layers) {
+                  service._layerInstances = componentOption.layers.slice(0);
+                }
+                if (componentOption.sharedVar) {
+                  service.setSharedVars(componentOption.sharedVar);
+                }
+              }
+              prevComponent = service;
+              prevType = "Service";
+            }
+          }
+          if (prevComponent) {
+            if (prevType == "Transformer") {
+              inheritOption.transformers = inheritOption.transformers || [];
+              if (prevComponent instanceof Array) {
+                inheritOption.transformers.push(...prevComponent);
+              } else {
+                inheritOption.transformers.push(prevComponent);
+              }
+            } else {
+              inheritOption.services = inheritOption.services || [];
+              if (prevComponent instanceof Array) {
+                inheritOption.services.push(...prevComponent);
+              } else {
+                inheritOption.services.push(prevComponent);
+              }
+            }
+          }
+        }
+        const instrument = new inheritOption.constructor(options.inherit, inheritOption);
+        instanceInstruments.push(instrument);
+        return instrument;
+      }
     };
     _a5 = LibraSymbol;
     register6 = Instrument.register;
@@ -8261,8 +8518,12 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const services = instrument.services.find("SelectionService");
-            services.setSharedVar("x", event.clientX, { layer });
-            services.setSharedVar("y", event.clientY, { layer });
+            services.setSharedVars({
+              x: event.clientX,
+              y: event.clientY,
+              offsetx: event.offsetX,
+              offsety: event.offsetY
+            }, { layer });
           }
         ]
       },
@@ -8289,8 +8550,12 @@ var init_builtin3 = __esm({
             instrument.setSharedVar("x", event.clientX);
             instrument.setSharedVar("y", event.clientY);
             const services = instrument.services.find("SelectionService");
-            services.setSharedVar("x", event.clientX, { layer });
-            services.setSharedVar("y", event.clientY, { layer });
+            services.setSharedVars({
+              x: event.clientX,
+              y: event.clientY,
+              offsetx: event.offsetX,
+              offsety: event.offsetY
+            }, { layer });
             instrument.emit("clickstart", {
               ...options,
               self: options.instrument
@@ -8303,8 +8568,12 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const services = instrument.services.find("SelectionService");
-            services.setSharedVar("x", 0, { layer });
-            services.setSharedVar("y", 0, { layer });
+            services.setSharedVars({
+              x: 0,
+              y: 0,
+              offsetx: 0,
+              offsety: 0
+            }, { layer });
             if (event.clientX === instrument.getSharedVar("x") && event.clientY === instrument.getSharedVar("y")) {
               instrument.setSharedVar("x", 0);
               instrument.setSharedVar("y", 0);
@@ -8327,8 +8596,12 @@ var init_builtin3 = __esm({
             if (options.event.changedTouches)
               options.event = options.event.changedTouches[0];
             const services = options.instrument.services.find("SelectionService");
-            services.setSharedVar("x", 0, { layer: options.layer });
-            services.setSharedVar("y", 0, { layer: options.layer });
+            services.setSharedVars({
+              x: 0,
+              y: 0,
+              offsetx: 0,
+              offsety: 0
+            }, { layer: options.layer });
             options.instrument.emit("clickabort", {
               ...options,
               self: options.instrument
@@ -8356,64 +8629,24 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const services = instrument.services.find("RectSelectionService");
-            services.setSharedVar("x", event.clientX, { layer });
-            services.setSharedVar("y", event.clientY, { layer });
-            services.setSharedVar("width", 1, { layer });
-            services.setSharedVar("height", 1, { layer });
-            services.setSharedVar("startx", event.clientX, { layer });
-            services.setSharedVar("starty", event.clientY, { layer });
-            services.setSharedVar("currentx", event.clientX, { layer });
-            services.setSharedVar("currenty", event.clientY, { layer });
-            instrument.setSharedVar("startx", event.clientX);
-            instrument.setSharedVar("starty", event.clientY);
-            instrument.setSharedVar("startoffsetx", event.offsetX);
-            instrument.setSharedVar("startoffsety", event.offsetY);
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x: 0,
-              y: 0,
+            services.setSharedVars({
+              x: event.clientX,
+              y: event.clientY,
+              offsetx: event.offsetX,
+              offsety: event.offsetY,
               width: 1,
-              height: 1
-            });
-          }
-        ],
-        drag: [
-          async ({ event, layer, instrument }) => {
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            const startx = instrument.getSharedVar("startx");
-            const starty = instrument.getSharedVar("starty");
-            const x = Math.min(startx, event.clientX);
-            const y = Math.min(starty, event.clientY);
-            const width = Math.abs(event.clientX - startx);
-            const height = Math.abs(event.clientY - starty);
-            const services = instrument.services.find("SelectionService");
-            services.setSharedVar("x", x, { layer });
-            services.setSharedVar("y", y, { layer });
-            services.setSharedVar("width", width, {
-              layer
-            });
-            services.setSharedVar("height", height, {
-              layer
-            });
-            services.setSharedVar("currentx", event.clientX, { layer });
-            services.setSharedVar("currenty", event.clientY, { layer });
-            instrument.transformers.setSharedVars({
-              x: x - layer.getGraphic().getBoundingClientRect().left,
-              y: y - layer.getGraphic().getBoundingClientRect().top,
-              width,
-              height
-            });
-          },
-          async (options) => {
-            let { event, layer, instrument } = options;
-            if (event.changedTouches)
-              event = event.changedTouches[0];
-            const startx = instrument.getSharedVar("startoffsetx");
-            const starty = instrument.getSharedVar("startoffsety");
-            const x = Math.min(startx, event.offsetX);
-            const y = Math.min(starty, event.offsetY);
-            const width = Math.abs(event.offsetX - startx);
-            const height = Math.abs(event.offsetY - starty);
+              height: 1,
+              startx: event.clientX,
+              starty: event.clientY,
+              startoffsetx: event.offsetX,
+              startoffsety: event.offsetY,
+              currentx: event.clientX,
+              currenty: event.clientY
+            }, { layer });
+            const x = event.offsetX;
+            const y = event.offsetY;
+            const width = 0;
+            const height = 0;
             const layerOffsetX = layer._offset?.x ?? 0;
             const layerOffsetY = layer._offset?.y ?? 0;
             const scaleX = instrument.getSharedVar("scaleX");
@@ -8431,7 +8664,50 @@ var init_builtin3 = __esm({
                 [y - layerOffsetY, y - layerOffsetY + height]
               ]);
             }
-            instrument.emit("brush", options);
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("starty", event.clientY);
+            instrument.setSharedVar("startoffsetx", event.offsetX);
+            instrument.setSharedVar("startoffsety", event.offsetY);
+            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1
+            });
+          }
+        ],
+        drag: [
+          async (options) => {
+            let { event, layer, instrument } = options;
+            if (event.changedTouches)
+              event = event.changedTouches[0];
+            const startx = instrument.getSharedVar("startx");
+            const starty = instrument.getSharedVar("starty");
+            const startoffsetx = instrument.getSharedVar("startoffsetx");
+            const startoffsety = instrument.getSharedVar("startoffsety");
+            const x = Math.min(startx, event.clientX);
+            const y = Math.min(starty, event.clientY);
+            const offsetx = Math.min(startoffsetx, event.offsetX);
+            const offsety = Math.min(startoffsety, event.offsetY);
+            const width = Math.abs(event.clientX - startx);
+            const height = Math.abs(event.clientY - starty);
+            const services = instrument.services.find("SelectionService");
+            services.setSharedVars({
+              x,
+              y,
+              offsetx,
+              offsety,
+              width,
+              height,
+              currentx: event.clientX,
+              currenty: event.clientY
+            }, { layer });
+            instrument.transformers.setSharedVars({
+              x: x - layer.getGraphic().getBoundingClientRect().left,
+              y: y - layer.getGraphic().getBoundingClientRect().top,
+              width,
+              height
+            });
           }
         ],
         dragabort: [
@@ -8440,14 +8716,18 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const services = instrument.services.find("SelectionService");
-            services.setSharedVar("x", 0, { layer });
-            services.setSharedVar("y", 0, { layer });
-            services.setSharedVar("width", 0, { layer });
-            services.setSharedVar("height", 0, { layer });
-            services.setSharedVar("currentx", event.clientX, { layer });
-            services.setSharedVar("currenty", event.clientY, { layer });
-            services.setSharedVar("endx", event.clientX, { layer });
-            services.setSharedVar("endy", event.clientY, { layer });
+            services.setSharedVars({
+              x: 0,
+              y: 0,
+              offsetx: 0,
+              offsety: 0,
+              width: 0,
+              height: 0,
+              currentx: event.clientX,
+              currenty: event.clientY,
+              endx: event.clientX,
+              endy: event.clientY
+            }, { layer });
             instrument.transformers.setSharedVars({
               x: 0,
               y: 0,
@@ -8491,11 +8771,16 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const services = instrument.services;
-            services.setSharedVar("x", event.offsetX, { layer });
-            services.setSharedVar("width", 1, { layer });
-            services.setSharedVar("startx", event.offsetX, { layer });
-            services.setSharedVar("currentx", event.offsetX, { layer });
-            instrument.setSharedVar("startx", event.offsetX);
+            services.setSharedVars({
+              x: event.clientX,
+              offsetx: event.offsetX,
+              width: 0,
+              startx: event.clientX,
+              startoffsetx: event.offsetX,
+              currentx: event.clientX
+            }, { layer });
+            instrument.setSharedVar("startx", event.clientX);
+            instrument.setSharedVar("startoffsetx", event.offsetX);
             instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
               x: 0,
               width: 1
@@ -8508,26 +8793,20 @@ var init_builtin3 = __esm({
             if (event.changedTouches)
               event = event.changedTouches[0];
             const startx = instrument.getSharedVar("startx");
-            const x = Math.min(startx, event.offsetX);
-            const width = Math.abs(event.offsetX - startx);
-            const layerOffsetX = layer._offset?.x ?? 0;
-            const services = instrument.services;
-            const scaleX = instrument.getSharedVar("scaleX");
-            if (scaleX && scaleX.invert) {
-              const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(scaleX.invert);
-              instrument.setSharedVar("extent", newExtent, { layer });
-              instrument.services.find("SelectionService").filter(newExtent);
-            } else {
-              instrument.services.find("SelectionService").filter([x - layerOffsetX, x - layerOffsetX + width]);
-            }
-            services.setSharedVar("x", x, { layer });
-            services.setSharedVar("width", width, {
-              layer
-            });
-            services.setSharedVar("currentx", event.offsetX, { layer });
-            instrument.setSharedVar("currentx", event.offsetX);
+            const startoffsetx = instrument.getSharedVar("startoffsetx");
+            const x = Math.min(startx, event.clientX);
+            const offsetx = Math.min(startoffsetx, event.offsetX);
+            const width = Math.abs(event.clientX - startx);
+            instrument.services.find("SelectionService").setSharedVars({
+              x,
+              offsetx,
+              width,
+              currentx: event.clientX
+            }, { layer });
+            instrument.setSharedVar("currentx", event.clientX);
+            instrument.setSharedVar("currentoffsetx", event.offsetX);
             instrument.transformers.setSharedVars({
-              x: x - layerOffsetX,
+              x: x - layer.getGraphic().getBoundingClientRect().left,
               width
             });
             instrument.emit("brush", options);
@@ -8538,11 +8817,12 @@ var init_builtin3 = __esm({
             let { event, layer, instrument } = options;
             if (event.changedTouches)
               event = event.changedTouches[0];
-            const services = instrument.services;
-            services.setSharedVar("x", 0, { layer });
-            services.setSharedVar("width", 0, { layer });
-            services.setSharedVar("currentx", event.offsetX, { layer });
-            services.setSharedVar("endx", event.offsetX, { layer });
+            instrument.services.setSharedVars({
+              x: 0,
+              offsetx: 0,
+              width: 0,
+              currentx: event.clientX
+            }, { layer });
             instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
               x: 0,
               width: 0

@@ -13,8 +13,15 @@ Instrument.register("HoverInstrument", {
       async ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
+        services.setSharedVars(
+          {
+            x: event.clientX,
+            y: event.clientY,
+            offsetx: event.offsetX,
+            offsety: event.offsetY,
+          },
+          { layer }
+        );
       },
     ],
   },
@@ -41,8 +48,15 @@ Instrument.register("ClickInstrument", {
         instrument.setSharedVar("x", event.clientX);
         instrument.setSharedVar("y", event.clientY);
         const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", event.clientX, { layer: layer });
-        services.setSharedVar("y", event.clientY, { layer: layer });
+        services.setSharedVars(
+          {
+            x: event.clientX,
+            y: event.clientY,
+            offsetx: event.offsetX,
+            offsety: event.offsetY,
+          },
+          { layer }
+        );
 
         instrument.emit("clickstart", {
           ...options,
@@ -55,8 +69,15 @@ Instrument.register("ClickInstrument", {
         let { event, layer, instrument } = options;
         if (event.changedTouches) event = event.changedTouches[0];
         const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer: layer });
-        services.setSharedVar("y", 0, { layer: layer });
+        services.setSharedVars(
+          {
+            x: 0,
+            y: 0,
+            offsetx: 0,
+            offsety: 0,
+          },
+          { layer }
+        );
 
         if (
           event.clientX === instrument.getSharedVar("x") &&
@@ -83,8 +104,15 @@ Instrument.register("ClickInstrument", {
         if (options.event.changedTouches)
           options.event = options.event.changedTouches[0];
         const services = options.instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer: options.layer });
-        services.setSharedVar("y", 0, { layer: options.layer });
+        services.setSharedVars(
+          {
+            x: 0,
+            y: 0,
+            offsetx: 0,
+            offsety: 0,
+          },
+          { layer: options.layer }
+        );
         options.instrument.emit("clickabort", {
           ...options,
           self: options.instrument,
@@ -112,71 +140,28 @@ Instrument.register("BrushInstrument", {
       async ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         const services = instrument.services.find("RectSelectionService");
-        services.setSharedVar("x", event.clientX, { layer });
-        services.setSharedVar("y", event.clientY, { layer });
-        services.setSharedVar("width", 1, { layer });
-        services.setSharedVar("height", 1, { layer });
-        services.setSharedVar("startx", event.clientX, { layer });
-        services.setSharedVar("starty", event.clientY, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        instrument.setSharedVar("startx", event.clientX);
-        instrument.setSharedVar("starty", event.clientY);
-        instrument.setSharedVar("startoffsetx", event.offsetX);
-        instrument.setSharedVar("startoffsety", event.offsetY);
-        instrument.transformers
-          .find("TransientRectangleTransformer")
-          .setSharedVars({
-            x: 0,
-            y: 0,
+        services.setSharedVars(
+          {
+            x: event.clientX,
+            y: event.clientY,
+            offsetx: event.offsetX,
+            offsety: event.offsetY,
             width: 1,
             height: 1,
-          });
-      },
-    ],
-    drag: [
-      async ({ event, layer, instrument }) => {
-        if (event.changedTouches) event = event.changedTouches[0];
+            startx: event.clientX,
+            starty: event.clientY,
+            startoffsetx: event.offsetX,
+            startoffsety: event.offsetY,
+            currentx: event.clientX,
+            currenty: event.clientY,
+          },
+          { layer }
+        );
 
-        const startx = instrument.getSharedVar("startx");
-        const starty = instrument.getSharedVar("starty");
-
-        const x = Math.min(startx, event.clientX);
-        const y = Math.min(starty, event.clientY);
-        const width = Math.abs(event.clientX - startx);
-        const height = Math.abs(event.clientY - starty);
-
-        // selection, currently service use client coordinates, but coordinates relative to the layer maybe more appropriate.
-        const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", x, { layer });
-        services.setSharedVar("y", y, { layer });
-        services.setSharedVar("width", width, {
-          layer,
-        });
-        services.setSharedVar("height", height, {
-          layer,
-        });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-
-        instrument.transformers.setSharedVars({
-          x: x - layer.getGraphic().getBoundingClientRect().left,
-          y: y - layer.getGraphic().getBoundingClientRect().top,
-          width,
-          height,
-        });
-      },
-      async (options) => {
-        let { event, layer, instrument } = options;
-        if (event.changedTouches) event = event.changedTouches[0];
-
-        const startx = instrument.getSharedVar("startoffsetx");
-        const starty = instrument.getSharedVar("startoffsety");
-
-        const x = Math.min(startx, event.offsetX);
-        const y = Math.min(starty, event.offsetY);
-        const width = Math.abs(event.offsetX - startx);
-        const height = Math.abs(event.offsetY - starty);
+        const x = event.offsetX;
+        const y = event.offsetY;
+        const width = 0;
+        const height = 0;
         const layerOffsetX = (layer as any)._offset?.x ?? 0;
         const layerOffsetY = (layer as any)._offset?.y ?? 0;
 
@@ -202,7 +187,60 @@ Instrument.register("BrushInstrument", {
             [y - layerOffsetY, y - layerOffsetY + height],
           ]);
         }
-        instrument.emit("brush", options as any);
+
+        instrument.setSharedVar("startx", event.clientX);
+        instrument.setSharedVar("starty", event.clientY);
+        instrument.setSharedVar("startoffsetx", event.offsetX);
+        instrument.setSharedVar("startoffsety", event.offsetY);
+        instrument.transformers
+          .find("TransientRectangleTransformer")
+          .setSharedVars({
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+          });
+      },
+    ],
+    drag: [
+      async (options) => {
+        let { event, layer, instrument } = options;
+        if (event.changedTouches) event = event.changedTouches[0];
+
+        const startx = instrument.getSharedVar("startx");
+        const starty = instrument.getSharedVar("starty");
+        const startoffsetx = instrument.getSharedVar("startoffsetx");
+        const startoffsety = instrument.getSharedVar("startoffsety");
+
+        const x = Math.min(startx, event.clientX);
+        const y = Math.min(starty, event.clientY);
+        const offsetx = Math.min(startoffsetx, event.offsetX);
+        const offsety = Math.min(startoffsety, event.offsetY);
+        const width = Math.abs(event.clientX - startx);
+        const height = Math.abs(event.clientY - starty);
+
+        // selection, currently service use client coordinates, but coordinates relative to the layer maybe more appropriate.
+        const services = instrument.services.find("SelectionService");
+        services.setSharedVars(
+          {
+            x,
+            y,
+            offsetx,
+            offsety,
+            width,
+            height,
+            currentx: event.clientX,
+            currenty: event.clientY,
+          },
+          { layer }
+        );
+
+        instrument.transformers.setSharedVars({
+          x: x - layer.getGraphic().getBoundingClientRect().left,
+          y: y - layer.getGraphic().getBoundingClientRect().top,
+          width,
+          height,
+        });
       },
     ],
     dragabort: [
@@ -211,14 +249,21 @@ Instrument.register("BrushInstrument", {
 
         if (event.changedTouches) event = event.changedTouches[0];
         const services = instrument.services.find("SelectionService");
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("y", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("height", 0, { layer });
-        services.setSharedVar("currentx", event.clientX, { layer });
-        services.setSharedVar("currenty", event.clientY, { layer });
-        services.setSharedVar("endx", event.clientX, { layer });
-        services.setSharedVar("endy", event.clientY, { layer });
+        services.setSharedVars(
+          {
+            x: 0,
+            y: 0,
+            offsetx: 0,
+            offsety: 0,
+            width: 0,
+            height: 0,
+            currentx: event.clientX,
+            currenty: event.clientY,
+            endx: event.clientX,
+            endy: event.clientY,
+          },
+          { layer }
+        );
         instrument.transformers.setSharedVars({
           x: 0,
           y: 0,
@@ -266,11 +311,20 @@ Instrument.register("BrushXInstrument", {
       async ({ event, layer, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         const services = instrument.services;
-        services.setSharedVar("x", event.offsetX, { layer });
-        services.setSharedVar("width", 1, { layer });
-        services.setSharedVar("startx", event.offsetX, { layer });
-        services.setSharedVar("currentx", event.offsetX, { layer });
-        instrument.setSharedVar("startx", event.offsetX);
+        services.setSharedVars(
+          {
+            x: event.clientX,
+            offsetx: event.offsetX,
+            width: 0,
+            startx: event.clientX,
+            startoffsetx: event.offsetX,
+            currentx: event.clientX,
+          },
+          { layer }
+        );
+
+        instrument.setSharedVar("startx", event.clientX);
+        instrument.setSharedVar("startoffsetx", event.offsetX);
         instrument.transformers
           .find("TransientRectangleTransformer")
           .setSharedVars({
@@ -286,38 +340,28 @@ Instrument.register("BrushXInstrument", {
         if (event.changedTouches) event = event.changedTouches[0];
 
         const startx = instrument.getSharedVar("startx");
+        const startoffsetx = instrument.getSharedVar("startoffsetx");
 
-        const x = Math.min(startx, event.offsetX);
-        const width = Math.abs(event.offsetX - startx);
-        const layerOffsetX = (layer as any)._offset?.x ?? 0;
+        const x = Math.min(startx, event.clientX);
+        const offsetx = Math.min(startoffsetx, event.offsetX);
+        const width = Math.abs(event.clientX - startx);
 
         // selection, currently service use client coordinates, but coordinates relative to the layer maybe more appropriate.
-        const services = instrument.services;
+        instrument.services.find("SelectionService").setSharedVars(
+          {
+            x,
+            offsetx,
+            width,
+            currentx: event.clientX,
+          },
+          { layer }
+        );
 
-        const scaleX = instrument.getSharedVar("scaleX");
-        if (scaleX && scaleX.invert) {
-          const newExtent = [x - layerOffsetX, x - layerOffsetX + width].map(
-            scaleX.invert
-          );
-
-          instrument.setSharedVar("extent", newExtent, { layer });
-          instrument.services.find("SelectionService").filter(newExtent);
-        } else {
-          instrument.services
-            .find("SelectionService")
-            .filter([x - layerOffsetX, x - layerOffsetX + width]);
-        }
-
-        services.setSharedVar("x", x, { layer });
-        services.setSharedVar("width", width, {
-          layer,
-        });
-        services.setSharedVar("currentx", event.offsetX, { layer });
-
-        instrument.setSharedVar("currentx", event.offsetX);
+        instrument.setSharedVar("currentx", event.clientX);
+        instrument.setSharedVar("currentoffsetx", event.offsetX);
 
         instrument.transformers.setSharedVars({
-          x: x - layerOffsetX,
+          x: x - layer.getGraphic().getBoundingClientRect().left,
           width,
         });
 
@@ -329,11 +373,15 @@ Instrument.register("BrushXInstrument", {
         let { event, layer, instrument } = options;
 
         if (event.changedTouches) event = event.changedTouches[0];
-        const services = instrument.services;
-        services.setSharedVar("x", 0, { layer });
-        services.setSharedVar("width", 0, { layer });
-        services.setSharedVar("currentx", event.offsetX, { layer });
-        services.setSharedVar("endx", event.offsetX, { layer });
+        instrument.services.setSharedVars(
+          {
+            x: 0,
+            offsetx: 0,
+            width: 0,
+            currentx: event.clientX,
+          },
+          { layer }
+        );
         instrument.transformers
           .find("TransientRectangleTransformer")
           .setSharedVars({

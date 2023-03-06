@@ -4,6 +4,7 @@ import { Command } from "../command";
 import { Layer } from "../layer";
 import { Service, findService } from "../service";
 import { GraphicalTransformer } from "../transformer";
+import SelectionService from "../service/selectionService";
 
 type InstrumentInitOption = {
   name?: string;
@@ -32,6 +33,37 @@ type InstrumentInitOption = {
 type InstrumentInitTemplate = InstrumentInitOption & {
   [param: string]: any;
   constructor?: typeof Instrument;
+};
+
+type InstrumentFlowOption = {
+  type: string;
+  id?: string;
+  sharedVar?: { [varName: string]: any };
+  dimension?: string | string[];
+  [params: string]: any;
+};
+
+type InstrumentBuildTemplate = {
+  inherit: string;
+  layers?: (Layer<any> | { layer: Layer<any>; options: any })[];
+  sharedVar?: { [varName: string]: any };
+  remove?: { find: string; cascade: boolean }[];
+  override?: {
+    find: string;
+    replace: string;
+    id?: string;
+    sharedVar?: { [varName: string]: any };
+    [params: string]: any;
+  }[];
+  flow?: (
+    | InstrumentFlowOption
+    | InstrumentFlowOption[]
+    | Service
+    | GraphicalTransformer
+    | Service[]
+    | GraphicalTransformer[]
+    | ((...args: any) => InstrumentFlowOption)
+  )[];
 };
 
 const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
@@ -348,14 +380,14 @@ export default class Instrument {
       });
     }
 
-    const linkProps =
-      this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
-    if (this._sharedVar.linking) {
-      for (let prop of linkProps) {
-        if (this._linkCache[prop] === this._sharedVar[prop]) continue;
-        this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
-      }
-    }
+    // const linkProps =
+    //   this.getSharedVar("linkProps") || Object.keys(this._sharedVar);
+    // if (this._sharedVar.linking) {
+    //   for (let prop of linkProps) {
+    //     if (this._linkCache[prop] === this._sharedVar[prop]) continue;
+    //     this._sharedVar.linking.setSharedVar(prop, this._sharedVar[prop]);
+    //   }
+    // }
   }
 
   watchSharedVar(sharedName: string, handler: Command) {
@@ -582,6 +614,321 @@ export default class Instrument {
     return instanceInstruments.filter((instrument) =>
       instrument.isInstanceOf(baseNameOrRealName)
     );
+  }
+  static build(options: InstrumentBuildTemplate): Instrument {
+    if (!(options.inherit in registeredInstruments)) {
+      throw new Error(
+        `Instrument ${options.inherit} is not registered, please register it first`
+      );
+    }
+    const inheritOption: InstrumentInitTemplate = Object.assign(
+      { constructor: Instrument },
+      registeredInstruments[options.inherit],
+      {
+        sharedVar: Object.assign(
+          {},
+          registeredInstruments[options.inherit].sharedVar ?? {},
+          options.sharedVar ?? {}
+        ),
+      }
+    );
+    if (options.layers) {
+      inheritOption.layers = options.layers;
+    }
+    if (options.flow) {
+      let prevComponent:
+        | Service
+        | GraphicalTransformer
+        | Service[]
+        | GraphicalTransformer[] = null;
+      let prevType: "Service" | "Transformer" = null;
+      for (let i = options.flow.length - 1; i >= 0; i--) {
+        const componentOption = options.flow[i];
+        if (componentOption instanceof Function) {
+          prevComponent = [];
+          for (let j = 0; j < inheritOption.layers.length; j++) {
+            const layer = inheritOption.layers[j];
+            const generatedOption = componentOption(layer, j);
+            if (generatedOption.type.includes("Transformer")) {
+              let transformer: GraphicalTransformer;
+              if (generatedOption.id) {
+                if (
+                  GraphicalTransformer.findTransformer(generatedOption.id)
+                    .length > 0
+                ) {
+                  transformer = GraphicalTransformer.findTransformer(
+                    generatedOption.id
+                  )[0];
+                }
+              }
+              if (!transformer)
+                transformer = GraphicalTransformer.initialize(
+                  generatedOption.type,
+                  {
+                    sharedVar: {
+                      ...(options.sharedVar || {}),
+                      ...(generatedOption.sharedVar || {}),
+                    },
+                  }
+                );
+              (prevComponent as GraphicalTransformer[]).push(transformer);
+              prevType = "Transformer";
+            } else if (generatedOption.type.includes("Service")) {
+              let service: Service;
+              if (generatedOption.id) {
+                if (Service.findService(generatedOption.id).length > 0) {
+                  service = Service.findService(generatedOption.id)[0];
+                }
+              }
+              if (!service)
+                service = Service.initialize(generatedOption.type, {
+                  ...generatedOption,
+                  ...(prevComponent
+                    ? prevType == "Transformer"
+                      ? {
+                          transformers:
+                            prevComponent instanceof Array
+                              ? (prevComponent as GraphicalTransformer[])
+                              : [prevComponent as GraphicalTransformer],
+                        }
+                      : {
+                          services:
+                            prevComponent instanceof Array
+                              ? (prevComponent as Service[])
+                              : [prevComponent as Service],
+                        }
+                    : {}),
+                  sharedVar: {
+                    ...(options.sharedVar || {}),
+                    ...(generatedOption.sharedVar || {}),
+                  },
+                });
+              if (
+                generatedOption.dimension &&
+                service instanceof SelectionService
+              ) {
+                service = (service as SelectionService).dimension(
+                  generatedOption.dimension
+                );
+                if (generatedOption.layers) {
+                  service._layerInstances = generatedOption.layers.slice(0);
+                }
+                if (generatedOption.sharedVar) {
+                  service.setSharedVars(generatedOption.sharedVar);
+                }
+              }
+              (prevComponent as Service[]).push(service);
+              prevType = "Service";
+            }
+          }
+        } else if (componentOption instanceof Array) {
+          prevComponent = [];
+          for (let j = 0; j < componentOption.length; j++) {
+            const component = componentOption[j];
+            if (component instanceof GraphicalTransformer) {
+              (prevComponent as GraphicalTransformer[]).push(component);
+              prevType = "Transformer";
+            } else if (component instanceof Service) {
+              if (prevType == "Transformer") {
+                component._transformers.push(
+                  ...(prevComponent instanceof Array
+                    ? (prevComponent as GraphicalTransformer[])
+                    : [prevComponent as GraphicalTransformer])
+                );
+              } else {
+                component._services.push(
+                  ...(prevComponent instanceof Array
+                    ? (prevComponent as Service[])
+                    : [prevComponent as Service])
+                );
+              }
+              (prevComponent as Service[]).push(component);
+              prevType = "Service";
+            } else if (component.type.includes("Transformer")) {
+              let transformer: GraphicalTransformer;
+              if (component.id) {
+                if (
+                  GraphicalTransformer.findTransformer(component.id).length > 0
+                ) {
+                  transformer = GraphicalTransformer.findTransformer(
+                    component.id
+                  )[0];
+                }
+              }
+              if (!transformer)
+                transformer = GraphicalTransformer.initialize(component.type, {
+                  sharedVar: {
+                    ...(options.sharedVar || {}),
+                    ...(component.sharedVar || {}),
+                  },
+                });
+              (prevComponent as GraphicalTransformer[]).push(transformer);
+              prevType = "Transformer";
+            } else if (component.type.includes("Service")) {
+              let service: Service;
+              if (component.id) {
+                if (Service.findService(component.id).length > 0) {
+                  service = Service.findService(component.id)[0];
+                }
+              }
+              if (!service)
+                service = Service.initialize(component.type, {
+                  ...component,
+                  ...(prevComponent
+                    ? prevType == "Transformer"
+                      ? {
+                          transformers:
+                            prevComponent instanceof Array
+                              ? (prevComponent as GraphicalTransformer[])
+                              : [prevComponent as GraphicalTransformer],
+                        }
+                      : {
+                          services:
+                            prevComponent instanceof Array
+                              ? (prevComponent as Service[])
+                              : [prevComponent as Service],
+                        }
+                    : {}),
+                  sharedVar: {
+                    ...(options.sharedVar || {}),
+                    ...(component.sharedVar || {}),
+                  },
+                });
+              if (component.dimension && service instanceof SelectionService) {
+                service = (service as SelectionService).dimension(
+                  component.dimension
+                );
+                if (component.layers) {
+                  service._layerInstances = component.layers.slice(0);
+                }
+                if (component.sharedVar) {
+                  service.setSharedVars(component.sharedVar);
+                }
+              }
+              (prevComponent as Service[]).push(service);
+              prevType = "Service";
+            }
+          }
+        } else if (componentOption instanceof GraphicalTransformer) {
+          prevComponent = componentOption;
+          prevType = "Transformer";
+        } else if (componentOption instanceof Service) {
+          if (prevType == "Transformer") {
+            componentOption._transformers.push(
+              ...(prevComponent instanceof Array
+                ? (prevComponent as GraphicalTransformer[])
+                : [prevComponent as GraphicalTransformer])
+            );
+          } else {
+            componentOption._services.push(
+              ...(prevComponent instanceof Array
+                ? (prevComponent as Service[])
+                : [prevComponent as Service])
+            );
+          }
+          prevComponent = componentOption;
+          prevType = "Service";
+        } else if (componentOption.type.includes("Transformer")) {
+          let transformer: GraphicalTransformer;
+          if (componentOption.id) {
+            if (
+              GraphicalTransformer.findTransformer(componentOption.id).length >
+              0
+            ) {
+              transformer = GraphicalTransformer.findTransformer(
+                componentOption.id
+              )[0];
+            }
+          }
+          if (!transformer)
+            transformer = GraphicalTransformer.initialize(
+              componentOption.type,
+              {
+                sharedVar: {
+                  ...(options.sharedVar || {}),
+                  ...(componentOption.sharedVar || {}),
+                },
+              }
+            );
+          prevComponent = transformer;
+          prevType = "Transformer";
+        } else if (componentOption.type.includes("Service")) {
+          let service: Service;
+          if (componentOption.id) {
+            if (Service.findService(componentOption.id).length > 0) {
+              service = Service.findService(componentOption.id)[0];
+            }
+          }
+          if (!service)
+            service = Service.initialize(componentOption.type, {
+              ...componentOption,
+              ...(prevComponent
+                ? prevType == "Transformer"
+                  ? {
+                      transformers:
+                        prevComponent instanceof Array
+                          ? (prevComponent as GraphicalTransformer[])
+                          : [prevComponent as GraphicalTransformer],
+                    }
+                  : {
+                      services:
+                        prevComponent instanceof Array
+                          ? (prevComponent as Service[])
+                          : [prevComponent as Service],
+                    }
+                : {}),
+              sharedVar: {
+                ...(options.sharedVar || {}),
+                ...(componentOption.sharedVar || {}),
+              },
+            });
+          if (
+            componentOption.dimension &&
+            service.isInstanceOf("SelectionService")
+          ) {
+            service = (service as SelectionService).dimension(
+              componentOption.dimension
+            );
+            if (componentOption.layers) {
+              service._layerInstances = componentOption.layers.slice(0);
+            }
+            if (componentOption.sharedVar) {
+              service.setSharedVars(componentOption.sharedVar);
+            }
+          }
+          prevComponent = service;
+          prevType = "Service";
+        }
+      }
+      if (prevComponent) {
+        if (prevType == "Transformer") {
+          inheritOption.transformers = inheritOption.transformers || [];
+          if (prevComponent instanceof Array) {
+            inheritOption.transformers.push(
+              ...(prevComponent as GraphicalTransformer[])
+            );
+          } else {
+            inheritOption.transformers.push(
+              prevComponent as GraphicalTransformer
+            );
+          }
+        } else {
+          inheritOption.services = inheritOption.services || [];
+          if (prevComponent instanceof Array) {
+            inheritOption.services.push(...(prevComponent as Service[]));
+          } else {
+            inheritOption.services.push(prevComponent as Service);
+          }
+        }
+      }
+    }
+
+    const instrument = new inheritOption.constructor(
+      options.inherit,
+      inheritOption
+    );
+    instanceInstruments.push(instrument);
+    return instrument;
   }
 }
 

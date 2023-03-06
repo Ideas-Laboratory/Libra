@@ -122,6 +122,34 @@ export default class SelectionService extends Service {
                 });
             });
         }
+        if (this._sharedVar.scaleX &&
+            this._sharedVar.scaleX.invert &&
+            this._sharedVar.scaleY &&
+            this._sharedVar.scaleY.invert) {
+            const x = this._sharedVar.offsetx;
+            const y = this._sharedVar.offsety;
+            const width = this._sharedVar.width;
+            const height = this._sharedVar.height;
+            const layerOffsetX = layer._offset?.x ?? 0;
+            const layerOffsetY = layer._offset?.y ?? 0;
+            const newExtentX = [x - layerOffsetX, x - layerOffsetX + width].map(this._sharedVar.scaleX.invert);
+            const newExtentY = [y - layerOffsetY, y - layerOffsetY + height].map(this._sharedVar.scaleY.invert);
+            this.filter([newExtentX, newExtentY], { passive: true });
+        }
+        else if (this._sharedVar.scaleX && this._sharedVar.scaleX.invert) {
+            const x = this._sharedVar.offsetx;
+            const width = this._sharedVar.width;
+            const layerOffsetX = layer._offset?.x ?? 0;
+            const newExtentX = [x - layerOffsetX, x - layerOffsetX + width].map(this._sharedVar.scaleX.invert);
+            this.filter(newExtentX, { passive: true });
+        }
+        else if (this._sharedVar.scaleY && this._sharedVar.scaleY.invert) {
+            const y = this._sharedVar.offsety;
+            const height = this._sharedVar.height;
+            const layerOffsetY = layer._offset?.y ?? 0;
+            const newExtentY = [y - layerOffsetY, y - layerOffsetY + height].map(this._sharedVar.scaleY.invert);
+            this.filter(newExtentY, { passive: true });
+        }
         this._nextTick = 0;
         this.postUpdate();
     }
@@ -144,20 +172,43 @@ export default class SelectionService extends Service {
                 formatter ?? dimArr.map(() => (d) => d);
         }
         const zipArr = dimArr.map((d, i) => [d, fmtArr[i]]);
+        const scopeSharedVar = { ...this._sharedVar };
+        let scopeLayerInstances = [];
         this._currentDimension = zipArr;
         return new Proxy(this, {
-            get(target, p) {
+            get(target, p, receiver) {
                 if (p === "dimension") {
                     return target.dimension.bind(target);
                 }
                 else if (p === "_currentDimension") {
                     return zipArr;
                 }
+                else if (p === "_scopeMode") {
+                    return true;
+                }
+                else if (p === "_sharedVar") {
+                    return scopeSharedVar;
+                }
+                else if (p === "_layerInstances") {
+                    if (scopeLayerInstances.length) {
+                        return scopeLayerInstances;
+                    }
+                    else {
+                        return target._layerInstances;
+                    }
+                }
+                else if (target[p] instanceof Function) {
+                    return target[p].bind(receiver);
+                }
                 else {
                     return target[p];
                 }
             },
             set(target, p, value) {
+                if (p === "_layerInstances") {
+                    scopeLayerInstances = value;
+                    return true;
+                }
                 target[p] = value;
                 return true;
             },
@@ -187,9 +238,11 @@ export default class SelectionService extends Service {
             !(extent[0] instanceof Array)) {
             this._selectionMapping.set(this._currentDimension[0][0], this._currentDimension[0][1](extent)
                 .sort((a, b) => typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1));
-            this._sharedVar.attrName = [...this._selectionMapping.keys()];
-            this._sharedVar.extent = [...this._selectionMapping.values()];
-            this._evaluate(layer);
+            if (!options?.passive) {
+                this._sharedVar.attrName = [...this._selectionMapping.keys()];
+                this._sharedVar.extent = [...this._selectionMapping.values()];
+                this._evaluate(layer);
+            }
             this._services.forEach((service) => {
                 service.setSharedVar("extents", this.extents);
             });
@@ -202,9 +255,11 @@ export default class SelectionService extends Service {
             this._currentDimension.forEach((dim, i) => {
                 this._selectionMapping.set(dim[0], dim[1](extent[i]).sort((a, b) => typeof a === "number" ? a - b : a < b ? -1 : a == b ? 0 : 1));
             });
-            this._sharedVar.attrName = [...this._selectionMapping.keys()];
-            this._sharedVar.extent = [...this._selectionMapping.values()];
-            this._evaluate(layer);
+            if (!options?.passive) {
+                this._sharedVar.attrName = [...this._selectionMapping.keys()];
+                this._sharedVar.extent = [...this._selectionMapping.values()];
+                this._evaluate(layer);
+            }
             this._services.forEach((service) => {
                 service.setSharedVar("extents", this.extents);
             });

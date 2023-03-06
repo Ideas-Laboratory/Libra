@@ -61,7 +61,7 @@ export default class Service {
     constructor(baseName: string, options: ServiceInitOption);
     getSharedVar(sharedName: string, options?: any): any;
     setSharedVar(sharedName: string, value: any, options?: any): Promise<void>;
-    setSharedVars(obj: any, options: any): Promise<void>;
+    setSharedVars(obj: any, options?: any): Promise<void>;
     join(): Promise<void>;
     preUpdate(): void;
     postUpdate(): void;
