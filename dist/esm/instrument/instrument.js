@@ -51,6 +51,14 @@ export default class Instrument {
                 }
             });
         }
+        this._services.forEach((service) => {
+            if (typeof service === "string" || !("options" in service)) {
+                this.useService(service);
+            }
+            else {
+                this.useService(service.service, service.options);
+            }
+        });
         if (options.layers) {
             options.layers.forEach((layer) => {
                 if ("options" in layer) {
@@ -61,14 +69,6 @@ export default class Instrument {
                 }
             });
         }
-        this._services.forEach((service) => {
-            if (typeof service === "string" || !("options" in service)) {
-                this.useService(service);
-            }
-            else {
-                this.useService(service.service, service.options);
-            }
-        });
         options.postInitialize && options.postInitialize.call(this, this);
     }
     emit(action, options) {
@@ -458,33 +458,35 @@ export default class Instrument {
             for (let i = options.flow.length - 1; i >= 0; i--) {
                 const componentOption = options.flow[i];
                 if (componentOption instanceof Function) {
-                    prevComponent = [];
+                    const newPrevComponent = [];
+                    let newPrevType = null;
                     for (let j = 0; j < inheritOption.layers.length; j++) {
                         const layer = inheritOption.layers[j];
                         const generatedOption = componentOption(layer, j);
                         if (generatedOption.type.includes("Transformer")) {
                             let transformer;
-                            if (generatedOption.id) {
-                                if (GraphicalTransformer.findTransformer(generatedOption.id)
+                            if (generatedOption.name) {
+                                if (GraphicalTransformer.findTransformer(generatedOption.name)
                                     .length > 0) {
-                                    transformer = GraphicalTransformer.findTransformer(generatedOption.id)[0];
+                                    transformer = GraphicalTransformer.findTransformer(generatedOption.name)[0];
                                 }
                             }
                             if (!transformer)
                                 transformer = GraphicalTransformer.initialize(generatedOption.type, {
+                                    name: generatedOption.name,
                                     sharedVar: {
                                         ...(options.sharedVar || {}),
                                         ...(generatedOption.sharedVar || {}),
                                     },
                                 });
-                            prevComponent.push(transformer);
-                            prevType = "Transformer";
+                            newPrevComponent.push(transformer);
+                            newPrevType = "Transformer";
                         }
                         else if (generatedOption.type.includes("Service")) {
                             let service;
-                            if (generatedOption.id) {
-                                if (Service.findService(generatedOption.id).length > 0) {
-                                    service = Service.findService(generatedOption.id)[0];
+                            if (generatedOption.name) {
+                                if (Service.findService(generatedOption.name).length > 0) {
+                                    service = Service.findService(generatedOption.name)[0];
                                 }
                             }
                             if (!service)
@@ -518,18 +520,21 @@ export default class Instrument {
                                     service.setSharedVars(generatedOption.sharedVar);
                                 }
                             }
-                            prevComponent.push(service);
-                            prevType = "Service";
+                            newPrevComponent.push(service);
+                            newPrevType = "Service";
                         }
                     }
+                    prevComponent = newPrevComponent;
+                    prevType = newPrevType;
                 }
                 else if (componentOption instanceof Array) {
-                    prevComponent = [];
+                    const newPrevComponent = [];
+                    let newPrevType = null;
                     for (let j = 0; j < componentOption.length; j++) {
                         const component = componentOption[j];
                         if (component instanceof GraphicalTransformer) {
-                            prevComponent.push(component);
-                            prevType = "Transformer";
+                            newPrevComponent.push(component);
+                            newPrevType = "Transformer";
                         }
                         else if (component instanceof Service) {
                             if (prevType == "Transformer") {
@@ -542,31 +547,32 @@ export default class Instrument {
                                     ? prevComponent
                                     : [prevComponent]));
                             }
-                            prevComponent.push(component);
-                            prevType = "Service";
+                            newPrevComponent.push(component);
+                            newPrevType = "Service";
                         }
                         else if (component.type.includes("Transformer")) {
                             let transformer;
-                            if (component.id) {
-                                if (GraphicalTransformer.findTransformer(component.id).length > 0) {
-                                    transformer = GraphicalTransformer.findTransformer(component.id)[0];
+                            if (component.name) {
+                                if (GraphicalTransformer.findTransformer(component.name).length > 0) {
+                                    transformer = GraphicalTransformer.findTransformer(component.name)[0];
                                 }
                             }
                             if (!transformer)
                                 transformer = GraphicalTransformer.initialize(component.type, {
+                                    name: component.name,
                                     sharedVar: {
                                         ...(options.sharedVar || {}),
                                         ...(component.sharedVar || {}),
                                     },
                                 });
-                            prevComponent.push(transformer);
-                            prevType = "Transformer";
+                            newPrevComponent.push(transformer);
+                            newPrevType = "Transformer";
                         }
                         else if (component.type.includes("Service")) {
                             let service;
-                            if (component.id) {
-                                if (Service.findService(component.id).length > 0) {
-                                    service = Service.findService(component.id)[0];
+                            if (component.name) {
+                                if (Service.findService(component.name).length > 0) {
+                                    service = Service.findService(component.name)[0];
                                 }
                             }
                             if (!service)
@@ -599,10 +605,12 @@ export default class Instrument {
                                     service.setSharedVars(component.sharedVar);
                                 }
                             }
-                            prevComponent.push(service);
-                            prevType = "Service";
+                            newPrevComponent.push(service);
+                            newPrevType = "Service";
                         }
                     }
+                    prevComponent = newPrevComponent;
+                    prevType = newPrevType;
                 }
                 else if (componentOption instanceof GraphicalTransformer) {
                     prevComponent = componentOption;
@@ -624,14 +632,15 @@ export default class Instrument {
                 }
                 else if (componentOption.type.includes("Transformer")) {
                     let transformer;
-                    if (componentOption.id) {
-                        if (GraphicalTransformer.findTransformer(componentOption.id).length >
+                    if (componentOption.name) {
+                        if (GraphicalTransformer.findTransformer(componentOption.name).length >
                             0) {
-                            transformer = GraphicalTransformer.findTransformer(componentOption.id)[0];
+                            transformer = GraphicalTransformer.findTransformer(componentOption.name)[0];
                         }
                     }
                     if (!transformer)
                         transformer = GraphicalTransformer.initialize(componentOption.type, {
+                            name: componentOption.name,
                             sharedVar: {
                                 ...(options.sharedVar || {}),
                                 ...(componentOption.sharedVar || {}),
@@ -642,9 +651,9 @@ export default class Instrument {
                 }
                 else if (componentOption.type.includes("Service")) {
                     let service;
-                    if (componentOption.id) {
-                        if (Service.findService(componentOption.id).length > 0) {
-                            service = Service.findService(componentOption.id)[0];
+                    if (componentOption.name) {
+                        if (Service.findService(componentOption.name).length > 0) {
+                            service = Service.findService(componentOption.name)[0];
                         }
                     }
                     if (!service)

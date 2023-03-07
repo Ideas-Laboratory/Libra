@@ -37,7 +37,7 @@ type InstrumentInitTemplate = InstrumentInitOption & {
 };
 type InstrumentFlowOption = {
     type: string;
-    id?: string;
+    name?: string;
     sharedVar?: {
         [varName: string]: any;
     };
@@ -60,7 +60,7 @@ type InstrumentBuildTemplate = {
     override?: {
         find: string;
         replace: string;
-        id?: string;
+        name?: string;
         sharedVar?: {
             [varName: string]: any;
         };

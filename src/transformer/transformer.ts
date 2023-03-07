@@ -119,7 +119,11 @@ export default class GraphicalTransformer {
   }
 
   isInstanceOf(name: string): boolean {
-    return this._baseName === name || this._name === name;
+    return (
+      this._baseName === name ||
+      this._name === name ||
+      (this._userOptions.className ?? []).includes(name)
+    );
   }
 
   static register(baseName: string, options: TransformerInitTemplate): void {

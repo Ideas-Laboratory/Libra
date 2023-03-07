@@ -40,6 +40,7 @@ GraphicalTransformer.register("HighlightSelection", {
 
 GraphicalTransformer.register("TransientRectangleTransformer", {
   constructor: GraphicalTransformer,
+  className: ['draw-shape', 'transient-shape', 'rectangle-shape'],
   redraw: ({ layer, transformer }) => {
     d3.select(layer.getGraphic())
       .selectAll(":not(.ig-layer-background)")

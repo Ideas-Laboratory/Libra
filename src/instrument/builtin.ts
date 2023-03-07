@@ -192,14 +192,6 @@ Instrument.register("BrushInstrument", {
         instrument.setSharedVar("starty", event.clientY);
         instrument.setSharedVar("startoffsetx", event.offsetX);
         instrument.setSharedVar("startoffsety", event.offsetY);
-        instrument.transformers
-          .find("TransientRectangleTransformer")
-          .setSharedVars({
-            x: 0,
-            y: 0,
-            width: 1,
-            height: 1,
-          });
       },
     ],
     drag: [
@@ -234,13 +226,6 @@ Instrument.register("BrushInstrument", {
           },
           { layer }
         );
-
-        instrument.transformers.setSharedVars({
-          x: x - layer.getGraphic().getBoundingClientRect().left,
-          y: y - layer.getGraphic().getBoundingClientRect().top,
-          width,
-          height,
-        });
       },
     ],
     dragabort: [
@@ -264,12 +249,6 @@ Instrument.register("BrushInstrument", {
           },
           { layer }
         );
-        instrument.transformers.setSharedVars({
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
-        });
 
         instrument.emit("brushabort", options as any);
       },
@@ -285,19 +264,6 @@ Instrument.register("BrushInstrument", {
         deepClone: instrument.getSharedVar("deepClone"),
         highlightColor: instrument.getSharedVar("highlightColor"),
         highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
-      },
-    });
-
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        fill: "#000",
-        opacity: 0.3,
       },
     });
   },
@@ -325,12 +291,6 @@ Instrument.register("BrushXInstrument", {
 
         instrument.setSharedVar("startx", event.clientX);
         instrument.setSharedVar("startoffsetx", event.offsetX);
-        instrument.transformers
-          .find("TransientRectangleTransformer")
-          .setSharedVars({
-            x: 0,
-            width: 1,
-          });
       },
     ],
     drag: [
@@ -360,11 +320,6 @@ Instrument.register("BrushXInstrument", {
         instrument.setSharedVar("currentx", event.clientX);
         instrument.setSharedVar("currentoffsetx", event.offsetX);
 
-        instrument.transformers.setSharedVars({
-          x: x - layer.getGraphic().getBoundingClientRect().left,
-          width,
-        });
-
         instrument.emit("brush", options as any);
       },
     ],
@@ -382,38 +337,13 @@ Instrument.register("BrushXInstrument", {
           },
           { layer }
         );
-        instrument.transformers
-          .find("TransientRectangleTransformer")
-          .setSharedVars({
-            x: 0,
-            width: 0,
-          });
 
         instrument.emit("brushabort", options as any);
       },
     ],
   },
   preAttach: (instrument, layer) => {
-    const y = instrument.getSharedVar("y") ?? 0;
-    const height = instrument.getSharedVar("height") ?? (layer as any)._height;
-
-    const services = instrument.services.add("RectSelectionService", { layer });
-    const bbox = layer.getGraphic().getBoundingClientRect();
-    services.setSharedVar("y", bbox.y + y);
-    services.setSharedVar("height", height);
-
-    instrument.transformers.add("TransientRectangleTransformer", {
-      transient: true,
-      layer: layer.getLayerFromQueue("transientLayer"),
-      sharedVar: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: height,
-        fill: "#000",
-        opacity: 0.3,
-      },
-    });
+    instrument.services.add("RectSelectionService", { layer });
   },
 });
 

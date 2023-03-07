@@ -81,7 +81,9 @@ export default class GraphicalTransformer {
         }
     }
     isInstanceOf(name) {
-        return this._baseName === name || this._name === name;
+        return (this._baseName === name ||
+            this._name === name ||
+            (this._userOptions.className ?? []).includes(name));
     }
     static register(baseName, options) {
         registeredTransformers[baseName] = options;

@@ -88,7 +88,7 @@ var init_transformer = __esm({
         }
       }
       isInstanceOf(name) {
-        return this._baseName === name || this._name === name;
+        return this._baseName === name || this._name === name || (this._userOptions.className ?? []).includes(name);
       }
       static register(baseName3, options) {
         registeredTransformers[baseName3] = options;
@@ -4605,6 +4605,7 @@ var init_builtin = __esm({
     });
     GraphicalTransformer.register("TransientRectangleTransformer", {
       constructor: GraphicalTransformer,
+      className: ["draw-shape", "transient-shape", "rectangle-shape"],
       redraw: ({ layer, transformer }) => {
         select_default2(layer.getGraphic()).selectAll(":not(.ig-layer-background)").remove();
         select_default2(layer.getGraphic()).append("rect").attr("x", transformer.getSharedVar("x")).attr("y", transformer.getSharedVar("y")).attr("width", transformer.getSharedVar("width")).attr("height", transformer.getSharedVar("height")).attr("fill", transformer.getSharedVar("fillColor")).attr("opacity", transformer.getSharedVar("opacity"));
@@ -5002,6 +5003,24 @@ var init_selectionService = __esm({
         }
         this.preUpdate();
         this._sharedVar[sharedName] = value;
+        this._transformers.filter((t) => t.isInstanceOf("draw-shape")).forEach((t) => {
+          const layer = options?.layer || this._layerInstances[0];
+          if (!layer)
+            return;
+          const x = this._sharedVar.x ?? layer.getGraphic().getBoundingClientRect().left;
+          const y = this._sharedVar.y ?? layer.getGraphic().getBoundingClientRect().top;
+          const width = this._sharedVar.width ?? layer._width ?? 0;
+          const height = this._sharedVar.height ?? layer._height ?? 0;
+          if (this._sharedVar.width !== void 0 || this._sharedVar.height !== void 0) {
+            t.setSharedVars({
+              layer: layer.getLayerFromQueue("transientLayer"),
+              x: x - layer.getGraphic().getBoundingClientRect().left,
+              y: y - layer.getGraphic().getBoundingClientRect().top,
+              width,
+              height
+            });
+          }
+        });
         if ((options?.layer || this._layerInstances.length == 1) && this._userOptions.query) {
           const layer = options?.layer || this._layerInstances[0];
           if (this._nextTick) {
@@ -5107,7 +5126,7 @@ var init_selectionService = __esm({
           fmtArr = formatter ?? dimArr.map(() => (d) => d);
         }
         const zipArr = dimArr.map((d, i) => [d, fmtArr[i]]);
-        const scopeSharedVar = { ...this._sharedVar };
+        const scopeSharedVar = {};
         let scopeLayerInstances = [];
         this._currentDimension = zipArr;
         return new Proxy(this, {
@@ -5119,7 +5138,24 @@ var init_selectionService = __esm({
             } else if (p === "_scopeMode") {
               return true;
             } else if (p === "_sharedVar") {
-              return scopeSharedVar;
+              if (Object.keys(scopeSharedVar).length)
+                return new Proxy({
+                  ...target._sharedVar,
+                  scaleX: void 0,
+                  scaleY: void 0,
+                  ...scopeSharedVar
+                }, {
+                  set: (target2, p2, value) => {
+                    scopeSharedVar[p2] = value;
+                    return true;
+                  }
+                });
+              return new Proxy(target._sharedVar, {
+                set: (target2, p2, value) => {
+                  scopeSharedVar[p2] = value;
+                  return true;
+                }
+              });
             } else if (p === "_layerInstances") {
               if (scopeLayerInstances.length) {
                 return scopeLayerInstances;
@@ -5242,6 +5278,17 @@ var init_selectionService = __esm({
     });
     Service.register("QuantitativeSelectionService", {
       constructor: SelectionService,
+      transformers: [
+        GraphicalTransformer2.initialize("TransientRectangleTransformer", {
+          sharedVar: {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            opacity: 0.3
+          }
+        })
+      ],
       query: {
         baseOn: QueryType.Data,
         type: DataQueryType.Quantitative,
@@ -6535,10 +6582,10 @@ function peg$parse(input, options) {
       return details;
     }
   }
-  function peg$computeLocation(startPos, endPos) {
+  function peg$computeLocation(startPos, endPos, offset2) {
     var startPosDetails = peg$computePosDetails(startPos);
     var endPosDetails = peg$computePosDetails(endPos);
-    return {
+    var res = {
       source: peg$source,
       start: {
         offset: startPos,
@@ -6551,6 +6598,11 @@ function peg$parse(input, options) {
         column: endPosDetails.column
       }
     };
+    if (offset2 && peg$source && typeof peg$source.offset === "function") {
+      res.start = peg$source.offset(res.start);
+      res.end = peg$source.offset(res.end);
+    }
+    return res;
   }
   function peg$fail(expected2) {
     if (peg$currPos < peg$maxFailPos) {
@@ -7532,14 +7584,15 @@ var init_fromTransformAttribute_autogenerated = __esm({
           }
         }
         var s = this.location.start;
-        var loc = this.location.source + ":" + s.line + ":" + s.column;
+        var offset_s = this.location.source && typeof this.location.source.offset === "function" ? this.location.source.offset(s) : s;
+        var loc = this.location.source + ":" + offset_s.line + ":" + offset_s.column;
         if (src) {
           var e = this.location.end;
-          var filler = peg$padEnd("", s.line.toString().length, " ");
+          var filler = peg$padEnd("", offset_s.line.toString().length, " ");
           var line = src[s.line - 1];
           var last = s.line === e.line ? e.column : line.length + 1;
           var hatLen = last - s.column || 1;
-          str += "\n --> " + loc + "\n" + filler + " |\n" + s.line + " | " + line + "\n" + filler + " | " + peg$padEnd("", s.column - 1, " ") + peg$padEnd("", hatLen, "^");
+          str += "\n --> " + loc + "\n" + filler + " |\n" + offset_s.line + " | " + line + "\n" + filler + " | " + peg$padEnd("", s.column - 1, " ") + peg$padEnd("", hatLen, "^");
         } else {
           str += "\n at " + loc;
         }
@@ -7646,7 +7699,9 @@ var init_fromMovingPoints = __esm({
   "node_modules/transformation-matrix/src/fromMovingPoints.js"() {
     init_translate();
     init_applyToPoint();
-    init_src31();
+    init_rotate();
+    init_scale();
+    init_transform3();
   }
 });
 
@@ -7949,6 +8004,13 @@ var init_instrument = __esm({
             }
           });
         }
+        this._services.forEach((service) => {
+          if (typeof service === "string" || !("options" in service)) {
+            this.useService(service);
+          } else {
+            this.useService(service.service, service.options);
+          }
+        });
         if (options.layers) {
           options.layers.forEach((layer) => {
             if ("options" in layer) {
@@ -7958,13 +8020,6 @@ var init_instrument = __esm({
             }
           });
         }
-        this._services.forEach((service) => {
-          if (typeof service === "string" || !("options" in service)) {
-            this.useService(service);
-          } else {
-            this.useService(service.service, service.options);
-          }
-        });
         options.postInitialize && options.postInitialize.call(this, this);
       }
       emit(action, options) {
@@ -8294,31 +8349,33 @@ var init_instrument = __esm({
           for (let i = options.flow.length - 1; i >= 0; i--) {
             const componentOption = options.flow[i];
             if (componentOption instanceof Function) {
-              prevComponent = [];
+              const newPrevComponent = [];
+              let newPrevType = null;
               for (let j = 0; j < inheritOption.layers.length; j++) {
                 const layer = inheritOption.layers[j];
                 const generatedOption = componentOption(layer, j);
                 if (generatedOption.type.includes("Transformer")) {
                   let transformer;
-                  if (generatedOption.id) {
-                    if (GraphicalTransformer2.findTransformer(generatedOption.id).length > 0) {
-                      transformer = GraphicalTransformer2.findTransformer(generatedOption.id)[0];
+                  if (generatedOption.name) {
+                    if (GraphicalTransformer2.findTransformer(generatedOption.name).length > 0) {
+                      transformer = GraphicalTransformer2.findTransformer(generatedOption.name)[0];
                     }
                   }
                   if (!transformer)
                     transformer = GraphicalTransformer2.initialize(generatedOption.type, {
+                      name: generatedOption.name,
                       sharedVar: {
                         ...options.sharedVar || {},
                         ...generatedOption.sharedVar || {}
                       }
                     });
-                  prevComponent.push(transformer);
-                  prevType = "Transformer";
+                  newPrevComponent.push(transformer);
+                  newPrevType = "Transformer";
                 } else if (generatedOption.type.includes("Service")) {
                   let service;
-                  if (generatedOption.id) {
-                    if (Service2.findService(generatedOption.id).length > 0) {
-                      service = Service2.findService(generatedOption.id)[0];
+                  if (generatedOption.name) {
+                    if (Service2.findService(generatedOption.name).length > 0) {
+                      service = Service2.findService(generatedOption.name)[0];
                     }
                   }
                   if (!service)
@@ -8343,46 +8400,50 @@ var init_instrument = __esm({
                       service.setSharedVars(generatedOption.sharedVar);
                     }
                   }
-                  prevComponent.push(service);
-                  prevType = "Service";
+                  newPrevComponent.push(service);
+                  newPrevType = "Service";
                 }
               }
+              prevComponent = newPrevComponent;
+              prevType = newPrevType;
             } else if (componentOption instanceof Array) {
-              prevComponent = [];
+              const newPrevComponent = [];
+              let newPrevType = null;
               for (let j = 0; j < componentOption.length; j++) {
                 const component = componentOption[j];
                 if (component instanceof GraphicalTransformer2) {
-                  prevComponent.push(component);
-                  prevType = "Transformer";
+                  newPrevComponent.push(component);
+                  newPrevType = "Transformer";
                 } else if (component instanceof Service2) {
                   if (prevType == "Transformer") {
                     component._transformers.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
                   } else {
                     component._services.push(...prevComponent instanceof Array ? prevComponent : [prevComponent]);
                   }
-                  prevComponent.push(component);
-                  prevType = "Service";
+                  newPrevComponent.push(component);
+                  newPrevType = "Service";
                 } else if (component.type.includes("Transformer")) {
                   let transformer;
-                  if (component.id) {
-                    if (GraphicalTransformer2.findTransformer(component.id).length > 0) {
-                      transformer = GraphicalTransformer2.findTransformer(component.id)[0];
+                  if (component.name) {
+                    if (GraphicalTransformer2.findTransformer(component.name).length > 0) {
+                      transformer = GraphicalTransformer2.findTransformer(component.name)[0];
                     }
                   }
                   if (!transformer)
                     transformer = GraphicalTransformer2.initialize(component.type, {
+                      name: component.name,
                       sharedVar: {
                         ...options.sharedVar || {},
                         ...component.sharedVar || {}
                       }
                     });
-                  prevComponent.push(transformer);
-                  prevType = "Transformer";
+                  newPrevComponent.push(transformer);
+                  newPrevType = "Transformer";
                 } else if (component.type.includes("Service")) {
                   let service;
-                  if (component.id) {
-                    if (Service2.findService(component.id).length > 0) {
-                      service = Service2.findService(component.id)[0];
+                  if (component.name) {
+                    if (Service2.findService(component.name).length > 0) {
+                      service = Service2.findService(component.name)[0];
                     }
                   }
                   if (!service)
@@ -8407,10 +8468,12 @@ var init_instrument = __esm({
                       service.setSharedVars(component.sharedVar);
                     }
                   }
-                  prevComponent.push(service);
-                  prevType = "Service";
+                  newPrevComponent.push(service);
+                  newPrevType = "Service";
                 }
               }
+              prevComponent = newPrevComponent;
+              prevType = newPrevType;
             } else if (componentOption instanceof GraphicalTransformer2) {
               prevComponent = componentOption;
               prevType = "Transformer";
@@ -8424,13 +8487,14 @@ var init_instrument = __esm({
               prevType = "Service";
             } else if (componentOption.type.includes("Transformer")) {
               let transformer;
-              if (componentOption.id) {
-                if (GraphicalTransformer2.findTransformer(componentOption.id).length > 0) {
-                  transformer = GraphicalTransformer2.findTransformer(componentOption.id)[0];
+              if (componentOption.name) {
+                if (GraphicalTransformer2.findTransformer(componentOption.name).length > 0) {
+                  transformer = GraphicalTransformer2.findTransformer(componentOption.name)[0];
                 }
               }
               if (!transformer)
                 transformer = GraphicalTransformer2.initialize(componentOption.type, {
+                  name: componentOption.name,
                   sharedVar: {
                     ...options.sharedVar || {},
                     ...componentOption.sharedVar || {}
@@ -8440,9 +8504,9 @@ var init_instrument = __esm({
               prevType = "Transformer";
             } else if (componentOption.type.includes("Service")) {
               let service;
-              if (componentOption.id) {
-                if (Service2.findService(componentOption.id).length > 0) {
-                  service = Service2.findService(componentOption.id)[0];
+              if (componentOption.name) {
+                if (Service2.findService(componentOption.name).length > 0) {
+                  service = Service2.findService(componentOption.name)[0];
                 }
               }
               if (!service)
@@ -8668,12 +8732,6 @@ var init_builtin3 = __esm({
             instrument.setSharedVar("starty", event.clientY);
             instrument.setSharedVar("startoffsetx", event.offsetX);
             instrument.setSharedVar("startoffsety", event.offsetY);
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x: 0,
-              y: 0,
-              width: 1,
-              height: 1
-            });
           }
         ],
         drag: [
@@ -8702,12 +8760,6 @@ var init_builtin3 = __esm({
               currentx: event.clientX,
               currenty: event.clientY
             }, { layer });
-            instrument.transformers.setSharedVars({
-              x: x - layer.getGraphic().getBoundingClientRect().left,
-              y: y - layer.getGraphic().getBoundingClientRect().top,
-              width,
-              height
-            });
           }
         ],
         dragabort: [
@@ -8728,12 +8780,6 @@ var init_builtin3 = __esm({
               endx: event.clientX,
               endy: event.clientY
             }, { layer });
-            instrument.transformers.setSharedVars({
-              x: 0,
-              y: 0,
-              width: 0,
-              height: 0
-            });
             instrument.emit("brushabort", options);
           }
         ]
@@ -8746,18 +8792,6 @@ var init_builtin3 = __esm({
             deepClone: instrument.getSharedVar("deepClone"),
             highlightColor: instrument.getSharedVar("highlightColor"),
             highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
-          }
-        });
-        instrument.transformers.add("TransientRectangleTransformer", {
-          transient: true,
-          layer: layer.getLayerFromQueue("transientLayer"),
-          sharedVar: {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            fill: "#000",
-            opacity: 0.3
           }
         });
       }
@@ -8781,10 +8815,6 @@ var init_builtin3 = __esm({
             }, { layer });
             instrument.setSharedVar("startx", event.clientX);
             instrument.setSharedVar("startoffsetx", event.offsetX);
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x: 0,
-              width: 1
-            });
           }
         ],
         drag: [
@@ -8805,10 +8835,6 @@ var init_builtin3 = __esm({
             }, { layer });
             instrument.setSharedVar("currentx", event.clientX);
             instrument.setSharedVar("currentoffsetx", event.offsetX);
-            instrument.transformers.setSharedVars({
-              x: x - layer.getGraphic().getBoundingClientRect().left,
-              width
-            });
             instrument.emit("brush", options);
           }
         ],
@@ -8823,33 +8849,12 @@ var init_builtin3 = __esm({
               width: 0,
               currentx: event.clientX
             }, { layer });
-            instrument.transformers.find("TransientRectangleTransformer").setSharedVars({
-              x: 0,
-              width: 0
-            });
             instrument.emit("brushabort", options);
           }
         ]
       },
       preAttach: (instrument, layer) => {
-        const y = instrument.getSharedVar("y") ?? 0;
-        const height = instrument.getSharedVar("height") ?? layer._height;
-        const services = instrument.services.add("RectSelectionService", { layer });
-        const bbox = layer.getGraphic().getBoundingClientRect();
-        services.setSharedVar("y", bbox.y + y);
-        services.setSharedVar("height", height);
-        instrument.transformers.add("TransientRectangleTransformer", {
-          transient: true,
-          layer: layer.getLayerFromQueue("transientLayer"),
-          sharedVar: {
-            x: 0,
-            y: 0,
-            width: 0,
-            height,
-            fill: "#000",
-            opacity: 0.3
-          }
-        });
+        instrument.services.add("RectSelectionService", { layer });
       }
     });
     Instrument.register("BrushYInstrument", {

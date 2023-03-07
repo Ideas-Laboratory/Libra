@@ -52,6 +52,28 @@ export default class SelectionService extends Service {
         }
         this.preUpdate();
         this._sharedVar[sharedName] = value;
+        this._transformers
+            .filter((t) => t.isInstanceOf("draw-shape"))
+            .forEach((t) => {
+            const layer = options?.layer || this._layerInstances[0];
+            if (!layer)
+                return;
+            const x = this._sharedVar.x ?? layer.getGraphic().getBoundingClientRect().left;
+            const y = this._sharedVar.y ?? layer.getGraphic().getBoundingClientRect().top;
+            const width = this._sharedVar.width ?? layer._width ?? 0;
+            const height = this._sharedVar.height ?? layer._height ?? 0;
+            if (this._sharedVar.width !== undefined ||
+                this._sharedVar.height !== undefined) {
+                // only set when width or height is set
+                t.setSharedVars({
+                    layer: layer.getLayerFromQueue("transientLayer"),
+                    x: x - layer.getGraphic().getBoundingClientRect().left,
+                    y: y - layer.getGraphic().getBoundingClientRect().top,
+                    width: width,
+                    height: height,
+                });
+            }
+        }); // transient shape
         if ((options?.layer || this._layerInstances.length == 1) &&
             this._userOptions.query) {
             const layer = options?.layer || this._layerInstances[0];
@@ -172,7 +194,7 @@ export default class SelectionService extends Service {
                 formatter ?? dimArr.map(() => (d) => d);
         }
         const zipArr = dimArr.map((d, i) => [d, fmtArr[i]]);
-        const scopeSharedVar = { ...this._sharedVar };
+        const scopeSharedVar = {};
         let scopeLayerInstances = [];
         this._currentDimension = zipArr;
         return new Proxy(this, {
@@ -187,7 +209,24 @@ export default class SelectionService extends Service {
                     return true;
                 }
                 else if (p === "_sharedVar") {
-                    return scopeSharedVar;
+                    if (Object.keys(scopeSharedVar).length)
+                        return new Proxy({
+                            ...target._sharedVar,
+                            scaleX: undefined,
+                            scaleY: undefined,
+                            ...scopeSharedVar,
+                        }, {
+                            set: (target, p, value) => {
+                                scopeSharedVar[p] = value;
+                                return true;
+                            },
+                        });
+                    return new Proxy(target._sharedVar, {
+                        set: (target, p, value) => {
+                            scopeSharedVar[p] = value;
+                            return true;
+                        },
+                    });
                 }
                 else if (p === "_layerInstances") {
                     if (scopeLayerInstances.length) {
@@ -326,6 +365,17 @@ Service.register("PolygonSelectionService", {
 });
 Service.register("QuantitativeSelectionService", {
     constructor: SelectionService,
+    transformers: [
+        GraphicalTransformer.initialize("TransientRectangleTransformer", {
+            sharedVar: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                opacity: 0.3,
+            },
+        }),
+    ],
     query: {
         baseOn: helpers.QueryType.Data,
         type: helpers.DataQueryType.Quantitative,
