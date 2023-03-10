@@ -157,6 +157,15 @@ export type CommonHandlerInput<T> = {
 
 class NonsenseClass {}
 
+type FindableListType<T> = T[] &
+  T & {
+    find(name: string, defaultValue?: string): FindableListType<T>;
+    add(...args: any[]): FindableListType<T>;
+    remove(name: string): FindableListType<T>;
+    join(extents: any[]): FindableListType<T>;
+    filter(extents: any[]): FindableListType<T>;
+  };
+
 let tryRegisterDynamicInstance;
 export function makeFindableList<T extends AllRecordingComponents>(
   list: any,
@@ -166,7 +175,7 @@ export function makeFindableList<T extends AllRecordingComponents>(
   addFunc: (newElement: T) => void,
   removeFunc: (element: T) => void,
   self: AllRecordingComponents
-) {
+): FindableListType<T> {
   return new Proxy(list, {
     get(target, p) {
       if (p === "find") {

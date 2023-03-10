@@ -115,11 +115,18 @@ export type CommonHandlerInput<T> = {
 };
 declare class NonsenseClass {
 }
+type FindableListType<T> = T[] & T & {
+    find(name: string, defaultValue?: string): FindableListType<T>;
+    add(...args: any[]): FindableListType<T>;
+    remove(name: string): FindableListType<T>;
+    join(extents: any[]): FindableListType<T>;
+    filter(extents: any[]): FindableListType<T>;
+};
 export declare function makeFindableList<T extends AllRecordingComponents>(list: any, typing: {
     new (...args: any[]): NonsenseClass;
 } | {
     initialize(...args: any[]): T;
-}, addFunc: (newElement: T) => void, removeFunc: (element: T) => void, self: AllRecordingComponents): any;
+}, addFunc: (newElement: T) => void, removeFunc: (element: T) => void, self: AllRecordingComponents): FindableListType<T>;
 export declare function getTransform(elem: SVGElement): number[];
 /**
  * Parse an event selector string.

@@ -68,8 +68,20 @@ export default class Service {
     preAttach(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
     isInstanceOf(name: string): boolean;
-    get transformers(): any;
-    get services(): any;
+    get transformers(): import("../transformer").default[] & import("../transformer").default & {
+        find(name: string, defaultValue?: string): import("../transformer").default[] & import("../transformer").default & any;
+        add(...args: any[]): import("../transformer").default[] & import("../transformer").default & any;
+        remove(name: string): import("../transformer").default[] & import("../transformer").default & any;
+        join(extents: any[]): import("../transformer").default[] & import("../transformer").default & any;
+        filter(extents: any[]): import("../transformer").default[] & import("../transformer").default & any;
+    };
+    get services(): Service[] & Service & {
+        find(name: string, defaultValue?: string): Service[] & Service & any;
+        add(...args: any[]): Service[] & Service & any;
+        remove(name: string): Service[] & Service & any;
+        join(extents: any[]): Service[] & Service & any;
+        filter(extents: any[]): Service[] & Service & any;
+    };
     get _internalResults(): any;
     get results(): any;
     get oldResults(): any;

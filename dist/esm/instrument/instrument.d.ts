@@ -46,6 +46,7 @@ type InstrumentFlowOption = {
 };
 type InstrumentBuildTemplate = {
     inherit: string;
+    name?: string;
     layers?: (Layer<any> | {
         layer: Layer<any>;
         options: any;
@@ -55,7 +56,7 @@ type InstrumentBuildTemplate = {
     };
     remove?: {
         find: string;
-        cascade: boolean;
+        cascade?: boolean;
     }[];
     override?: {
         find: string;
@@ -64,9 +65,14 @@ type InstrumentBuildTemplate = {
         sharedVar?: {
             [varName: string]: any;
         };
+        cascade?: boolean;
         [params: string]: any;
     }[];
-    flow?: (InstrumentFlowOption | InstrumentFlowOption[] | Service | GraphicalTransformer | Service[] | GraphicalTransformer[] | ((...args: any) => InstrumentFlowOption))[];
+    insert?: {
+        find?: string;
+        name?: string;
+        flow: (InstrumentFlowOption | InstrumentFlowOption[] | Service | GraphicalTransformer | Service[] | GraphicalTransformer[] | ((...args: any) => InstrumentFlowOption))[];
+    }[];
 };
 export declare const instanceInstruments: Instrument[];
 export default class Instrument {
@@ -117,8 +123,20 @@ export default class Instrument {
     _dispatch(layer: Layer<any>, event: string, e: Event): Promise<void>;
     postUse(layer: Layer<any>): void;
     isInstanceOf(name: string): boolean;
-    get services(): any;
-    get transformers(): any;
+    get services(): import("../service").default[] & import("../service").default & {
+        find(name: string, defaultValue?: string): import("../service").default[] & import("../service").default & any;
+        add(...args: any[]): import("../service").default[] & import("../service").default & any;
+        remove(name: string): import("../service").default[] & import("../service").default & any;
+        join(extents: any[]): import("../service").default[] & import("../service").default & any;
+        filter(extents: any[]): import("../service").default[] & import("../service").default & any;
+    };
+    get transformers(): import("../transformer").default[] & import("../transformer").default & {
+        find(name: string, defaultValue?: string): import("../transformer").default[] & import("../transformer").default & any;
+        add(...args: any[]): import("../transformer").default[] & import("../transformer").default & any;
+        remove(name: string): import("../transformer").default[] & import("../transformer").default & any;
+        join(extents: any[]): import("../transformer").default[] & import("../transformer").default & any;
+        filter(extents: any[]): import("../transformer").default[] & import("../transformer").default & any;
+    };
     static register(baseName: string, options: InstrumentInitTemplate): void;
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: InstrumentInitOption): Instrument;
