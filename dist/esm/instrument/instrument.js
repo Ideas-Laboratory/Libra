@@ -452,8 +452,137 @@ export default class Instrument {
         if (options.layers) {
             inheritOption.layers = options.layers;
         }
+        const instrument = new inheritOption.constructor(options.inherit, inheritOption);
+        instanceInstruments.push(instrument);
+        const findNested = (parent, findType) => {
+            const s = parent.services.find((service) => {
+                service.isInstanceOf(findType);
+            });
+            if (s)
+                return [s, parent];
+            const t = parent.transformers.find((transformer) => {
+                transformer.isInstanceOf(findType);
+            });
+            if (t)
+                return [t, parent];
+            for (let service of parent.services) {
+                const result = findNested(service, findType);
+                if (result)
+                    return result;
+            }
+        };
+        const findNestedReference = (parent, findType) => {
+            if (parent.isInstanceOf(findType))
+                return parent;
+            const s = parent.services.find((service) => {
+                service.isInstanceOf(findType);
+            });
+            if (s)
+                return s;
+            for (let service of parent.services) {
+                const result = findNestedReference(service, findType);
+                if (result)
+                    return result;
+            }
+        };
+        if (options.remove) {
+            for (let removeOption of options.remove) {
+                const [removeNode, parentNode] = findNested(instrument, removeOption.find);
+                if (removeOption.cascade) {
+                    if (removeNode instanceof Service) {
+                        parentNode._services.splice(parentNode._services.indexOf(removeNode), 1);
+                    }
+                    else {
+                        parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                    }
+                }
+                else {
+                    if (removeNode instanceof Service) {
+                        parentNode._services.splice(parentNode._services.indexOf(removeNode), 1, ...removeNode._services);
+                        parentNode._transformers.push(...removeNode._transformers);
+                    }
+                    else {
+                        parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                    }
+                }
+            }
+        }
+        if (options.override) {
+            for (let overrideOption of options.override) {
+                const [removeNode, parentNode] = findNested(instrument, overrideOption.find);
+                let replaceNode;
+                if (overrideOption.comp.includes("Transformer")) {
+                    let transformer;
+                    if (overrideOption.name) {
+                        if (GraphicalTransformer.findTransformer(overrideOption.name).length >
+                            0) {
+                            transformer = GraphicalTransformer.findTransformer(overrideOption.name)[0];
+                        }
+                    }
+                    if (!transformer)
+                        transformer = GraphicalTransformer.initialize(overrideOption.comp, {
+                            name: overrideOption.name,
+                            sharedVar: {
+                                ...(options.sharedVar || {}),
+                                ...(overrideOption.sharedVar || {}),
+                            },
+                        });
+                    replaceNode = transformer;
+                }
+                else if (overrideOption.comp.includes("Service")) {
+                    let service;
+                    if (overrideOption.name) {
+                        if (Service.findService(overrideOption.name).length > 0) {
+                            service = Service.findService(overrideOption.name)[0];
+                        }
+                    }
+                    if (!service)
+                        service = Service.initialize(overrideOption.comp, {
+                            ...overrideOption,
+                            services: [
+                                ...(overrideOption.services || []),
+                                ...(removeNode instanceof Service ? removeNode._services : []),
+                            ],
+                            transformers: [
+                                ...(overrideOption.transformers || []),
+                                ...(removeNode instanceof Service
+                                    ? removeNode._transformers
+                                    : []),
+                            ],
+                            sharedVar: {
+                                ...(options.sharedVar || {}),
+                                ...(overrideOption.sharedVar || {}),
+                            },
+                        });
+                    if (overrideOption.dimension &&
+                        service.isInstanceOf("SelectionService")) {
+                        service = service.dimension(overrideOption.dimension);
+                        if (overrideOption.layers) {
+                            service._layerInstances = overrideOption.layers.slice(0);
+                        }
+                        if (overrideOption.sharedVar) {
+                            service.setSharedVars(overrideOption.sharedVar);
+                        }
+                    }
+                    replaceNode = service;
+                }
+                if (removeNode instanceof Service) {
+                    parentNode._services.splice(parentNode._services.indexOf(removeNode), 1);
+                }
+                else {
+                    parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                }
+                if (overrideOption.comp.includes("Transformer")) {
+                    parentNode._transformers.push(replaceNode);
+                }
+                else {
+                    parentNode._services.push(replaceNode);
+                }
+            }
+        }
         if (options.insert) {
             for (let insert of options.insert) {
+                const insertNode = findNestedReference(instrument, insert.find);
                 let prevComponent = null;
                 let prevType = null;
                 for (let i = insert.flow.length - 1; i >= 0; i--) {
@@ -464,7 +593,7 @@ export default class Instrument {
                         for (let j = 0; j < inheritOption.layers.length; j++) {
                             const layer = inheritOption.layers[j];
                             const generatedOption = componentOption(layer, j);
-                            if (generatedOption.type.includes("Transformer")) {
+                            if (generatedOption.comp.includes("Transformer")) {
                                 let transformer;
                                 if (generatedOption.name) {
                                     if (GraphicalTransformer.findTransformer(generatedOption.name)
@@ -473,7 +602,7 @@ export default class Instrument {
                                     }
                                 }
                                 if (!transformer)
-                                    transformer = GraphicalTransformer.initialize(generatedOption.type, {
+                                    transformer = GraphicalTransformer.initialize(generatedOption.comp, {
                                         name: generatedOption.name,
                                         sharedVar: {
                                             ...(options.sharedVar || {}),
@@ -483,7 +612,7 @@ export default class Instrument {
                                 newPrevComponent.push(transformer);
                                 newPrevType = "Transformer";
                             }
-                            else if (generatedOption.type.includes("Service")) {
+                            else if (generatedOption.comp.includes("Service")) {
                                 let service;
                                 if (generatedOption.name) {
                                     if (Service.findService(generatedOption.name).length > 0) {
@@ -491,7 +620,7 @@ export default class Instrument {
                                     }
                                 }
                                 if (!service)
-                                    service = Service.initialize(generatedOption.type, {
+                                    service = Service.initialize(generatedOption.comp, {
                                         ...generatedOption,
                                         ...(prevComponent
                                             ? prevType == "Transformer"
@@ -551,7 +680,7 @@ export default class Instrument {
                                 newPrevComponent.push(component);
                                 newPrevType = "Service";
                             }
-                            else if (component.type.includes("Transformer")) {
+                            else if (component.comp.includes("Transformer")) {
                                 let transformer;
                                 if (component.name) {
                                     if (GraphicalTransformer.findTransformer(component.name)
@@ -560,7 +689,7 @@ export default class Instrument {
                                     }
                                 }
                                 if (!transformer)
-                                    transformer = GraphicalTransformer.initialize(component.type, {
+                                    transformer = GraphicalTransformer.initialize(component.comp, {
                                         name: component.name,
                                         sharedVar: {
                                             ...(options.sharedVar || {}),
@@ -570,7 +699,7 @@ export default class Instrument {
                                 newPrevComponent.push(transformer);
                                 newPrevType = "Transformer";
                             }
-                            else if (component.type.includes("Service")) {
+                            else if (component.comp.includes("Service")) {
                                 let service;
                                 if (component.name) {
                                     if (Service.findService(component.name).length > 0) {
@@ -578,7 +707,7 @@ export default class Instrument {
                                     }
                                 }
                                 if (!service)
-                                    service = Service.initialize(component.type, {
+                                    service = Service.initialize(component.comp, {
                                         ...component,
                                         ...(prevComponent
                                             ? prevType == "Transformer"
@@ -633,7 +762,7 @@ export default class Instrument {
                         prevComponent = componentOption;
                         prevType = "Service";
                     }
-                    else if (componentOption.type.includes("Transformer")) {
+                    else if (componentOption.comp.includes("Transformer")) {
                         let transformer;
                         if (componentOption.name) {
                             if (GraphicalTransformer.findTransformer(componentOption.name)
@@ -642,7 +771,7 @@ export default class Instrument {
                             }
                         }
                         if (!transformer)
-                            transformer = GraphicalTransformer.initialize(componentOption.type, {
+                            transformer = GraphicalTransformer.initialize(componentOption.comp, {
                                 name: componentOption.name,
                                 sharedVar: {
                                     ...(options.sharedVar || {}),
@@ -652,7 +781,7 @@ export default class Instrument {
                         prevComponent = transformer;
                         prevType = "Transformer";
                     }
-                    else if (componentOption.type.includes("Service")) {
+                    else if (componentOption.comp.includes("Service")) {
                         let service;
                         if (componentOption.name) {
                             if (Service.findService(componentOption.name).length > 0) {
@@ -660,7 +789,7 @@ export default class Instrument {
                             }
                         }
                         if (!service)
-                            service = Service.initialize(componentOption.type, {
+                            service = Service.initialize(componentOption.comp, {
                                 ...componentOption,
                                 ...(prevComponent
                                     ? prevType == "Transformer"
@@ -696,51 +825,33 @@ export default class Instrument {
                 }
                 if (prevComponent) {
                     if (prevType == "Transformer") {
-                        inheritOption.transformers = inheritOption.transformers || [];
                         if (prevComponent instanceof Array) {
-                            inheritOption.transformers.push(...prevComponent);
+                            insertNode._transformers.push(...prevComponent);
                         }
                         else {
-                            inheritOption.transformers.push(prevComponent);
+                            insertNode._transformers.push(prevComponent);
                         }
                     }
                     else {
-                        inheritOption.services = inheritOption.services || [];
-                        if (prevComponent instanceof Array) {
-                            inheritOption.services.push(...prevComponent);
+                        if (insertNode instanceof Instrument) {
+                            if (prevComponent instanceof Array) {
+                                insertNode._serviceInstances.push(...prevComponent);
+                            }
+                            else {
+                                insertNode._serviceInstances.push(prevComponent);
+                            }
                         }
                         else {
-                            inheritOption.services.push(prevComponent);
+                            if (prevComponent instanceof Array) {
+                                insertNode._services.push(...prevComponent);
+                            }
+                            else {
+                                insertNode._services.push(prevComponent);
+                            }
                         }
                     }
                 }
             }
-        }
-        const instrument = new inheritOption.constructor(options.inherit, inheritOption);
-        instanceInstruments.push(instrument);
-        const findNested = (parent, findType) => {
-            const s = parent.services.find((service) => {
-                service.isInstanceOf(findType);
-            });
-            if (s)
-                return [s, parent];
-            const t = parent.transformers.find((transformer) => {
-                transformer.isInstanceOf(findType);
-            });
-            if (t)
-                return [t, parent];
-            for (let service of parent.services) {
-                const result = findNested(service, findType);
-                if (result)
-                    return result;
-            }
-        };
-        if (options.remove) {
-            for (let removeOption of options.remove) {
-                const [removeNode, parentNode] = findNested(instrument, removeOption.find);
-            }
-        }
-        if (options.override) {
         }
         return instrument;
     }

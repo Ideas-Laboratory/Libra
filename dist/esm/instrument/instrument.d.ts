@@ -36,7 +36,7 @@ type InstrumentInitTemplate = InstrumentInitOption & {
     constructor?: typeof Instrument;
 };
 type InstrumentFlowOption = {
-    type: string;
+    comp: string;
     name?: string;
     sharedVar?: {
         [varName: string]: any;
@@ -60,17 +60,15 @@ type InstrumentBuildTemplate = {
     }[];
     override?: {
         find: string;
-        replace: string;
+        comp: string;
         name?: string;
         sharedVar?: {
             [varName: string]: any;
         };
-        cascade?: boolean;
         [params: string]: any;
     }[];
     insert?: {
         find?: string;
-        name?: string;
         flow: (InstrumentFlowOption | InstrumentFlowOption[] | Service | GraphicalTransformer | Service[] | GraphicalTransformer[] | ((...args: any) => InstrumentFlowOption))[];
     }[];
 };
