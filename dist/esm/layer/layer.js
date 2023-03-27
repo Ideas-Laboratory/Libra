@@ -49,6 +49,7 @@ export default class Layer {
         const copiedElement = element.cloneNode(deep);
         const frag = document.createDocumentFragment();
         frag.append(copiedElement);
+        copiedElement.__libra__screenElement = element;
         return copiedElement;
     }
     // getSharedVar(sharedName: string, defaultValue?: any): any {

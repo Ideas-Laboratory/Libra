@@ -31,46 +31,12 @@ type InstrumentInitOption = {
     postUse?: (instrument: Instrument, layer: Layer<any>) => void;
     [param: string]: any;
 };
-type InstrumentInitTemplate = InstrumentInitOption & {
+export type InstrumentInitTemplate = InstrumentInitOption & {
     [param: string]: any;
     constructor?: typeof Instrument;
 };
-type InstrumentFlowOption = {
-    comp: string;
-    name?: string;
-    sharedVar?: {
-        [varName: string]: any;
-    };
-    dimension?: string | string[];
-    [params: string]: any;
-};
-type InstrumentBuildTemplate = {
-    inherit: string;
-    name?: string;
-    layers?: (Layer<any> | {
-        layer: Layer<any>;
-        options: any;
-    })[];
-    sharedVar?: {
-        [varName: string]: any;
-    };
-    remove?: {
-        find: string;
-        cascade?: boolean;
-    }[];
-    override?: {
-        find: string;
-        comp: string;
-        name?: string;
-        sharedVar?: {
-            [varName: string]: any;
-        };
-        [params: string]: any;
-    }[];
-    insert?: {
-        find?: string;
-        flow: (InstrumentFlowOption | InstrumentFlowOption[] | Service | GraphicalTransformer | Service[] | GraphicalTransformer[] | ((...args: any) => InstrumentFlowOption))[];
-    }[];
+export declare const registeredInstruments: {
+    [name: string]: InstrumentInitTemplate;
 };
 export declare const instanceInstruments: Instrument[];
 export default class Instrument {
@@ -139,7 +105,6 @@ export default class Instrument {
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: InstrumentInitOption): Instrument;
     static findInstrument(baseNameOrRealName: string): Instrument[];
-    static build(options: InstrumentBuildTemplate): Instrument;
 }
 export declare const register: typeof Instrument.register;
 export declare const unregister: typeof Instrument.unregister;

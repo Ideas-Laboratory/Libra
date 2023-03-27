@@ -103,6 +103,9 @@ export default class GraphicalTransformer {
     static findTransformer(baseNameOrRealName) {
         return instanceTransformers.filter((transformer) => transformer.isInstanceOf(baseNameOrRealName));
     }
+    static findTransformerByLayer(layer) {
+        return instanceTransformers.filter((t) => t._layer === layer || t.getSharedVar("layer") === layer);
+    }
 }
 _a = helpers.LibraSymbol;
 export const register = GraphicalTransformer.register;

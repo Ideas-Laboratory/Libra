@@ -158,6 +158,11 @@ export default class GraphicalTransformer {
       transformer.isInstanceOf(baseNameOrRealName)
     );
   }
+  static findTransformerByLayer(layer: Layer<any>): GraphicalTransformer[] {
+    return instanceTransformers.filter(
+      (t) => t._layer === layer || t.getSharedVar("layer") === layer
+    );
+  }
 }
 
 export const register = GraphicalTransformer.register;

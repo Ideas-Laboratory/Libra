@@ -127,6 +127,7 @@ export default class VegaLayer extends Layer<SVGElement> {
     copiedElement.setAttribute("transform", transform);
     const frag = document.createDocumentFragment();
     frag.append(copiedElement);
+    (copiedElement as any).__libra__screenElement = element;
     return copiedElement;
   }
 

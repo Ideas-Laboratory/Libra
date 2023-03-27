@@ -40,6 +40,7 @@ export default class GraphicalTransformer {
     static unregister(baseName: string): boolean;
     static initialize(baseName: string, options?: TransformerInitOption): GraphicalTransformer;
     static findTransformer(baseNameOrRealName: string): GraphicalTransformer[];
+    static findTransformerByLayer(layer: Layer<any>): GraphicalTransformer[];
 }
 export declare const register: typeof GraphicalTransformer.register;
 export declare const unregister: typeof GraphicalTransformer.unregister;

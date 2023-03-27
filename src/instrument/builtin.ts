@@ -15,6 +15,7 @@ Instrument.register("HoverInstrument", {
         const services = instrument.services.find("SelectionService");
         services.setSharedVars(
           {
+            event,
             x: event.clientX,
             y: event.clientY,
             offsetx: event.offsetX,
@@ -22,8 +23,20 @@ Instrument.register("HoverInstrument", {
           },
           { layer }
         );
+        const transformers = instrument.transformers;
+        transformers.setSharedVars({ cx: event.clientX, cy: event.clientY });
       },
     ],
+  },
+  postInitialize: (instrument) => {
+    instrument.services.add("SurfacePointSelectionService", {
+      // layer,
+      sharedVar: {
+        deepClone: instrument.getSharedVar("deepClone"),
+        highlightColor: instrument.getSharedVar("highlightColor"),
+        highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+      },
+    });
   },
   preAttach: (instrument, layer) => {
     instrument.services.add("SurfacePointSelectionService", {
@@ -936,7 +949,10 @@ Instrument.register("PanInstrument", {
         if (event.changedTouches) event = event.changedTouches[0];
         instrument.setSharedVar("startx", event.clientX);
         instrument.setSharedVar("starty", event.clientY);
-        const transformers = instrument.transformers;
+        let transformers: GraphicalTransformer[] = instrument.transformers;
+        if (!transformers.length) {
+          transformers = GraphicalTransformer.findTransformerByLayer(layer);
+        }
         transformers.forEach((transformer) => {
           const sx = transformer.getSharedVar("scaleX");
           const sy = transformer.getSharedVar("scaleY");
@@ -956,7 +972,10 @@ Instrument.register("PanInstrument", {
     drag: [
       async ({ layer, event, instrument, transformer }) => {
         if (event.changedTouches) event = event.changedTouches[0];
-        const transformers = instrument.transformers;
+        let transformers: GraphicalTransformer[] = instrument.transformers;
+        if (!transformers.length) {
+          transformers = GraphicalTransformer.findTransformerByLayer(layer);
+        }
 
         const startx = instrument.getSharedVar("startx");
         const starty = instrument.getSharedVar("starty");
@@ -1143,7 +1162,10 @@ Instrument.register("GeometricZoomInstrument", {
       ({ layer, instrument, event }) => {
         const layerGraphic = layer.getGraphic();
         const layerRoot = d3.select(layerGraphic);
-        const transformers = instrument.transformers;
+        let transformers: GraphicalTransformer[] = instrument.transformers;
+        if (!transformers.length) {
+          transformers = GraphicalTransformer.findTransformerByLayer(layer);
+        }
 
         instrument.setSharedVar("currentx", event.offsetX);
         instrument.setSharedVar("currenty", event.offsetY);
@@ -1366,7 +1388,10 @@ Instrument.register("SemanticZoomInstrument", {
       ({ layer, instrument, event }) => {
         const layerGraphic = layer.getGraphic();
         const layerRoot = d3.select(layerGraphic);
-        const transformers = instrument.transformers;
+        let transformers: GraphicalTransformer[] = instrument.transformers;
+        if (!transformers.length) {
+          transformers = GraphicalTransformer.findTransformerByLayer(layer);
+        }
 
         const scaleLevels = instrument.getSharedVar("scaleLevels");
         let currentLevel = instrument.getSharedVar("currentLevel");
@@ -1386,7 +1411,9 @@ Instrument.register("SemanticZoomInstrument", {
               : prev;
           });
 
-          transformers.setSharedVars(scaleLevels[closestLevel]);
+          transformers.forEach((t) =>
+            t.setSharedVars(scaleLevels[closestLevel])
+          );
         }
 
         instrument.setSharedVar("currentx", event.offsetX);

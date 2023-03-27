@@ -166,7 +166,7 @@ type FindableListType<T> = T[] &
     filter(extents: any[]): FindableListType<T>;
   };
 
-let tryRegisterDynamicInstance;
+let tryRegisterDynamicInstance = (...args: any) => {};
 export function makeFindableList<T extends AllRecordingComponents>(
   list: any,
   typing:

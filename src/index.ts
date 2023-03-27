@@ -5,6 +5,7 @@ import { Layer } from "./layer";
 import { Service } from "./service";
 import { createHistoryTrrack } from "./history";
 import { GraphicalTransformer } from "./transformer";
+import { Interaction } from "./interaction";
 
 export default {
   Command,
@@ -14,6 +15,7 @@ export default {
   Service,
   createHistoryTrrack,
   GraphicalTransformer,
+  Interaction,
 };
 
 export { Command } from "./command";
@@ -23,3 +25,4 @@ export { Layer } from "./layer";
 export { Service } from "./service";
 export { createHistoryTrrack } from "./history";
 export { GraphicalTransformer } from "./transformer";
+export { Interaction } from "./interaction";

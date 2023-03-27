@@ -53,6 +53,7 @@ export default class D3Layer extends Layer {
         const copiedElement = d3.select(element).clone(deep).node();
         const frag = document.createDocumentFragment();
         frag.append(copiedElement);
+        copiedElement.__libra__screenElement = element;
         return copiedElement;
     }
     // onObject(pointer: { x: number, y: number }): boolean {

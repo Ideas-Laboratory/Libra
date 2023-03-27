@@ -130,6 +130,7 @@ export default class Layer<T> {
     const copiedElement = element.cloneNode(deep) as Element;
     const frag = document.createDocumentFragment();
     frag.append(copiedElement);
+    (copiedElement as any).__libra__screenElement = element;
     return copiedElement;
   }
   // getSharedVar(sharedName: string, defaultValue?: any): any {

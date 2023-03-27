@@ -21,7 +21,7 @@ export var DataQueryType;
 })(DataQueryType || (DataQueryType = {}));
 class NonsenseClass {
 }
-let tryRegisterDynamicInstance;
+let tryRegisterDynamicInstance = (...args) => { };
 export function makeFindableList(list, typing, addFunc, removeFunc, self) {
     return new Proxy(list, {
         get(target, p) {

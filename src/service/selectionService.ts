@@ -143,23 +143,30 @@ export default class SelectionService extends Service {
         }
       });
       this._services.forEach((service) => {
-        service.setSharedVar(this._resultAlias, resultNodes);
+        service.setSharedVars({
+          ...this._sharedVar,
+          [this._resultAlias]: resultNodes,
+        });
       });
       this._transformers.forEach((transformer) => {
         transformer.setSharedVars({
+          ...this._sharedVar,
           layer: layer.getLayerFromQueue("selectionLayer"),
           [this._resultAlias]: resultNodes,
         });
       });
     } else {
       this._services.forEach((service) => {
-        service.setSharedVar(
-          this._resultAlias,
-          this._result.map((node) => layer.cloneVisualElements(node, false))
-        );
+        service.setSharedVars({
+          ...this._sharedVar,
+          [this._resultAlias]: this._result.map((node) =>
+            layer.cloneVisualElements(node, false)
+          ),
+        });
       });
       this._transformers.forEach((transformer) => {
         transformer.setSharedVars({
+          ...this._sharedVar,
           layer: layer.getLayerFromQueue("selectionLayer"),
           [this._resultAlias]: this._result.map((node) =>
             layer.cloneVisualElements(node, false)
