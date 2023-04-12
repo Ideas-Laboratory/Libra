@@ -4617,13 +4617,13 @@ var init_builtin = __esm({
     GraphicalTransformer.register("SelectionTransformer", {
       constructor: GraphicalTransformer,
       redraw: ({ layer, transformer }) => {
-        transformer.getSharedVar("selectionResult").forEach((resultNode) => {
+        transformer.getSharedVar("result").forEach((resultNode) => {
           layer.getGraphic().appendChild(resultNode);
         });
         const highlightColor = transformer.getSharedVar("highlightColor");
         const attrValueEntries = Object.entries(transformer.getSharedVar("highlightAttrValues") || {});
         if (highlightColor || attrValueEntries.length) {
-          const elems = selectAll_default2(transformer.getSharedVar("selectionResult"));
+          const elems = selectAll_default2(transformer.getSharedVar("result"));
           if (highlightColor) {
             elems.attr("fill", highlightColor).attr("stroke", highlightColor);
           }
@@ -4749,7 +4749,7 @@ var init_service = __esm({
         this._services = options.services ?? [];
         this._joinServices = options.joinServices ?? [];
         this._layerInstances = [];
-        this._resultAlias = options.resultAlias;
+        this._resultAlias = options.resultAlias ?? "result";
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
@@ -4864,8 +4864,6 @@ var init_service = __esm({
         return makeFindableList(this._transformers.slice(0), GraphicalTransformer2, (e) => this._transformers.push(e), (e) => {
           e.setSharedVars({
             ...this._resultAlias ? { [this._resultAlias]: null } : {},
-            selectionResult: [],
-            layoutResult: null,
             result: null
           });
           this._transformers.splice(this._transformers.indexOf(e), 1);
@@ -4875,8 +4873,6 @@ var init_service = __esm({
         return makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
           Object.entries({
             ...this._resultAlias ? { [this._resultAlias]: null } : {},
-            selectionResult: [],
-            layoutResult: null,
             result: null
           }).forEach(([k, v]) => {
             e.setSharedVar(k, v);
@@ -4973,7 +4969,7 @@ var init_selectionService = __esm({
       constructor(baseName3, options) {
         super(baseName3, {
           ...options,
-          resultAlias: options?.resultAlias ?? "selectionResult"
+          resultAlias: options?.resultAlias ?? "result"
         });
         this._currentDimension = [];
         this._transformers.push(GraphicalTransformer2.initialize("SelectionTransformer", {
@@ -5040,11 +5036,13 @@ var init_selectionService = __esm({
       _evaluate(layer) {
         if (!layer)
           return;
-        this._oldResult = this._result;
-        this._result = layer.picking({
-          ...this._userOptions.query,
-          ...this._sharedVar
-        });
+        if (!this._sharedVar.skipPicking) {
+          this._oldResult = this._result;
+          this._result = layer.picking({
+            ...this._userOptions.query,
+            ...this._sharedVar
+          });
+        }
         const selectionLayer = layer.getLayerFromQueue("selectionLayer").getGraphic();
         while (selectionLayer.firstChild) {
           selectionLayer.removeChild(selectionLayer.lastChild);
@@ -5320,7 +5318,7 @@ var init_layoutService = __esm({
       constructor(baseName3, options) {
         super(baseName3, {
           ...options,
-          resultAlias: options.resultAlias ?? "layoutResult"
+          resultAlias: options.resultAlias ?? "result"
         });
       }
       isInstanceOf(name) {
@@ -5357,9 +5355,12 @@ var init_algorithmService = __esm({
     });
     Service.register("FilterService", {
       constructor: AnalysisService,
-      evaluate({ data, extents, selectionResult, fields }) {
-        if (!extents && (!selectionResult || !selectionResult.length || !fields || !fields.length))
+      evaluate({ data, extents, result, fields }) {
+        if (!extents && (!result || !result.length || !fields || !fields.length)) {
+          if (!extents)
+            return [];
           return data;
+        }
         if (extents) {
           Object.entries(extents).forEach(([field, extent]) => {
             if (extent[0] >= extent[1] || isNaN(extent[0]) || isNaN(extent[1]))
@@ -5367,22 +5368,57 @@ var init_algorithmService = __esm({
             data = data.filter((d) => d[field] >= extent[0] && d[field] <= extent[1]);
           });
         } else {
-          const datum2 = selectAll_default2(selectionResult).datum();
+          const datum2 = selectAll_default2(result).datum();
           if (datum2)
             fields.forEach((field) => {
               data = data.filter((d) => d[field] == datum2[field]);
             });
-          console.log(data);
         }
         return data;
       }
     });
+    Service.register("InterpolationService", {
+      constructor: AnalysisService,
+      evaluate({ result, field, data, formula }) {
+        if (!result) {
+          return null;
+        }
+        const { data: fieldValue, interpolatedNum } = result;
+        if (!fieldValue || interpolatedNum === void 0 || isNaN(interpolatedNum))
+          return null;
+        const baseNum = Math.floor(interpolatedNum);
+        const newValue = fieldValue[baseNum][field];
+        let newInterpolatedData = data.filter((d) => d[field] === newValue);
+        if (interpolatedNum > baseNum) {
+          const nextNum = baseNum + 1;
+          const interpolate = interpolatedNum - baseNum;
+          newInterpolatedData = newInterpolatedData.map((baseDatum) => {
+            const nextDatum = data.find((d) => d[field] === fieldValue[nextNum][field] && !Object.entries(baseDatum).find(([k, v]) => typeof v !== "number" && d[k] !== v));
+            return Object.fromEntries(Object.entries(baseDatum).map(([k, v]) => {
+              if (typeof v === "number") {
+                return [k, v * (1 - interpolate) + nextDatum[k] * interpolate];
+              } else {
+                return [k, v];
+              }
+            }));
+          });
+        }
+        return newInterpolatedData.map((d) => {
+          if (formula) {
+            Object.entries(formula).forEach(([k, v]) => {
+              d[k] = v(d);
+            });
+          }
+          return d;
+        });
+      }
+    });
     Service.register("AggregateService", {
       constructor: AnalysisService,
-      evaluate({ selectionResult }) {
-        if (!(selectionResult instanceof Array))
+      evaluate({ result }) {
+        if (!(result instanceof Array))
           return 0;
-        return selectionResult.length;
+        return result.length;
       }
     });
   }
@@ -6627,10 +6663,10 @@ function peg$parse(input, options) {
       return details;
     }
   }
-  function peg$computeLocation(startPos, endPos) {
+  function peg$computeLocation(startPos, endPos, offset2) {
     var startPosDetails = peg$computePosDetails(startPos);
     var endPosDetails = peg$computePosDetails(endPos);
-    return {
+    var res = {
       source: peg$source,
       start: {
         offset: startPos,
@@ -6643,6 +6679,11 @@ function peg$parse(input, options) {
         column: endPosDetails.column
       }
     };
+    if (offset2 && peg$source && typeof peg$source.offset === "function") {
+      res.start = peg$source.offset(res.start);
+      res.end = peg$source.offset(res.end);
+    }
+    return res;
   }
   function peg$fail(expected2) {
     if (peg$currPos < peg$maxFailPos) {
@@ -7624,14 +7665,15 @@ var init_fromTransformAttribute_autogenerated = __esm({
           }
         }
         var s = this.location.start;
-        var loc = this.location.source + ":" + s.line + ":" + s.column;
+        var offset_s = this.location.source && typeof this.location.source.offset === "function" ? this.location.source.offset(s) : s;
+        var loc = this.location.source + ":" + offset_s.line + ":" + offset_s.column;
         if (src) {
           var e = this.location.end;
-          var filler = peg$padEnd("", s.line.toString().length, " ");
+          var filler = peg$padEnd("", offset_s.line.toString().length, " ");
           var line = src[s.line - 1];
           var last = s.line === e.line ? e.column : line.length + 1;
           var hatLen = last - s.column || 1;
-          str += "\n --> " + loc + "\n" + filler + " |\n" + s.line + " | " + line + "\n" + filler + " | " + peg$padEnd("", s.column - 1, " ") + peg$padEnd("", hatLen, "^");
+          str += "\n --> " + loc + "\n" + filler + " |\n" + offset_s.line + " | " + line + "\n" + filler + " | " + peg$padEnd("", s.column - 1, " ") + peg$padEnd("", hatLen, "^");
         } else {
           str += "\n at " + loc;
         }
@@ -7738,7 +7780,9 @@ var init_fromMovingPoints = __esm({
   "node_modules/transformation-matrix/src/fromMovingPoints.js"() {
     init_translate();
     init_applyToPoint();
-    init_src31();
+    init_rotate();
+    init_scale();
+    init_transform3();
   }
 });
 
@@ -9056,7 +9100,15 @@ var init_builtin3 = __esm({
           ({ layer, event, instrument }) => {
             if (event.changedTouches)
               event = event.changedTouches[0];
-            instrument.services.setSharedVars({ x: event.clientX, y: event.clientY }, { layer });
+            instrument.services.setSharedVars({
+              x: event.clientX,
+              y: event.clientY,
+              currentx: event.clientX,
+              currenty: event.clientY,
+              offsetx: event.offsetX,
+              offsety: event.offsetY,
+              skipPicking: false
+            }, { layer });
           }
         ],
         drag: [
@@ -9067,6 +9119,15 @@ var init_builtin3 = __esm({
             const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
             instrument.setSharedVar("offsetx", offsetX, { layer });
             instrument.setSharedVar("offsety", offsetY, { layer });
+            instrument.services.setSharedVars({
+              x: event.clientX,
+              y: event.clientY,
+              currentx: event.clientX,
+              currenty: event.clientY,
+              offsetx: event.offsetX,
+              offsety: event.offsetY,
+              skipPicking: true
+            }, { layer });
           }
         ],
         dragend: [
@@ -9075,7 +9136,15 @@ var init_builtin3 = __esm({
               event = event.changedTouches[0];
             const offsetX = event.clientX - instrument.services.getSharedVar("x", { layer })[0];
             const offsetY = event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-            instrument.services.setSharedVars({ x: 0, y: 0 }, { layer });
+            instrument.services.setSharedVars({
+              x: 0,
+              y: 0,
+              currentx: event.clientX,
+              currenty: event.clientY,
+              offsetx: 0,
+              offsety: 0,
+              skipPicking: false
+            }, { layer });
             instrument.setSharedVar("offsetx", offsetX, { layer });
             instrument.setSharedVar("offsety", offsetY, { layer });
           }
@@ -9091,7 +9160,8 @@ var init_builtin3 = __esm({
               currentx: event.clientX,
               currenty: event.clientY,
               offsetx: 0,
-              offsety: 0
+              offsety: 0,
+              skipPicking: false
             }, { layer });
             instrument.emit("dragconfirm", {
               ...options,
@@ -10097,6 +10167,7 @@ init_transformer2();
 // dist/esm/interaction/index.js
 init_instrument();
 init_instrument();
+init_layer2();
 init_service2();
 init_transformer2();
 init_selectionService();
@@ -10432,6 +10503,7 @@ var Interaction = class {
             }
             if (!transformer)
               transformer = GraphicalTransformer2.initialize(componentOption.comp, {
+                ...options.layers && options.layers.length == 1 ? options.layers[0] instanceof Layer2 ? { layer: options.layers[0] } : { layer: options.layers[0].layer } : {},
                 ...componentOption,
                 sharedVar: {
                   ...options.sharedVar || {},

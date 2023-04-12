@@ -10,7 +10,7 @@ export default class SelectionService extends Service {
   constructor(baseName: string, options: any) {
     super(baseName, {
       ...options,
-      resultAlias: options?.resultAlias ?? "selectionResult",
+      resultAlias: options?.resultAlias ?? "result",
     });
     this._transformers.push(
       GraphicalTransformer.initialize("SelectionTransformer", {
@@ -110,11 +110,13 @@ export default class SelectionService extends Service {
 
   _evaluate(layer: Layer<any>) {
     if (!layer) return;
-    this._oldResult = this._result;
-    this._result = layer.picking({
-      ...this._userOptions.query,
-      ...this._sharedVar,
-    });
+    if (!this._sharedVar.skipPicking) {
+      this._oldResult = this._result;
+      this._result = layer.picking({
+        ...this._userOptions.query,
+        ...this._sharedVar,
+      });
+    }
     const selectionLayer = layer
       .getLayerFromQueue("selectionLayer")
       .getGraphic();

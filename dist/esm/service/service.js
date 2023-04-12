@@ -27,7 +27,7 @@ export default class Service {
         this._services = options.services ?? [];
         this._joinServices = options.joinServices ?? [];
         this._layerInstances = [];
-        this._resultAlias = options.resultAlias;
+        this._resultAlias = options.resultAlias ?? "result";
         this._preInitialize = options.preInitialize ?? null;
         this._postInitialize = options.postInitialize ?? null;
         this._preUpdate = options.preUpdate ?? null;
@@ -161,8 +161,6 @@ export default class Service {
         return helpers.makeFindableList(this._transformers.slice(0), GraphicalTransformer, (e) => this._transformers.push(e), (e) => {
             e.setSharedVars({
                 ...(this._resultAlias ? { [this._resultAlias]: null } : {}),
-                selectionResult: [],
-                layoutResult: null,
                 result: null,
             });
             this._transformers.splice(this._transformers.indexOf(e), 1);
@@ -172,8 +170,6 @@ export default class Service {
         return helpers.makeFindableList(this._services.slice(0), Service, (e) => this._services.push(e), (e) => {
             Object.entries({
                 ...(this._resultAlias ? { [this._resultAlias]: null } : {}),
-                selectionResult: [],
-                layoutResult: null,
                 result: null,
             }).forEach(([k, v]) => {
                 e.setSharedVar(k, v);

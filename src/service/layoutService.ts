@@ -4,7 +4,7 @@ export default class LayoutService extends Service {
   constructor(baseName: string, options: any) {
     super(baseName, {
       ...options,
-      resultAlias: options.resultAlias ?? "layoutResult",
+      resultAlias: options.resultAlias ?? "result",
     });
   }
 

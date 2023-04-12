@@ -822,7 +822,15 @@ Instrument.register("DragInstrument", {
       ({ layer, event, instrument }) => {
         if (event.changedTouches) event = event.changedTouches[0];
         instrument.services.setSharedVars(
-          { x: event.clientX, y: event.clientY },
+          {
+            x: event.clientX,
+            y: event.clientY,
+            currentx: event.clientX,
+            currenty: event.clientY,
+            offsetx: event.offsetX,
+            offsety: event.offsetY,
+            skipPicking: false,
+          },
           { layer }
         );
       },
@@ -836,6 +844,18 @@ Instrument.register("DragInstrument", {
           event.clientY - instrument.services.getSharedVar("y", { layer })[0];
         instrument.setSharedVar("offsetx", offsetX, { layer });
         instrument.setSharedVar("offsety", offsetY, { layer });
+        instrument.services.setSharedVars(
+          {
+            x: event.clientX,
+            y: event.clientY,
+            currentx: event.clientX,
+            currenty: event.clientY,
+            offsetx: event.offsetX,
+            offsety: event.offsetY,
+            skipPicking: true,
+          },
+          { layer }
+        );
       },
     ],
     dragend: [
@@ -845,7 +865,18 @@ Instrument.register("DragInstrument", {
           event.clientX - instrument.services.getSharedVar("x", { layer })[0];
         const offsetY =
           event.clientY - instrument.services.getSharedVar("y", { layer })[0];
-        instrument.services.setSharedVars({ x: 0, y: 0 }, { layer });
+        instrument.services.setSharedVars(
+          {
+            x: 0,
+            y: 0,
+            currentx: event.clientX,
+            currenty: event.clientY,
+            offsetx: 0,
+            offsety: 0,
+            skipPicking: false,
+          },
+          { layer }
+        );
         instrument.setSharedVar("offsetx", offsetX, { layer });
         instrument.setSharedVar("offsety", offsetY, { layer });
       },
@@ -862,6 +893,7 @@ Instrument.register("DragInstrument", {
             currenty: event.clientY,
             offsetx: 0,
             offsety: 0,
+            skipPicking: false,
           },
           { layer }
         );

@@ -527,6 +527,11 @@ export class Interaction {
               transformer = GraphicalTransformer.initialize(
                 componentOption.comp,
                 {
+                  ...(options.layers && options.layers.length == 1
+                    ? options.layers[0] instanceof Layer
+                      ? { layer: options.layers[0] }
+                      : { layer: options.layers[0].layer }
+                    : {}),
                   ...componentOption,
                   sharedVar: {
                     ...(options.sharedVar || {}),

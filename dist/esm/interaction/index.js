@@ -1,5 +1,6 @@
 import { registeredInstruments, instanceInstruments, } from "../instrument/instrument";
 import Instrument from "../instrument/instrument";
+import { Layer } from "../layer";
 import { Service } from "../service";
 import { GraphicalTransformer } from "../transformer";
 import SelectionService from "../service/selectionService";
@@ -392,6 +393,11 @@ export class Interaction {
                         }
                         if (!transformer)
                             transformer = GraphicalTransformer.initialize(componentOption.comp, {
+                                ...(options.layers && options.layers.length == 1
+                                    ? options.layers[0] instanceof Layer
+                                        ? { layer: options.layers[0] }
+                                        : { layer: options.layers[0].layer }
+                                    : {}),
                                 ...componentOption,
                                 sharedVar: {
                                     ...(options.sharedVar || {}),

@@ -59,7 +59,7 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
 GraphicalTransformer.register("SelectionTransformer", {
   constructor: GraphicalTransformer,
   redraw: ({ layer, transformer }) => {
-    transformer.getSharedVar("selectionResult").forEach((resultNode) => {
+    transformer.getSharedVar("result").forEach((resultNode) => {
       layer.getGraphic().appendChild(resultNode);
     });
 
@@ -68,7 +68,7 @@ GraphicalTransformer.register("SelectionTransformer", {
       transformer.getSharedVar("highlightAttrValues") || {}
     );
     if (highlightColor || attrValueEntries.length) {
-      const elems = d3.selectAll(transformer.getSharedVar("selectionResult"));
+      const elems = d3.selectAll(transformer.getSharedVar("result"));
 
       if (highlightColor) {
         elems.attr("fill", highlightColor).attr("stroke", highlightColor);
