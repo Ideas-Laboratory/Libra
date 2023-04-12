@@ -27,13 +27,28 @@ Service.register("AnalysisService", {
 
 Service.register("FilterService", {
   constructor: AnalysisService,
-  evaluate({ data, extents }) {
-    if (!extents) return data;
-    Object.entries(extents).forEach(([field, extent]) => {
-      if (extent[0] >= extent[1] || isNaN(extent[0]) || isNaN(extent[1]))
-        return;
-      data = data.filter((d) => d[field] >= extent[0] && d[field] <= extent[1]);
-    });
+  evaluate({ data, extents, selectionResult, fields }) {
+    if (
+      !extents &&
+      (!selectionResult || !selectionResult.length || !fields || !fields.length)
+    )
+      return data;
+    if (extents) {
+      Object.entries(extents).forEach(([field, extent]) => {
+        if (extent[0] >= extent[1] || isNaN(extent[0]) || isNaN(extent[1]))
+          return;
+        data = data.filter(
+          (d) => d[field] >= extent[0] && d[field] <= extent[1]
+        );
+      });
+    } else {
+      const datum = d3.selectAll(selectionResult).datum();
+      if (datum)
+        fields.forEach((field) => {
+          data = data.filter((d) => d[field] == datum[field]);
+        });
+      console.log(data);
+    }
     return data;
   },
 });

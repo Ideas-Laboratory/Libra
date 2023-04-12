@@ -473,7 +473,6 @@ export class Interaction {
                 }
             }
         }
-        console.log(instrument);
         return instrument;
     }
 }

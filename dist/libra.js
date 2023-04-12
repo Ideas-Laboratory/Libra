@@ -5339,6 +5339,7 @@ var AnalysisService;
 var init_algorithmService = __esm({
   "dist/esm/service/algorithmService.js"() {
     init_service();
+    init_d3();
     AnalysisService = class extends Service {
       constructor(baseName3, options) {
         super(baseName3, {
@@ -5356,14 +5357,23 @@ var init_algorithmService = __esm({
     });
     Service.register("FilterService", {
       constructor: AnalysisService,
-      evaluate({ data, extents }) {
-        if (!extents)
+      evaluate({ data, extents, selectionResult, fields }) {
+        if (!extents && (!selectionResult || !selectionResult.length || !fields || !fields.length))
           return data;
-        Object.entries(extents).forEach(([field, extent]) => {
-          if (extent[0] >= extent[1] || isNaN(extent[0]) || isNaN(extent[1]))
-            return;
-          data = data.filter((d) => d[field] >= extent[0] && d[field] <= extent[1]);
-        });
+        if (extents) {
+          Object.entries(extents).forEach(([field, extent]) => {
+            if (extent[0] >= extent[1] || isNaN(extent[0]) || isNaN(extent[1]))
+              return;
+            data = data.filter((d) => d[field] >= extent[0] && d[field] <= extent[1]);
+          });
+        } else {
+          const datum2 = selectAll_default2(selectionResult).datum();
+          if (datum2)
+            fields.forEach((field) => {
+              data = data.filter((d) => d[field] == datum2[field]);
+            });
+          console.log(data);
+        }
         return data;
       }
     });
@@ -10488,7 +10498,6 @@ var Interaction = class {
         }
       }
     }
-    console.log(instrument);
     return instrument;
   }
 };
