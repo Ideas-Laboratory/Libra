@@ -133,6 +133,9 @@ export default class Layer<T> {
     (copiedElement as any).__libra__screenElement = element;
     return copiedElement;
   }
+  getDatum(elem: Element): any {
+    return null;
+  }
   // getSharedVar(sharedName: string, defaultValue?: any): any {
   //   if (sharedName in this._sharedVar) {
   //     return this._sharedVar[sharedName];

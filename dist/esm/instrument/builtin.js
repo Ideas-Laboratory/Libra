@@ -305,7 +305,14 @@ Instrument.register("BrushXInstrument", {
         ],
     },
     preAttach: (instrument, layer) => {
-        instrument.services.add("RectSelectionService", { layer });
+        instrument.services.add("RectSelectionService", {
+            layer,
+            sharedVar: {
+                deepClone: instrument.getSharedVar("deepClone"),
+                highlightColor: instrument.getSharedVar("highlightColor"),
+                highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            },
+        });
     },
 });
 Instrument.register("BrushYInstrument", {

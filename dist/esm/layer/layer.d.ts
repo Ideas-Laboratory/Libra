@@ -40,6 +40,7 @@ export default class Layer<T> {
     getContainerGraphic(): HTMLElement;
     getVisualElements(): T[];
     cloneVisualElements(element: Element, deep?: boolean): Element;
+    getDatum(elem: Element): any;
     join(rightTable: any[], joinKey: string): any[];
     preUpdate(): void;
     postUpdate(): void;

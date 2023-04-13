@@ -27,7 +27,7 @@ Service.register("AnalysisService", {
 
 Service.register("FilterService", {
   constructor: AnalysisService,
-  evaluate({ data, extents, result, fields }) {
+  evaluate({ data, extents, result, fields, self }) {
     if (!extents && (!result || !result.length || !fields || !fields.length)) {
       if (!extents) return [];
       return data;
@@ -41,7 +41,12 @@ Service.register("FilterService", {
         );
       });
     } else {
-      const datum = d3.selectAll(result).datum();
+      const layerInstances = self._layerInstances;
+      let datum: any = d3.selectAll(result).datum();
+      if (layerInstances && layerInstances.length > 0) {
+        datum = layerInstances[0].getDatum(result[0]);
+      }
+
       if (datum)
         fields.forEach((field) => {
           data = data.filter((d) => d[field] == datum[field]);

@@ -46,7 +46,7 @@ export class Interaction {
                 const s = parent._serviceInstances.find((service) => service.isInstanceOf(findType));
                 if (s)
                     return [s, parent];
-                const t = parent.transformers.find((transformer) => transformer.isInstanceOf(findType));
+                const t = parent._transformers.find((transformer) => transformer.isInstanceOf(findType));
                 if (t)
                     return [t, parent];
                 for (let service of parent._serviceInstances) {
@@ -56,10 +56,10 @@ export class Interaction {
                 }
             }
             else {
-                const s = parent.services.find((service) => service.isInstanceOf(findType));
+                const s = parent._services.find((service) => service.isInstanceOf(findType));
                 if (s)
                     return [s, parent];
-                const t = parent.transformers.find((transformer) => transformer.isInstanceOf(findType));
+                const t = parent._transformers.find((transformer) => transformer.isInstanceOf(findType));
                 if (t)
                     return [t, parent];
                 for (let service of parent.services) {
@@ -84,7 +84,7 @@ export class Interaction {
                 }
             }
             else {
-                const s = parent.services.find((service) => service.isInstanceOf(findType));
+                const s = parent._services.find((service) => service.isInstanceOf(findType));
                 if (s)
                     return s;
                 for (let service of parent.services) {
@@ -416,6 +416,11 @@ export class Interaction {
                         }
                         if (!service)
                             service = Service.initialize(componentOption.comp, {
+                                ...(options.layers && options.layers.length == 1
+                                    ? options.layers[0] instanceof Layer
+                                        ? { layer: options.layers[0] }
+                                        : { layer: options.layers[0].layer }
+                                    : {}),
                                 ...componentOption,
                                 ...(prevComponent
                                     ? prevType == "Transformer"

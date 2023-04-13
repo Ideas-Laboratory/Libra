@@ -131,7 +131,9 @@ export default class SelectionService extends Service {
                     [this._resultAlias]: resultNodes,
                 });
             });
-            this._transformers.forEach((transformer) => {
+            this._transformers
+                .filter((t) => !t.isInstanceOf("draw-shape"))
+                .forEach((transformer) => {
                 transformer.setSharedVars({
                     ...this._sharedVar,
                     layer: layer.getLayerFromQueue("selectionLayer"),
@@ -146,7 +148,9 @@ export default class SelectionService extends Service {
                     [this._resultAlias]: this._result.map((node) => layer.cloneVisualElements(node, false)),
                 });
             });
-            this._transformers.forEach((transformer) => {
+            this._transformers
+                .filter((t) => !t.isInstanceOf("draw-shape"))
+                .forEach((transformer) => {
                 transformer.setSharedVars({
                     ...this._sharedVar,
                     layer: layer.getLayerFromQueue("selectionLayer"),
@@ -346,6 +350,17 @@ Service.register("PointSelectionService", {
 });
 Service.register("RectSelectionService", {
     constructor: SelectionService,
+    transformers: [
+        GraphicalTransformer.initialize("TransientRectangleTransformer", {
+            sharedVar: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                opacity: 0.3,
+            },
+        }),
+    ],
     query: {
         baseOn: helpers.QueryType.Shape,
         type: helpers.ShapeQueryType.Rect,

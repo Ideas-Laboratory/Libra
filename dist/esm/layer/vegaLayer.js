@@ -78,6 +78,9 @@ export default class VegaLayer extends Layer {
         }
         return this._graphic;
     }
+    getDatum(elem) {
+        return d3.select(elem).datum()?.datum;
+    }
     cloneVisualElements(element, deep = false) {
         const copiedElement = d3.select(element).clone(deep).node();
         let currentElement = copiedElement.parentElement;

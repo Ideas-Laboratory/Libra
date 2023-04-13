@@ -68,6 +68,10 @@ export default class D3Layer extends Layer<SVGElement> {
   //   };
   // }
 
+  getDatum(elem: Element) {
+    return d3.select(elem).datum();
+  }
+
   getVisualElements() {
     const elems = [
       ...this._graphic.querySelectorAll(`:root :not(.${backgroundClassName})`),
@@ -257,9 +261,9 @@ export default class D3Layer extends Layer<SVGElement> {
       rect.y = y0;
       rect.width = absWidth;
       rect.height = absHeight;
-      result = [...this._svg.getIntersectionList(rect, this._graphic)].filter(
-        (elem) => !elem.classList.contains(backgroundClassName)
-      );
+      result = [...this._svg.getIntersectionList(rect, this._graphic)]
+        .filter(this._isElementInLayer.bind(this))
+        .filter((elem) => !elem.classList.contains(backgroundClassName));
     } else if (options.type === helpers.ShapeQueryType.Polygon) {
       // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
     }
