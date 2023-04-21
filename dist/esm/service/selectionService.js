@@ -58,8 +58,21 @@ export default class SelectionService extends Service {
             const layer = options?.layer || this._layerInstances[0];
             if (!layer)
                 return;
-            const x = this._sharedVar.x ?? layer.getGraphic().getBoundingClientRect().left;
-            const y = this._sharedVar.y ?? layer.getGraphic().getBoundingClientRect().top;
+            let bbox = layer.getGraphic().getBoundingClientRect();
+            if ((layer._width && bbox.width > layer._width) ||
+                (layer._height && bbox.height > layer._height)) {
+                const tempRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                tempRect.setAttribute("x", "0");
+                tempRect.setAttribute("y", "0");
+                tempRect.setAttribute("width", layer._width.toString());
+                tempRect.setAttribute("height", layer._height.toString());
+                tempRect.setAttribute("opacity", "0");
+                layer.getGraphic().appendChild(tempRect);
+                bbox = tempRect.getBoundingClientRect();
+                layer.getGraphic().removeChild(tempRect);
+            }
+            const x = this._sharedVar.x ?? bbox.left;
+            const y = this._sharedVar.y ?? bbox.top;
             const width = this._sharedVar.width ?? layer._width ?? 0;
             const height = this._sharedVar.height ?? layer._height ?? 0;
             if (this._sharedVar.width !== undefined ||
@@ -67,8 +80,8 @@ export default class SelectionService extends Service {
                 // only set when width or height is set
                 t.setSharedVars({
                     layer: layer.getLayerFromQueue("transientLayer"),
-                    x: x - layer.getGraphic().getBoundingClientRect().left,
-                    y: y - layer.getGraphic().getBoundingClientRect().top,
+                    x: x - bbox.left,
+                    y: y - bbox.top,
                     width: width,
                     height: height,
                 });
