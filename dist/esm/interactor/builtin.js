@@ -39,6 +39,11 @@ Interactor.register("MouseTraceInteractor", {
     state: "start",
     actions: [
         {
+            action: "dragabort",
+            events: ["mousedown[event.button==2]", "mouseup[event.button==2]"],
+            transition: [["drag", "start"]],
+        },
+        {
             action: "dragstart",
             events: ["mousedown"],
             transition: [["start", "drag"]],
@@ -52,14 +57,6 @@ Interactor.register("MouseTraceInteractor", {
             action: "dragend",
             events: ["mouseup[event.button==0]"],
             transition: [["drag", "start"]],
-        },
-        {
-            action: "dragabort",
-            events: ["mouseup[event.button==2]"],
-            transition: [
-                ["drag", "start"],
-                ["start", "start"],
-            ],
         },
     ],
 });

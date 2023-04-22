@@ -40,6 +40,7 @@ export default class Service {
   _baseName: string;
   _name: string;
   _userOptions: ServiceInitOption;
+  joining: boolean = false;
   // _on: {
   //   [action: string]: (
   //     | (<T>(options: helpers.CommonHandlerInput<T>) => Promise<void> | void)
@@ -184,6 +185,10 @@ export default class Service {
 
   async join() {
     if (this._resultAlias) {
+      this.joining = true;
+      if (Object.keys(this._sharedVar).length) {
+        this.setSharedVar(...Object.entries(this._sharedVar)[0]);
+      }
       const result = await this._internalResults;
       if (this._joinServices && this._joinServices.length) {
         await Promise.all(

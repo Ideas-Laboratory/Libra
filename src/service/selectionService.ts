@@ -179,9 +179,9 @@ export default class SelectionService extends Service {
       this._services.forEach((service) => {
         service.setSharedVars({
           ...this._sharedVar,
-          [this._resultAlias]: this._result.map((node) =>
-            layer.cloneVisualElements(node, false)
-          ),
+          [this._resultAlias]: this._result
+            ? this._result.map((node) => layer.cloneVisualElements(node, false))
+            : [],
         });
       });
       this._transformers
@@ -190,9 +190,11 @@ export default class SelectionService extends Service {
           transformer.setSharedVars({
             ...this._sharedVar,
             layer: layer.getLayerFromQueue("selectionLayer"),
-            [this._resultAlias]: this._result.map((node) =>
-              layer.cloneVisualElements(node, false)
-            ),
+            [this._resultAlias]: this._result
+              ? this._result.map((node) =>
+                  layer.cloneVisualElements(node, false)
+                )
+              : [],
           });
         });
     }

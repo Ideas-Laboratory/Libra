@@ -70,7 +70,8 @@ type InstrumentBuildTemplate = {
   }[];
 };
 
-export const registeredInstruments: { [name: string]: InstrumentInitTemplate } = {};
+export const registeredInstruments: { [name: string]: InstrumentInitTemplate } =
+  {};
 export const instanceInstruments: Instrument[] = [];
 const EventDispatcher: Map<
   HTMLElement,
@@ -517,15 +518,36 @@ export default class Instrument {
             x: e.clientX,
             y: e.clientY,
           });
-          if (query.length <= 0) continue;
+          if (query.length <= 0 && inter._state === "start") continue;
+
+          const maybeD3Layer = layr as any;
+          if (
+            maybeD3Layer._offset &&
+            maybeD3Layer._width &&
+            maybeD3Layer._height
+          ) {
+            if (
+              e.offsetX < maybeD3Layer._offset.x ||
+              e.offsetX > maybeD3Layer._offset.x + maybeD3Layer._width ||
+              e.offsetY < maybeD3Layer._offset.y ||
+              e.offsetY > maybeD3Layer._offset.y + maybeD3Layer._height
+            ) {
+              continue;
+            }
+          }
         }
       }
       try {
         let flag = await inter.dispatch(e, layr);
-        // if (flag && e instanceof MouseEvent) {
-        //   handled = true;
-        //   break;
-        // }
+        if (
+          flag &&
+          e instanceof MouseEvent &&
+          layerOption &&
+          layerOption.pointerEvents === "visiblePainted"
+        ) {
+          handled = true;
+          break;
+        }
       } catch (e) {
         console.error(e);
         break;

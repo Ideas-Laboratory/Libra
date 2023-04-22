@@ -34,6 +34,7 @@ export default class Service {
     _baseName: string;
     _name: string;
     _userOptions: ServiceInitOption;
+    joining: boolean;
     _sharedVar: {
         [key: string]: any;
     };

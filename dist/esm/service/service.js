@@ -5,6 +5,7 @@ const registeredServices = {};
 export const instanceServices = [];
 export default class Service {
     constructor(baseName, options) {
+        this.joining = false;
         this._linkCache = {};
         this._transformers = [];
         this._joinTransformers = [];
@@ -118,6 +119,10 @@ export default class Service {
     }
     async join() {
         if (this._resultAlias) {
+            this.joining = true;
+            if (Object.keys(this._sharedVar).length) {
+                this.setSharedVar(...Object.entries(this._sharedVar)[0]);
+            }
             const result = await this._internalResults;
             if (this._joinServices && this._joinServices.length) {
                 await Promise.all(this._joinServices.map(async (s) => {
