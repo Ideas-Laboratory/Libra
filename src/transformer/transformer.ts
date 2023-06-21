@@ -108,7 +108,7 @@ export default class GraphicalTransformer {
         //   (el) => !postDrawElements.find((e) => e !== el && e.contains(el))
         // );
         postDrawElements = postDrawElements.concat(
-          Array.prototype.slice.call(layer.getGraphic().childNodes)
+          Array.prototype.slice.call(layer.getGraphic()?.childNodes ?? [])
         );
         const transientElements = postDrawElements.filter(
           (el) => !preDrawElements.includes(el)

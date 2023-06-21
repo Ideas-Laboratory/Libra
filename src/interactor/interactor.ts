@@ -171,10 +171,10 @@ export default class Interactor {
       );
     });
     if (moveAction) {
-      if (event instanceof Event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      // if (event instanceof Event) {
+      //   event.preventDefault();
+      //   event.stopPropagation();
+      // }
       const moveTransition =
         moveAction.transition &&
         moveAction.transition.find(

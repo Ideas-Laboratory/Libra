@@ -136,7 +136,7 @@ export default class SelectionService extends Service {
     const selectionLayer = layer
       .getLayerFromQueue("selectionLayer")
       .getGraphic();
-    while (selectionLayer.firstChild) {
+    while (selectionLayer?.firstChild) {
       selectionLayer.removeChild(selectionLayer.lastChild);
     }
     if (this._sharedVar.deepClone) {

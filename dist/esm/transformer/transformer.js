@@ -74,7 +74,7 @@ export default class GraphicalTransformer {
                 // const topLevelElements = postDrawElements.filter(
                 //   (el) => !postDrawElements.find((e) => e !== el && e.contains(el))
                 // );
-                postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer.getGraphic().childNodes));
+                postDrawElements = postDrawElements.concat(Array.prototype.slice.call(layer.getGraphic()?.childNodes ?? []));
                 const transientElements = postDrawElements.filter((el) => !preDrawElements.includes(el));
                 transientQueue = transientQueue.concat(transientElements);
             });

@@ -94,10 +94,10 @@ export default class Interactor {
                     action.transition.find((transition) => transition[0] === this._state || transition[0] === "*")));
         });
         if (moveAction) {
-            if (event instanceof Event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
+            // if (event instanceof Event) {
+            //   event.preventDefault();
+            //   event.stopPropagation();
+            // }
             const moveTransition = moveAction.transition &&
                 moveAction.transition.find((transition) => transition[0] === this._state || transition[0] === "*");
             if (moveTransition) {

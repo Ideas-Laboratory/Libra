@@ -330,9 +330,11 @@ export default class Instrument {
         });
     }
     async _dispatch(layer, event, e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+        if (layer._baseName !== "Layer") {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
         if (eventHandling) {
             let existingEventIndex = EventQueue.findIndex((e) => e.instrument === this && e.layer === layer && e.eventType === event);
             if (existingEventIndex >= 0) {

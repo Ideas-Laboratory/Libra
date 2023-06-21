@@ -463,9 +463,11 @@ export default class Instrument {
   }
 
   async _dispatch(layer: Layer<any>, event: string, e: Event) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+    if (layer._baseName !== "Layer") {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
     if (eventHandling) {
       let existingEventIndex = EventQueue.findIndex(
         (e) =>
