@@ -7,7 +7,11 @@ import Instrument from "../instrument/instrument";
 import { Layer } from "../layer";
 import { Service, findService } from "../service";
 import { GraphicalTransformer } from "../transformer";
+import Interactor, {
+  transferInteractorInnerAction,
+} from "../interactor/interactor";
 import SelectionService from "../service/selectionService";
+import { deepClone } from "../helpers";
 
 type InteractionFlowOption = {
   comp: string;
@@ -212,91 +216,133 @@ export class Interaction {
     }
     if (options.override) {
       for (let overrideOption of options.override) {
-        const [removeNode, parentNode] = findNested(
-          instrument,
-          overrideOption.find
-        );
-        if (!removeNode) continue;
-        let replaceNode: GraphicalTransformer | Service;
-        if (overrideOption.comp.includes("Transformer")) {
-          let transformer: GraphicalTransformer;
-          if (overrideOption.name) {
-            if (
-              GraphicalTransformer.findTransformer(overrideOption.name).length >
-              0
-            ) {
-              transformer = GraphicalTransformer.findTransformer(
-                overrideOption.name
-              )[0];
-            }
-          }
-          if (!transformer)
-            transformer = GraphicalTransformer.initialize(overrideOption.comp, {
-              name: overrideOption.name,
-              sharedVar: {
-                ...(options.sharedVar || {}),
-                ...(overrideOption.sharedVar || {}),
-              },
-            });
-          replaceNode = transformer;
-        } else if (overrideOption.comp.includes("Service")) {
-          let service: Service;
-          if (overrideOption.name) {
-            if (Service.findService(overrideOption.name).length > 0) {
-              service = Service.findService(overrideOption.name)[0];
-            }
-          }
-          if (!service)
-            service = Service.initialize(overrideOption.comp, {
-              ...overrideOption,
-              services: [
-                ...(overrideOption.services || []),
-                ...(removeNode instanceof Service ? removeNode._services : []),
-              ],
-              transformers: [
-                ...(overrideOption.transformers || []),
-                ...(removeNode instanceof Service
-                  ? removeNode._transformers
-                  : []),
-              ],
-              sharedVar: {
-                ...(options.sharedVar || {}),
-                ...(overrideOption.sharedVar || {}),
-              },
-            });
-          if (
-            overrideOption.dimension &&
-            service.isInstanceOf("SelectionService")
-          ) {
-            service = (service as SelectionService).dimension(
-              overrideOption.dimension
-            );
-            if (overrideOption.layers) {
-              service._layerInstances = overrideOption.layers.slice(0);
-            }
-            if (overrideOption.sharedVar) {
-              service.setSharedVars(overrideOption.sharedVar);
-            }
-          }
-          replaceNode = service;
-        }
-
-        let parentServiceArray =
-          parentNode instanceof Instrument
-            ? parentNode._serviceInstances
-            : parentNode._services;
-        if (removeNode instanceof Service) {
-          parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1);
-        } else {
-          parentNode._transformers.splice(
-            parentNode._transformers.indexOf(removeNode),
-            1
+        if (overrideOption.find.endsWith("Interactor")) {
+          // Support for overriding interactor
+          const interactorsList = [...instrument._layerInteractors.values()];
+          const removeNodes = interactorsList.map((interactors) =>
+            interactors.filter((interactor) =>
+              interactor.isInstanceOf(overrideOption.find)
+            )
           );
-        }
-        if (overrideOption.comp.includes("Transformer")) {
-          parentNode._transformers.push(replaceNode as GraphicalTransformer);
+          if (overrideOption.comp) {
+            removeNodes.forEach((list, i) => {
+              list.forEach((interactor) => {
+                const newInteractor = Interactor.initialize(
+                  overrideOption.comp
+                );
+                if (newInteractor) {
+                  interactorsList[i].splice(
+                    interactorsList[i].indexOf(interactor),
+                    1,
+                    newInteractor
+                  );
+                }
+              });
+            });
+          } else if (overrideOption.actions) {
+            removeNodes.forEach((list) => {
+              list.forEach((interactor) => {
+                interactor._actions = deepClone(overrideOption.actions).map(
+                  transferInteractorInnerAction
+                );
+              });
+            });
+          }
         } else {
-          parentServiceArray.push(replaceNode as Service);
+          const [removeNode, parentNode] = findNested(
+            instrument,
+            overrideOption.find
+          );
+          if (!removeNode) continue;
+          let replaceNode: GraphicalTransformer | Service;
+          if (overrideOption.comp.includes("Transformer")) {
+            let transformer: GraphicalTransformer;
+            if (overrideOption.name) {
+              if (
+                GraphicalTransformer.findTransformer(overrideOption.name)
+                  .length > 0
+              ) {
+                transformer = GraphicalTransformer.findTransformer(
+                  overrideOption.name
+                )[0];
+              }
+            }
+            if (!transformer)
+              transformer = GraphicalTransformer.initialize(
+                overrideOption.comp,
+                {
+                  name: overrideOption.name,
+                  sharedVar: {
+                    ...(options.sharedVar || {}),
+                    ...(overrideOption.sharedVar || {}),
+                  },
+                }
+              );
+            replaceNode = transformer;
+          } else if (overrideOption.comp.includes("Service")) {
+            let service: Service;
+            if (overrideOption.name) {
+              if (Service.findService(overrideOption.name).length > 0) {
+                service = Service.findService(overrideOption.name)[0];
+              }
+            }
+            if (!service)
+              service = Service.initialize(overrideOption.comp, {
+                ...overrideOption,
+                services: [
+                  ...(overrideOption.services || []),
+                  ...(removeNode instanceof Service
+                    ? removeNode._services
+                    : []),
+                ],
+                transformers: [
+                  ...(overrideOption.transformers || []),
+                  ...(removeNode instanceof Service
+                    ? removeNode._transformers
+                    : []),
+                ],
+                sharedVar: {
+                  ...(options.sharedVar || {}),
+                  ...(overrideOption.sharedVar || {}),
+                },
+              });
+            if (
+              overrideOption.dimension &&
+              service.isInstanceOf("SelectionService")
+            ) {
+              service = (service as SelectionService).dimension(
+                overrideOption.dimension
+              );
+              if (overrideOption.layers) {
+                service._layerInstances = overrideOption.layers.slice(0);
+              }
+              if (overrideOption.sharedVar) {
+                service.setSharedVars(overrideOption.sharedVar);
+              }
+            }
+            replaceNode = service;
+          }
+
+          let parentServiceArray =
+            parentNode instanceof Instrument
+              ? parentNode._serviceInstances
+              : parentNode._services;
+          if (removeNode instanceof Service) {
+            parentServiceArray.splice(
+              parentServiceArray.indexOf(removeNode),
+              1
+            );
+          } else {
+            parentNode._transformers.splice(
+              parentNode._transformers.indexOf(removeNode),
+              1
+            );
+          }
+          if (overrideOption.comp.includes("Transformer")) {
+            parentNode._transformers.push(replaceNode as GraphicalTransformer);
+          } else {
+            parentServiceArray.push(replaceNode as Service);
+          }
         }
       }
     }

@@ -7,7 +7,7 @@ type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
 
 type OriginInteractorInnerAction = {
   action: string;
-  events: string[];
+  events: (string | EventFilterFunc)[];
   transition?: [string, string][];
   sideEffect?: SideEffect;
 };
@@ -227,7 +227,9 @@ export default class Interactor {
   }
 
   isInstanceOf(name: string): boolean {
-    return this._baseName === name || this._name === name;
+    return (
+      "Interactor" == name || this._baseName === name || this._name === name
+    );
   }
 
   static register(baseName: string, options: InteractorInitTemplate): void {
@@ -261,12 +263,20 @@ export default class Interactor {
   }
 }
 
-function transferInteractorInnerAction(
+export function transferInteractorInnerAction(
   originAction: OriginInteractorInnerAction
 ): InteractorInnerAction {
   const eventStreams: helpers.EventStream[] = originAction.events.map(
-    (evtSelector) =>
-      helpers.parseEventSelector(evtSelector)[0] as helpers.EventStream
+    (evtSelector) => {
+      if (typeof evtSelector === "string") {
+        return helpers.parseEventSelector(
+          evtSelector
+        )[0] as helpers.EventStream;
+      } else {
+        const es = helpers.parseEventSelector("*")[0] as LibraEventStream;
+        es.filterFuncs = [evtSelector];
+      }
+    }
   ); // do not accept combinator
   return {
     ...originAction,
