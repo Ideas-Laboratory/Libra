@@ -68,7 +68,11 @@ export default class D3Layer extends Layer<SVGElement> {
   //   };
   // }
 
-  getDatum(elem: Element) {
+  getDatum(elem: Element | Element[]) {
+    if (!elem || (elem instanceof Array && elem.length == 0)) return null;
+    if(elem instanceof Array) {
+      return d3.selectAll(elem).datum();
+    }
     return d3.select(elem).datum();
   }
 

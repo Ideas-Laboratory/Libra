@@ -114,7 +114,11 @@ export default class VegaLayer extends Layer<SVGElement> {
     return this._graphic;
   }
 
-  getDatum(elem: Element) {
+  getDatum(elem: Element | Element[]) {
+    if (!elem || (elem instanceof Array && elem.length == 0)) return null;
+    if (elem instanceof Array) {
+      return (d3.selectAll(elem).datum() as any)?.datum;
+    }
     return (d3.select(elem).datum() as any)?.datum;
   }
 

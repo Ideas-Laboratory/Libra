@@ -14,7 +14,7 @@ export default class VegaLayer extends Layer<SVGElement> {
     };
     getVisualElements(): SVGElement[];
     getGraphic(real?: boolean): SVGElement;
-    getDatum(elem: Element): any;
+    getDatum(elem: Element | Element[]): any;
     cloneVisualElements(element: Element, deep?: boolean): Element;
     select(selector: string): NodeListOf<Element>;
     picking(options: helpers.ArbitraryQuery): SVGElement[];

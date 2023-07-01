@@ -44,6 +44,11 @@ export default class D3Layer extends Layer {
     //   };
     // }
     getDatum(elem) {
+        if (!elem || (elem instanceof Array && elem.length == 0))
+            return null;
+        if (elem instanceof Array) {
+            return d3.selectAll(elem).datum();
+        }
         return d3.select(elem).datum();
     }
     getVisualElements() {

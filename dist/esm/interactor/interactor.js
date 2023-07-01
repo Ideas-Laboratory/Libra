@@ -147,7 +147,7 @@ export default class Interactor {
         this._postUse && this._postUse.call(this, this, instrument);
     }
     isInstanceOf(name) {
-        return this._baseName === name || this._name === name;
+        return ("Interactor" == name || this._baseName === name || this._name === name);
     }
     static register(baseName, options) {
         registeredInteractors[baseName] = options;
@@ -167,8 +167,16 @@ export default class Interactor {
     }
 }
 _a = helpers.LibraSymbol;
-function transferInteractorInnerAction(originAction) {
-    const eventStreams = originAction.events.map((evtSelector) => helpers.parseEventSelector(evtSelector)[0]); // do not accept combinator
+export function transferInteractorInnerAction(originAction) {
+    const eventStreams = originAction.events.map((evtSelector) => {
+        if (typeof evtSelector === "string") {
+            return helpers.parseEventSelector(evtSelector)[0];
+        }
+        else {
+            const es = helpers.parseEventSelector("*")[0];
+            es.filterFuncs = [evtSelector];
+        }
+    }); // do not accept combinator
     return {
         ...originAction,
         eventStreams: eventStreams.map((es) => transferEventStream(es)),

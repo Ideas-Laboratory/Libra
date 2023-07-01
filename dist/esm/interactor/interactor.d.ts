@@ -4,7 +4,7 @@ import { Layer } from "../layer";
 type SideEffect = (options: helpers.CommonHandlerInput<any>) => Promise<void>;
 type OriginInteractorInnerAction = {
     action: string;
-    events: string[];
+    events: (string | EventFilterFunc)[];
     transition?: [string, string][];
     sideEffect?: SideEffect;
 };
@@ -60,6 +60,7 @@ export default class Interactor {
     static initialize(baseName: string, options?: InteractorInitOption): Interactor;
     static findInteractor(baseNameOrRealName: string): Interactor[];
 }
+export declare function transferInteractorInnerAction(originAction: OriginInteractorInnerAction): InteractorInnerAction;
 export declare const register: typeof Interactor.register;
 export declare const unregister: typeof Interactor.unregister;
 export declare const initialize: typeof Interactor.initialize;

@@ -15,7 +15,7 @@ export default class D3Layer extends Layer<SVGElement> {
     _name: string;
     _svg: SVGSVGElement;
     constructor(baseName: string, options: D3LayerInitOption);
-    getDatum(elem: Element): unknown;
+    getDatum(elem: Element | Element[]): unknown;
     getVisualElements(): SVGElement[];
     cloneVisualElements(element: Element, deep?: boolean): Element;
     select(selector: string): NodeListOf<Element>;

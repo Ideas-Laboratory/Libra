@@ -40,7 +40,7 @@ GraphicalTransformer.register("HighlightSelection", {
 
 GraphicalTransformer.register("TransientRectangleTransformer", {
   constructor: GraphicalTransformer,
-  className: ['draw-shape', 'transient-shape', 'rectangle-shape'],
+  className: ["draw-shape", "transient-shape", "rectangle-shape"],
   redraw: ({ layer, transformer }) => {
     d3.select(layer.getGraphic())
       .selectAll(":not(.ig-layer-background)")
@@ -174,5 +174,57 @@ GraphicalTransformer.register("HelperLineTransformer", {
         .attr("y", y - (layer._offset?.y ?? 0))
         .text(tooltip);
     }
+  },
+});
+
+GraphicalTransformer.register("TextTransformer", {
+  constructor: GraphicalTransformer,
+  transient: true,
+  sharedVar: {
+    style: {},
+    content: "",
+    field: null,
+  },
+  redraw({ layer, transformer }) {
+    const style = transformer.getSharedVar("style");
+    const x =
+      transformer.getSharedVar("offsetx") || transformer.getSharedVar("x");
+    const y =
+      transformer.getSharedVar("offsety") || transformer.getSharedVar("y");
+    const content = transformer.getSharedVar("content");
+    const field = transformer.getSharedVar("field");
+    const result = transformer.getSharedVar("result");
+    const position = transformer.getSharedVar("position");
+    let displayContent = content;
+    let displayX = x,
+      displayY = y;
+    if (field) {
+      const datum = layer.getDatum(result);
+      if (datum) {
+        displayContent = datum?.[field] ?? "";
+        if (position instanceof Function) {
+          let { x, y } = position(datum);
+          displayX = x ?? displayX;
+          displayY = y ?? displayY;
+        } else {
+          displayX = position?.x ?? displayX;
+          displayY = position?.y ?? displayY;
+        }
+      } else {
+        displayContent = "";
+      }
+    }
+    d3.select(layer.getGraphic())
+      .append("text")
+      .attr("x", displayX)
+      .attr("y", displayY)
+      .text(displayContent)
+      .call((t) => {
+        if (style) {
+          Object.entries(style).forEach(([key, value]: [string, string]) => {
+            t.style(key, value);
+          });
+        }
+      });
   },
 });

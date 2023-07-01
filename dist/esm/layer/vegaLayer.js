@@ -79,6 +79,11 @@ export default class VegaLayer extends Layer {
         return this._graphic;
     }
     getDatum(elem) {
+        if (!elem || (elem instanceof Array && elem.length == 0))
+            return null;
+        if (elem instanceof Array) {
+            return d3.selectAll(elem).datum()?.datum;
+        }
         return d3.select(elem).datum()?.datum;
     }
     cloneVisualElements(element, deep = false) {
