@@ -2,6 +2,7 @@ import * as LayerConstructor from "./layer";
 import LayerClass from "./layer";
 import "./d3Layer";
 import "./vegaLayer";
+import "./plotLayer";
 export default LayerClass;
 export declare const register: typeof LayerConstructor.register;
 export declare const initialize: typeof LayerConstructor.initialize;
