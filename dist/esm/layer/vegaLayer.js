@@ -89,7 +89,7 @@ export default class VegaLayer extends Layer {
     cloneVisualElements(element, deep = false) {
         const copiedElement = d3.select(element).clone(deep).node();
         let currentElement = copiedElement.parentElement;
-        let transform = copiedElement.getAttribute("transform");
+        let transform = copiedElement.getAttribute("transform") || '';
         while (currentElement && currentElement != this._container) {
             if (currentElement.getAttribute("transform")) {
                 transform += ` ${currentElement.getAttribute("transform")}`;

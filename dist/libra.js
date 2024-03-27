@@ -8014,7 +8014,7 @@ var init_vegaLayer = __esm({
       cloneVisualElements(element, deep = false) {
         const copiedElement = select_default2(element).clone(deep).node();
         let currentElement = copiedElement.parentElement;
-        let transform3 = copiedElement.getAttribute("transform");
+        let transform3 = copiedElement.getAttribute("transform") || "";
         while (currentElement && currentElement != this._container) {
           if (currentElement.getAttribute("transform")) {
             transform3 += ` ${currentElement.getAttribute("transform")}`;
