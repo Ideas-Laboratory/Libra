@@ -1233,27 +1233,49 @@ Instrument.register("GeometricZoomInstrument", {
           const sy = transformer.getSharedVar("scaleY");
           if (fixRange) {
             if (sx) {
-              const offsetXDomain = sx.invert(offsetX);
-              sx.domain(
-                sx
-                  .domain()
-                  .map((d) => d - offsetXDomain)
-                  .map((d) => d * Math.exp(-delta))
-                  .map((d) => d + offsetXDomain)
-              );
+              if (sx.type === "time") {
+                const offsetXDomain = sx.invert(offsetX);
+                sx.domain(
+                  sx
+                    .domain()
+                    .map((d) => new Date(d.getTime() - offsetXDomain.getTime()))
+                    .map((d) => new Date(d.getTime() * Math.exp(-delta)))
+                    .map((d) => new Date(d.getTime() + offsetXDomain.getTime()))
+                );
+              } else {
+                const offsetXDomain = sx.invert(offsetX);
+                sx.domain(
+                  sx
+                    .domain()
+                    .map((d) => d - offsetXDomain)
+                    .map((d) => d * Math.exp(-delta))
+                    .map((d) => d + offsetXDomain)
+                );
+              }
               transformers.forEach((transformer) =>
                 transformer.setSharedVar("scaleX", sx)
               );
             }
             if (sy) {
-              const offsetYDomain = sy.invert(offsetY);
-              sy.domain(
-                sy
-                  .domain()
-                  .map((d) => d - offsetYDomain)
-                  .map((d) => d * Math.exp(-delta))
-                  .map((d) => d + offsetYDomain)
-              );
+              if (sy.type === "time") {
+                const offsetYDomain = sy.invert(offsetY);
+                sy.domain(
+                  sy
+                    .domain()
+                    .map((d) => new Date(d.getTime() - offsetYDomain.getTime()))
+                    .map((d) => new Date(d.getTime() * Math.exp(-delta)))
+                    .map((d) => new Date(d.getTime() + offsetYDomain.getTime()))
+                );
+              } else {
+                const offsetYDomain = sy.invert(offsetY);
+                sy.domain(
+                  sy
+                    .domain()
+                    .map((d) => d - offsetYDomain)
+                    .map((d) => d * Math.exp(-delta))
+                    .map((d) => d + offsetYDomain)
+                );
+              }
               transformers.forEach((transformer) =>
                 transformer.setSharedVar("scaleY", sy)
               );
@@ -1482,27 +1504,49 @@ Instrument.register("SemanticZoomInstrument", {
           const sy = transformer.getSharedVar("scaleY");
           if (fixRange) {
             if (sx) {
-              const offsetXDomain = sx.invert(offsetX);
-              sx.domain(
-                sx
-                  .domain()
-                  .map((d) => d - offsetXDomain)
-                  .map((d) => d * Math.exp(-delta))
-                  .map((d) => d + offsetXDomain)
-              );
+              if (sx.type === "time") {
+                const offsetXDomain = sx.invert(offsetX);
+                sx.domain(
+                  sx
+                    .domain()
+                    .map((d) => new Date(d.getTime() - offsetXDomain.getTime()))
+                    .map((d) => new Date(d.getTime() * Math.exp(-delta)))
+                    .map((d) => new Date(d.getTime() + offsetXDomain.getTime()))
+                );
+              } else {
+                const offsetXDomain = sx.invert(offsetX);
+                sx.domain(
+                  sx
+                    .domain()
+                    .map((d) => d - offsetXDomain)
+                    .map((d) => d * Math.exp(-delta))
+                    .map((d) => d + offsetXDomain)
+                );
+              }
               transformers.forEach((transformer) =>
                 transformer.setSharedVar("scaleX", sx)
               );
             }
             if (sy) {
-              const offsetYDomain = sy.invert(offsetY);
-              sy.domain(
-                sy
-                  .domain()
-                  .map((d) => d - offsetYDomain)
-                  .map((d) => d * Math.exp(-delta))
-                  .map((d) => d + offsetYDomain)
-              );
+              if (sy.type === "time") {
+                const offsetYDomain = sy.invert(offsetY);
+                sy.domain(
+                  sy
+                    .domain()
+                    .map((d) => new Date(d.getTime() - offsetYDomain.getTime()))
+                    .map((d) => new Date(d.getTime() * Math.exp(-delta)))
+                    .map((d) => new Date(d.getTime() + offsetYDomain.getTime()))
+                );
+              } else {
+                const offsetYDomain = sy.invert(offsetY);
+                sy.domain(
+                  sy
+                    .domain()
+                    .map((d) => d - offsetYDomain)
+                    .map((d) => d * Math.exp(-delta))
+                    .map((d) => d + offsetYDomain)
+                );
+              }
               transformers.forEach((transformer) =>
                 transformer.setSharedVar("scaleY", sy)
               );
