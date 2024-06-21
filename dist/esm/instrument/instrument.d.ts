@@ -71,6 +71,7 @@ export default class Instrument {
     _postInitialize?: (instrument: Instrument) => void;
     _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
     _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
+    _socket: any;
     [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: InstrumentInitOption);
     emit(action: string, options?: helpers.CommonHandlerInput<this>): void;

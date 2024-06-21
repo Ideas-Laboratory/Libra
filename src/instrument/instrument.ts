@@ -107,10 +107,13 @@ export default class Instrument {
   _postInitialize?: (instrument: Instrument) => void;
   _preAttach?: (instrument: Instrument, layer: Layer<any>) => void;
   _postUse?: (instrument: Instrument, layer: Layer<any>) => void;
+  _socket: any;
 
   [helpers.LibraSymbol] = true;
 
   constructor(baseName: string, options: InstrumentInitOption) {
+    // console.log(options);
+    
     options.preInitialize && options.preInitialize.call(this, this);
     this._preInitialize = options.preInitialize ?? null;
     this._postInitialize = options.postInitialize ?? null;
@@ -128,6 +131,7 @@ export default class Instrument {
     this._serviceInstances = [];
     this._sharedVar = options.sharedVar ?? {};
     this._transformers = options.transformers ?? [];
+    // this._socket = options.socket ?? {};
     if (options.interactors) {
       options.interactors.forEach((interactor) => {
         if (typeof interactor === "string") {
@@ -463,6 +467,8 @@ export default class Instrument {
   }
 
   async _dispatch(layer: Layer<any>, event: string, e: Event) {
+    // console.log({ instrument: this, layer, eventType: event, event: e });
+    
     if (layer._baseName !== "Layer") {
       e.preventDefault();
       e.stopPropagation();
@@ -480,6 +486,25 @@ export default class Instrument {
       return;
     }
     eventHandling = true;
+      if(this._socket.connected) {
+        // if ('detail' in e && e.detail != 0) {
+          console.log(e);
+        // }
+        
+        if ('ctrlKey' in e  && !e.ctrlKey && 'type' in e && 'clientX' in e && 'clientY' in e && 'button' in e) {
+          // console.log('throw', e.type, e.clientX, e.clientY, e.button);
+          await this._socket.emit('eventToServer',
+            {
+              type: e.type,
+              clientX: e.clientX,
+              clientY: e.clientY,
+              button: e.button,
+            }
+          )
+        }
+      
+      // ('eventToServer',{ instrument: this, layer, eventType: event, event: e });
+      }
     const layers = EventDispatcher.get(layer.getContainerGraphic())
       .get(event)
       .filter(([_, layr]) => layr._order >= 0);

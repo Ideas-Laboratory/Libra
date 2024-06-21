@@ -8702,6 +8702,17 @@ var init_instrument = __esm({
           return;
         }
         eventHandling = true;
+        if (this._socket.connected) {
+          console.log(e);
+          if ("ctrlKey" in e && !e.ctrlKey && "type" in e && "clientX" in e && "clientY" in e && "button" in e) {
+            await this._socket.emit("eventToServer", {
+              type: e.type,
+              clientX: e.clientX,
+              clientY: e.clientY,
+              button: e.button
+            });
+          }
+        }
         const layers = EventDispatcher.get(layer.getContainerGraphic()).get(event).filter(([_, layr]) => layr._order >= 0);
         layers.sort((a, b) => b[1]._order - a[1]._order);
         let handled = false;
