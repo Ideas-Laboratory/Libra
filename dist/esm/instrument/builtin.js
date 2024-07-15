@@ -444,6 +444,9 @@ Instrument.register("HelperLineInstrument", {
                 instrument.setSharedVar("y", event.offsetY, {});
             },
         ],
+        click: [
+            Command.initialize("Log", { execute() { } })
+        ]
     },
     preAttach: function (instrument, layer) {
         instrument.transformers.add("HelperLineTransformer", {
@@ -796,6 +799,7 @@ Instrument.register("DragInstrument", {
                 instrument.setSharedVar("offsetx", offsetX, { layer });
                 instrument.setSharedVar("offsety", offsetY, { layer });
             },
+            Command.initialize("Log", { execute() { } })
         ],
         dragabort: [
             (options) => {

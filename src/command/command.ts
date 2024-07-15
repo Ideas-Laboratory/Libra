@@ -73,7 +73,7 @@ export default class Command {
       for (let feedback of this._feedback) {
         await feedback.call(this, options);
       }
-      await tryGetHistoryTrrackInstance(this).commit();
+      await tryGetHistoryTrrackInstance(this).commit(this._name);
     } catch (e) {
       console.error(e);
     }

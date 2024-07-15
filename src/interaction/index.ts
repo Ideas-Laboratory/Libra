@@ -176,40 +176,42 @@ export class Interaction {
     };
     if (options.remove) {
       for (let removeOption of options.remove) {
-        const [removeNode, parentNode] = findNested(
-          instrument,
-          removeOption.find
-        );
-        if (!removeNode) continue;
-        let parentServiceArray =
-          parentNode instanceof Instrument
-            ? parentNode._serviceInstances
-            : parentNode._services;
-        if (removeOption.cascade) {
-          if (removeNode instanceof Service) {
-            parentServiceArray.splice(
-              parentServiceArray.indexOf(removeNode),
-              1
-            );
+        while (true) {
+          const [removeNode, parentNode] = findNested(
+            instrument,
+            removeOption.find
+          );
+          if (!removeNode) break;
+          let parentServiceArray =
+            parentNode instanceof Instrument
+              ? parentNode._serviceInstances
+              : parentNode._services;
+          if (removeOption.cascade) {
+            if (removeNode instanceof Service) {
+              parentServiceArray.splice(
+                parentServiceArray.indexOf(removeNode),
+                1
+              );
+            } else {
+              parentNode._transformers.splice(
+                parentNode._transformers.indexOf(removeNode),
+                1
+              );
+            }
           } else {
-            parentNode._transformers.splice(
-              parentNode._transformers.indexOf(removeNode),
-              1
-            );
-          }
-        } else {
-          if (removeNode instanceof Service) {
-            parentServiceArray.splice(
-              parentServiceArray.indexOf(removeNode),
-              1,
-              ...removeNode._services
-            );
-            parentNode._transformers.push(...removeNode._transformers);
-          } else {
-            parentNode._transformers.splice(
-              parentNode._transformers.indexOf(removeNode),
-              1
-            );
+            if (removeNode instanceof Service) {
+              parentServiceArray.splice(
+                parentServiceArray.indexOf(removeNode),
+                1,
+                ...removeNode._services
+              );
+              parentNode._transformers.push(...removeNode._transformers);
+            } else {
+              parentNode._transformers.splice(
+                parentNode._transformers.indexOf(removeNode),
+                1
+              );
+            }
           }
         }
       }
@@ -402,17 +404,17 @@ export class Interaction {
                     ...(prevComponent
                       ? prevType == "Transformer"
                         ? {
-                            transformers:
-                              prevComponent instanceof Array
-                                ? (prevComponent as GraphicalTransformer[])
-                                : [prevComponent as GraphicalTransformer],
-                          }
+                          transformers:
+                            prevComponent instanceof Array
+                              ? (prevComponent as GraphicalTransformer[])
+                              : [prevComponent as GraphicalTransformer],
+                        }
                         : {
-                            services:
-                              prevComponent instanceof Array
-                                ? (prevComponent as Service[])
-                                : [prevComponent as Service],
-                          }
+                          services:
+                            prevComponent instanceof Array
+                              ? (prevComponent as Service[])
+                              : [prevComponent as Service],
+                        }
                       : {}),
                     sharedVar: {
                       ...(options.sharedVar || {}),
@@ -501,17 +503,17 @@ export class Interaction {
                     ...(prevComponent
                       ? prevType == "Transformer"
                         ? {
-                            transformers:
-                              prevComponent instanceof Array
-                                ? (prevComponent as GraphicalTransformer[])
-                                : [prevComponent as GraphicalTransformer],
-                          }
+                          transformers:
+                            prevComponent instanceof Array
+                              ? (prevComponent as GraphicalTransformer[])
+                              : [prevComponent as GraphicalTransformer],
+                        }
                         : {
-                            services:
-                              prevComponent instanceof Array
-                                ? (prevComponent as Service[])
-                                : [prevComponent as Service],
-                          }
+                          services:
+                            prevComponent instanceof Array
+                              ? (prevComponent as Service[])
+                              : [prevComponent as Service],
+                        }
                       : {}),
                     sharedVar: {
                       ...(options.sharedVar || {}),
@@ -605,17 +607,17 @@ export class Interaction {
                 ...(prevComponent
                   ? prevType == "Transformer"
                     ? {
-                        transformers:
-                          prevComponent instanceof Array
-                            ? (prevComponent as GraphicalTransformer[])
-                            : [prevComponent as GraphicalTransformer],
-                      }
+                      transformers:
+                        prevComponent instanceof Array
+                          ? (prevComponent as GraphicalTransformer[])
+                          : [prevComponent as GraphicalTransformer],
+                    }
                     : {
-                        services:
-                          prevComponent instanceof Array
-                            ? (prevComponent as Service[])
-                            : [prevComponent as Service],
-                      }
+                      services:
+                        prevComponent instanceof Array
+                          ? (prevComponent as Service[])
+                          : [prevComponent as Service],
+                    }
                   : {}),
                 sharedVar: {
                   ...(options.sharedVar || {}),

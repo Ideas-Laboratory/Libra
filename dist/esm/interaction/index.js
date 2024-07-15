@@ -98,27 +98,29 @@ export class Interaction {
         };
         if (options.remove) {
             for (let removeOption of options.remove) {
-                const [removeNode, parentNode] = findNested(instrument, removeOption.find);
-                if (!removeNode)
-                    continue;
-                let parentServiceArray = parentNode instanceof Instrument
-                    ? parentNode._serviceInstances
-                    : parentNode._services;
-                if (removeOption.cascade) {
-                    if (removeNode instanceof Service) {
-                        parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1);
+                while (true) {
+                    const [removeNode, parentNode] = findNested(instrument, removeOption.find);
+                    if (!removeNode)
+                        break;
+                    let parentServiceArray = parentNode instanceof Instrument
+                        ? parentNode._serviceInstances
+                        : parentNode._services;
+                    if (removeOption.cascade) {
+                        if (removeNode instanceof Service) {
+                            parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1);
+                        }
+                        else {
+                            parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                        }
                     }
                     else {
-                        parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
-                    }
-                }
-                else {
-                    if (removeNode instanceof Service) {
-                        parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1, ...removeNode._services);
-                        parentNode._transformers.push(...removeNode._transformers);
-                    }
-                    else {
-                        parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                        if (removeNode instanceof Service) {
+                            parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1, ...removeNode._services);
+                            parentNode._transformers.push(...removeNode._transformers);
+                        }
+                        else {
+                            parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+                        }
                     }
                 }
             }

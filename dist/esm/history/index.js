@@ -17,7 +17,7 @@ export async function createHistoryTrrack() {
                 current: node === currentHistoryNode,
             };
         },
-        commit: async () => {
+        commit: async (commandName) => {
             if (commitLock) {
                 return;
             }
@@ -33,7 +33,23 @@ export async function createHistoryTrrack() {
                 await component.results; // Ensure all works have been done
                 record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
             }
+            // If push not default command, then override back.
+            if (commandName && commandName != "Log") {
+                const checkParent = (historyNode) => {
+                    if (historyNode.name === 'Log' && historyNode.prev && historyNode.prev.children.length == 1) {
+                        historyNode.prev.children = [];
+                        return checkParent(historyNode.prev);
+                    }
+                    if (historyNode.name === 'Log' && historyNode.prev) {
+                        historyNode.prev.children.splice(historyNode.prev.children.indexOf(historyNode), 1);
+                        return checkParent(historyNode.prev);
+                    }
+                    return historyNode;
+                };
+                currentHistoryNode = checkParent(currentHistoryNode);
+            }
             const newHistoryNode = {
+                name: commandName,
                 record,
                 prev: currentHistoryNode,
                 next: null,

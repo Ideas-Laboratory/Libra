@@ -9585,6 +9585,10 @@ var init_builtin3 = __esm({
             instrument.setSharedVar("x", event.offsetX, {});
             instrument.setSharedVar("y", event.offsetY, {});
           }
+        ],
+        click: [
+          Command2.initialize("Log", { execute() {
+          } })
         ]
       },
       preAttach: function(instrument, layer) {
@@ -9896,7 +9900,9 @@ var init_builtin3 = __esm({
             }, { layer });
             instrument.setSharedVar("offsetx", offsetX, { layer });
             instrument.setSharedVar("offsety", offsetY, { layer });
-          }
+          },
+          Command2.initialize("Log", { execute() {
+          } })
         ],
         dragabort: [
           (options) => {
@@ -10356,7 +10362,7 @@ async function createHistoryTrrack() {
         current: node === currentHistoryNode
       };
     },
-    commit: async () => {
+    commit: async (commandName) => {
       if (commitLock) {
         return;
       }
@@ -10370,7 +10376,22 @@ async function createHistoryTrrack() {
         await component.results;
         record.set(component, Object.fromEntries(fields.map((field) => [field, deepClone(component[field])])));
       }
+      if (commandName && commandName != "Log") {
+        const checkParent = (historyNode) => {
+          if (historyNode.name === "Log" && historyNode.prev && historyNode.prev.children.length == 1) {
+            historyNode.prev.children = [];
+            return checkParent(historyNode.prev);
+          }
+          if (historyNode.name === "Log" && historyNode.prev) {
+            historyNode.prev.children.splice(historyNode.prev.children.indexOf(historyNode), 1);
+            return checkParent(historyNode.prev);
+          }
+          return historyNode;
+        };
+        currentHistoryNode = checkParent(currentHistoryNode);
+      }
       const newHistoryNode = {
+        name: commandName,
         record,
         prev: currentHistoryNode,
         next: null,
@@ -10899,7 +10920,7 @@ var init_command = __esm({
           for (let feedback of this._feedback) {
             await feedback.call(this, options);
           }
-          await tryGetHistoryTrrackInstance2(this).commit();
+          await tryGetHistoryTrrackInstance2(this).commit(this._name);
         } catch (e) {
           console.error(e);
         }
@@ -11058,22 +11079,24 @@ var Interaction = class {
     };
     if (options.remove) {
       for (let removeOption of options.remove) {
-        const [removeNode, parentNode] = findNested(instrument, removeOption.find);
-        if (!removeNode)
-          continue;
-        let parentServiceArray = parentNode instanceof Instrument ? parentNode._serviceInstances : parentNode._services;
-        if (removeOption.cascade) {
-          if (removeNode instanceof Service2) {
-            parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1);
+        while (true) {
+          const [removeNode, parentNode] = findNested(instrument, removeOption.find);
+          if (!removeNode)
+            break;
+          let parentServiceArray = parentNode instanceof Instrument ? parentNode._serviceInstances : parentNode._services;
+          if (removeOption.cascade) {
+            if (removeNode instanceof Service2) {
+              parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1);
+            } else {
+              parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+            }
           } else {
-            parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
-          }
-        } else {
-          if (removeNode instanceof Service2) {
-            parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1, ...removeNode._services);
-            parentNode._transformers.push(...removeNode._transformers);
-          } else {
-            parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+            if (removeNode instanceof Service2) {
+              parentServiceArray.splice(parentServiceArray.indexOf(removeNode), 1, ...removeNode._services);
+              parentNode._transformers.push(...removeNode._transformers);
+            } else {
+              parentNode._transformers.splice(parentNode._transformers.indexOf(removeNode), 1);
+            }
           }
         }
       }

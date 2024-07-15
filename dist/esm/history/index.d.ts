@@ -25,7 +25,7 @@ type HistoryManagerTrrackInstance = {
 };
 export declare function createHistoryTrrack(): Promise<{
     traceStructure: (node?: HistoryNode) => HistoryTrrackNodeDescription;
-    commit: () => Promise<void>;
+    commit: (commandName?: string) => Promise<void>;
     undo(): Promise<void>;
     redo(): Promise<void>;
     jump(path?: number[]): Promise<void>;
