@@ -45,6 +45,14 @@ export default class Layer<T> {
     preUpdate(): void;
     postUpdate(): void;
     picking(options: helpers.ArbitraryQuery): T[];
+    isPointInPolygon(point: {
+        x: number;
+        y: number;
+    }, polygon: {
+        x: number;
+        y: number;
+    }[]): boolean;
+    pathIntersectsRect(path: SVGPathElement, rect: SVGRect): boolean;
     getLayerFromQueue(siblingLayerName: string): Layer<T>;
     setLayersOrder(layerNameOrderKVPairs: {
         [key: string]: number;

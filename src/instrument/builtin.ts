@@ -27,6 +27,7 @@ Instrument.register("HoverInstrument", {
         transformers.setSharedVars({ cx: event.clientX, cy: event.clientY });
       },
     ],
+    click: [Command.initialize("Log", { execute() {} })],
   },
   postInitialize: (instrument) => {
     instrument.services.add("SurfacePointSelectionService", {
@@ -76,6 +77,7 @@ Instrument.register("ClickInstrument", {
           self: options.instrument,
         });
       },
+      Command.initialize("Log", { execute() {} }),
     ],
     dragend: [
       async (options) => {
@@ -241,6 +243,7 @@ Instrument.register("BrushInstrument", {
         );
       },
     ],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       async (options) => {
         let { event, layer, instrument } = options;
@@ -336,6 +339,7 @@ Instrument.register("BrushXInstrument", {
         instrument.emit("brush", options as any);
       },
     ],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       async (options) => {
         let { event, layer, instrument } = options;
@@ -1073,6 +1077,7 @@ Instrument.register("PanInstrument", {
         });
       },
     ],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       ({ layer, event, instrument, transformer }) => {
         // if (event.changedTouches) event = event.changedTouches[0];

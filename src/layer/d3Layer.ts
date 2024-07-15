@@ -70,7 +70,7 @@ export default class D3Layer extends Layer<SVGElement> {
 
   getDatum(elem: Element | Element[]) {
     if (!elem || (elem instanceof Array && elem.length == 0)) return null;
-    if(elem instanceof Array) {
+    if (elem instanceof Array) {
       return d3.selectAll(elem).datum();
     }
     return d3.select(elem).datum();
@@ -184,6 +184,26 @@ export default class D3Layer extends Layer<SVGElement> {
         .getIntersectionList(innerRect, this._graphic)
         .forEach((elem) => elemSet.add(elem));
 
+      // Custom check for paths with no fill and zero stroke-width
+      const zeroStrokeWidthPaths = [
+        ...this._graphic.querySelectorAll("path"),
+      ].filter((path) => {
+        const computedStyle = window.getComputedStyle(path);
+        return computedStyle.fill === "none";
+      });
+
+      if (zeroStrokeWidthPaths.length > 0) {
+        const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+          const transformedRect = this.transformRect(
+            innerRect,
+            this._graphic as SVGGraphicsElement
+          );
+          return this.pathIntersectsRect(path, transformedRect);
+        });
+
+        customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+      }
+
       const outerRectWidth = r;
       const outerRectX = x - r;
       const outerRectY = y - r;
@@ -200,6 +220,17 @@ export default class D3Layer extends Layer<SVGElement> {
         .getIntersectionList(outerRect, this._graphic)
         .forEach((elem) => outerElemSet.add(elem));
 
+      if (zeroStrokeWidthPaths.length > 0) {
+        const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+          const transformedRect = this.transformRect(
+            outerRect,
+            this._graphic as SVGGraphicsElement
+          );
+          return this.pathIntersectsRect(path, transformedRect);
+        });
+
+        customIntersectingPaths.forEach((elem) => outerElemSet.add(elem));
+      }
       let outer = 1;
       while (true) {
         for (let elem of outerElemSet) {
@@ -232,6 +263,28 @@ export default class D3Layer extends Layer<SVGElement> {
           this._svg
             .getIntersectionList(rect, this._graphic)
             .forEach((elem) => elemSet.add(elem));
+
+          // Custom check for paths with no fill and zero stroke-width
+          const zeroStrokeWidthPaths = [
+            ...this._graphic.querySelectorAll("path"),
+          ].filter((path) => {
+            const computedStyle = window.getComputedStyle(path);
+            return computedStyle.fill === "none";
+          });
+
+          if (zeroStrokeWidthPaths.length > 0) {
+            const customIntersectingPaths = zeroStrokeWidthPaths.filter(
+              (path) => {
+                const transformedRect = this.transformRect(
+                  rect,
+                  this._graphic as SVGGraphicsElement
+                );
+                return this.pathIntersectsRect(path, transformedRect);
+              }
+            );
+
+            customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+          }
         });
         outer++;
       }
@@ -265,11 +318,44 @@ export default class D3Layer extends Layer<SVGElement> {
       rect.y = y0;
       rect.width = absWidth;
       rect.height = absHeight;
+
+      // Get intersecting elements using the built-in method
       result = [...this._svg.getIntersectionList(rect, this._graphic)]
         .filter(this._isElementInLayer.bind(this))
         .filter((elem) => !elem.classList.contains(backgroundClassName));
+
+      // Custom check for paths with no fill and zero stroke-width
+      const zeroStrokeWidthPaths = [
+        ...this._graphic.querySelectorAll("path"),
+      ].filter((path) => {
+        const computedStyle = window.getComputedStyle(path);
+        return computedStyle.fill === "none";
+      });
+
+      if (zeroStrokeWidthPaths.length > 0) {
+        const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+          const transformedRect = this.transformRect(
+            rect,
+            this._graphic as SVGGraphicsElement
+          );
+          return this.pathIntersectsRect(path, transformedRect);
+        });
+        result = [...new Set([...result, ...customIntersectingPaths])];
+      }
     } else if (options.type === helpers.ShapeQueryType.Polygon) {
-      // algorithms to determine if a point in a given polygon https://www.cnblogs.com/coderkian/p/3535977.html
+      const { points } = options;
+      const svgBCR = this._svg.getBoundingClientRect();
+
+      // Adjust points to SVG coordinate system
+      const adjustedPoints = points.map((p) => ({
+        x: p.x - svgBCR.left,
+        y: p.y - svgBCR.top,
+      }));
+
+      const elemSet = new Set<SVGElement>();
+      this.queryLargestRectangles(adjustedPoints, elemSet);
+
+      result = Array.from(elemSet);
     }
 
     // getElementsFromPoint cannot get the SVGGElement since it will never be touched directly.
@@ -382,6 +468,246 @@ export default class D3Layer extends Layer<SVGElement> {
       .filter((d) => d[attrName] === value)
       .nodes();
     return result;
+  }
+
+  private transformRect(
+    rect: SVGRect,
+    referenceElement: SVGGraphicsElement
+  ): SVGRect {
+    if (!this._offset) return rect;
+    const transformedRect = this._svg.createSVGRect();
+    transformedRect.x = rect.x - this._offset.x;
+    transformedRect.y = rect.y - this._offset.y;
+    transformedRect.width = rect.width;
+    transformedRect.height = rect.height;
+
+    return transformedRect;
+  }
+
+  private queryLargestRectangles(
+    points: { x: number; y: number }[],
+    elemSet: Set<SVGElement>
+  ) {
+    const boundingBox = this.getBoundingBox(points);
+
+    // Base case: if the area is too small, query the whole polygon as is
+    if (
+      (boundingBox.maxX - boundingBox.minX) *
+        (boundingBox.maxY - boundingBox.minY) <
+      100
+    ) {
+      // Adjust this threshold as needed
+      this.queryPolygon(points, elemSet);
+      return;
+    }
+
+    const largestRect = this.findLargestRectangle(points, boundingBox);
+
+    // Query the largest rectangle
+    const rect = this._svg.createSVGRect();
+    rect.x = largestRect.x;
+    rect.y = largestRect.y;
+    rect.width = largestRect.width;
+    rect.height = largestRect.height;
+
+    const intersectingElements = [
+      ...this._svg.getIntersectionList(rect, this._graphic),
+    ]
+      .filter(this._isElementInLayer.bind(this))
+      .filter((elem) => !elem.classList.contains(backgroundClassName));
+
+    intersectingElements.forEach((elem) => elemSet.add(elem as SVGElement));
+
+    // Custom check for paths with no fill
+    const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter(
+      (path) => {
+        const computedStyle = window.getComputedStyle(path);
+        return computedStyle.fill === "none";
+      }
+    );
+
+    if (zeroFillPaths.length > 0) {
+      const customIntersectingPaths = zeroFillPaths.filter((path) => {
+        const transformedRect = this.transformRect(
+          rect,
+          this._graphic as SVGGraphicsElement
+        );
+        return this.pathIntersectsRect(path, transformedRect);
+      });
+      customIntersectingPaths.forEach((elem) =>
+        elemSet.add(elem as SVGElement)
+      );
+    }
+
+    // Recursively handle the remaining areas
+    const remainingPolygons = this.subtractRectFromPolygon(points, largestRect);
+    remainingPolygons.forEach((polygon) =>
+      this.queryLargestRectangles(polygon, elemSet)
+    );
+  }
+
+  private getBoundingBox(points: { x: number; y: number }[]) {
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    for (const point of points) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
+  private findLargestRectangle(
+    points: { x: number; y: number }[],
+    boundingBox: { minX: number; minY: number; maxX: number; maxY: number }
+  ) {
+    // Implement an algorithm to find the largest rectangle in the polygon
+    // This is a complex problem. For simplicity, we'll use a basic approach here.
+    // You might want to implement a more sophisticated algorithm for better results.
+
+    const width = boundingBox.maxX - boundingBox.minX;
+    const height = boundingBox.maxY - boundingBox.minY;
+
+    let largestArea = 0;
+    let largestRect = { x: 0, y: 0, width: 0, height: 0 };
+
+    for (let x = boundingBox.minX; x < boundingBox.maxX; x += width / 10) {
+      for (let y = boundingBox.minY; y < boundingBox.maxY; y += height / 10) {
+        for (let w = width / 10; x + w <= boundingBox.maxX; w += width / 10) {
+          for (
+            let h = height / 10;
+            y + h <= boundingBox.maxY;
+            h += height / 10
+          ) {
+            if (
+              this.isRectangleInPolygon({ x, y, width: w, height: h }, points)
+            ) {
+              const area = w * h;
+              if (area > largestArea) {
+                largestArea = area;
+                largestRect = { x, y, width: w, height: h };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return largestRect;
+  }
+
+  private isRectangleInPolygon(
+    rect: { x: number; y: number; width: number; height: number },
+    polygon: { x: number; y: number }[]
+  ) {
+    const corners = [
+      { x: rect.x, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y + rect.height },
+      { x: rect.x, y: rect.y + rect.height },
+    ];
+
+    return corners.every((corner) => this.isPointInPolygon(corner, polygon));
+  }
+
+  private subtractRectFromPolygon(
+    polygon: { x: number; y: number }[],
+    rect: { x: number; y: number; width: number; height: number }
+  ) {
+    // Implement polygon clipping to subtract the rectangle from the polygon
+    // This is a complex operation. For simplicity, we'll return the original polygon minus the rectangle corners.
+    // You might want to implement a proper polygon clipping algorithm for better results.
+
+    const remainingPoints = polygon.filter(
+      (point) =>
+        !(
+          point.x >= rect.x &&
+          point.x <= rect.x + rect.width &&
+          point.y >= rect.y &&
+          point.y <= rect.y + rect.height
+        )
+    );
+
+    // Add rectangle corners to ensure the remaining shape is properly defined
+    const rectCorners = [
+      { x: rect.x, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y },
+      { x: rect.x + rect.width, y: rect.y + rect.height },
+      { x: rect.x, y: rect.y + rect.height },
+    ];
+
+    return [remainingPoints.concat(rectCorners)];
+  }
+
+  private queryPolygon(
+    points: { x: number; y: number }[],
+    elemSet: Set<SVGElement>
+  ) {
+    const boundingBox = this.getBoundingBox(points);
+    const rect = this._svg.createSVGRect();
+    rect.x = boundingBox.minX;
+    rect.y = boundingBox.minY;
+    rect.width = boundingBox.maxX - boundingBox.minX;
+    rect.height = boundingBox.maxY - boundingBox.minY;
+
+    const potentialElements = [
+      ...this._svg.getIntersectionList(rect, this._graphic),
+    ]
+      .filter(this._isElementInLayer.bind(this))
+      .filter((elem) => !elem.classList.contains(backgroundClassName));
+
+    potentialElements.forEach((elem) => {
+      const bbox = (elem as SVGGraphicsElement).getBBox();
+      const elemPoints = [
+        { x: bbox.x, y: bbox.y },
+        { x: bbox.x + bbox.width, y: bbox.y },
+        { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+        { x: bbox.x, y: bbox.y + bbox.height },
+      ];
+
+      if (elemPoints.some((point) => this.isPointInPolygon(point, points))) {
+        elemSet.add(elem as SVGElement);
+      }
+    });
+
+    // Custom check for paths with no fill
+    const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter(
+      (path) => {
+        const computedStyle = window.getComputedStyle(path);
+        return computedStyle.fill === "none";
+      }
+    );
+
+    if (zeroFillPaths.length > 0) {
+      const customIntersectingPaths = zeroFillPaths.filter((path) => {
+        const transformedRect = this.transformRect(
+          rect,
+          this._graphic as SVGGraphicsElement
+        );
+        return this.pathIntersectsRect(path, transformedRect);
+      });
+      customIntersectingPaths.forEach((elem) =>
+        elemSet.add(elem as SVGElement)
+      );
+    }
+  }
+
+  private pathIntersectsPolygon(
+    path: SVGPathElement,
+    polygon: { x: number; y: number }[]
+  ): boolean {
+    const pathLength = path.getTotalLength();
+    const step = pathLength / 100; // Check 100 points along the path
+    for (let i = 0; i <= pathLength; i += step) {
+      const point = path.getPointAtLength(i);
+      if (this.isPointInPolygon(point, polygon)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

@@ -8,6 +8,11 @@ Interactor.register("MousePositionInteractor", {
             events: ["mousemove"],
             transition: [["start", "start"]],
         },
+        {
+            action: "click",
+            events: ["mouseup"],
+            transition: [["start", "start"]],
+        },
     ],
 });
 Interactor.register("TouchPositionInteractor", {

@@ -548,6 +548,21 @@ function parseThrottle(s: string) {
 }
 
 export function deepClone(obj) {
+  if (
+    obj &&
+    obj instanceof Object &&
+    "copy" in obj &&
+    obj.copy instanceof Function
+  ) {
+    const nodeCopy = obj.copy();
+    // Assign other custom properties to the node
+    for (let key in Object.getOwnPropertyDescriptors(obj)) {
+      if (!(key in nodeCopy)) {
+        nodeCopy[key] = obj[key];
+      }
+    }
+    return nodeCopy;
+  }
   if (obj instanceof Array) {
     return obj.map(deepClone);
   }
@@ -567,6 +582,12 @@ export function deepClone(obj) {
   if (obj === null) return null;
   if (LibraSymbol in obj && obj[LibraSymbol]) {
     return obj;
+  }
+  if (obj instanceof Node) {
+    const nodeCopy = obj.cloneNode(true);
+    // Assign other custom properties to the node (e.g., __data__ from D3)
+    Object.assign(nodeCopy, obj);
+    return nodeCopy;
   }
   const propertyObject = Object.fromEntries(
     Object.entries(obj).map(([k, v]) => [k, deepClone(v)])

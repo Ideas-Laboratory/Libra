@@ -24,5 +24,13 @@ export default class D3Layer extends Layer<SVGElement> {
     _shapeQuery(options: helpers.ShapeBasedQuery): SVGElement[];
     _dataQuery(options: helpers.DataBasedQuery): SVGElement[];
     _attrQuery(options: helpers.AttributeBasedQuery): SVGElement[];
+    private transformRect;
+    private queryLargestRectangles;
+    private getBoundingBox;
+    private findLargestRectangle;
+    private isRectangleInPolygon;
+    private subtractRectFromPolygon;
+    private queryPolygon;
+    private pathIntersectsPolygon;
 }
 export {};

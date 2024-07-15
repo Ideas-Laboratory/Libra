@@ -5757,6 +5757,11 @@ var init_builtin2 = __esm({
           action: "hover",
           events: ["mousemove"],
           transition: [["start", "start"]]
+        },
+        {
+          action: "click",
+          events: ["mouseup"],
+          transition: [["start", "start"]]
         }
       ]
     });
@@ -6013,6 +6018,30 @@ var init_layer = __esm({
       picking(options) {
         return [];
       }
+      isPointInPolygon(point, polygon) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const xi = polygon[i].x, yi = polygon[i].y;
+          const xj = polygon[j].x, yj = polygon[j].y;
+          const intersect = yi > point.y !== yj > point.y && point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi;
+          if (intersect)
+            inside = !inside;
+        }
+        return inside;
+      }
+      pathIntersectsRect(path, rect) {
+        const pathLength = path.getTotalLength();
+        if (pathLength <= 0)
+          return false;
+        const step = pathLength / 100;
+        for (let i = 0; i <= pathLength; i += step) {
+          const point = path.getPointAtLength(i);
+          if (point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height) {
+            return true;
+          }
+        }
+        return false;
+      }
       getLayerFromQueue(siblingLayerName) {
         if (!siblingLayers.has(this)) {
           siblingLayers.set(this, { [this._name]: this });
@@ -6177,6 +6206,19 @@ var init_d3Layer = __esm({
           innerRect.width = innerRectWidth;
           innerRect.height = innerRectWidth;
           this._svg.getIntersectionList(innerRect, this._graphic).forEach((elem) => elemSet.add(elem));
+          const zeroStrokeWidthPaths = [
+            ...this._graphic.querySelectorAll("path")
+          ].filter((path) => {
+            const computedStyle = window.getComputedStyle(path);
+            return computedStyle.fill === "none";
+          });
+          if (zeroStrokeWidthPaths.length > 0) {
+            const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+              const transformedRect = this.transformRect(innerRect, this._graphic);
+              return this.pathIntersectsRect(path, transformedRect);
+            });
+            customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+          }
           const outerRectWidth = r;
           const outerRectX = x - r;
           const outerRectY = y - r;
@@ -6187,6 +6229,13 @@ var init_d3Layer = __esm({
           outerRect.width = outerRectWidth * 2;
           outerRect.height = outerRectWidth * 2;
           this._svg.getIntersectionList(outerRect, this._graphic).forEach((elem) => outerElemSet.add(elem));
+          if (zeroStrokeWidthPaths.length > 0) {
+            const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+              const transformedRect = this.transformRect(outerRect, this._graphic);
+              return this.pathIntersectsRect(path, transformedRect);
+            });
+            customIntersectingPaths.forEach((elem) => outerElemSet.add(elem));
+          }
           let outer = 1;
           while (true) {
             for (let elem of outerElemSet) {
@@ -6220,6 +6269,19 @@ var init_d3Layer = __esm({
             rightRect.height = w * 2;
             [topRect, bottomRect, leftRect, rightRect].forEach((rect) => {
               this._svg.getIntersectionList(rect, this._graphic).forEach((elem) => elemSet.add(elem));
+              const zeroStrokeWidthPaths2 = [
+                ...this._graphic.querySelectorAll("path")
+              ].filter((path) => {
+                const computedStyle = window.getComputedStyle(path);
+                return computedStyle.fill === "none";
+              });
+              if (zeroStrokeWidthPaths2.length > 0) {
+                const customIntersectingPaths = zeroStrokeWidthPaths2.filter((path) => {
+                  const transformedRect = this.transformRect(rect, this._graphic);
+                  return this.pathIntersectsRect(path, transformedRect);
+                });
+                customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+              }
             });
             outer++;
           }
@@ -6233,7 +6295,29 @@ var init_d3Layer = __esm({
           rect.width = absWidth;
           rect.height = absHeight;
           result = [...this._svg.getIntersectionList(rect, this._graphic)].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName));
+          const zeroStrokeWidthPaths = [
+            ...this._graphic.querySelectorAll("path")
+          ].filter((path) => {
+            const computedStyle = window.getComputedStyle(path);
+            return computedStyle.fill === "none";
+          });
+          if (zeroStrokeWidthPaths.length > 0) {
+            const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+              const transformedRect = this.transformRect(rect, this._graphic);
+              return this.pathIntersectsRect(path, transformedRect);
+            });
+            result = [...new Set([...result, ...customIntersectingPaths])];
+          }
         } else if (options.type === ShapeQueryType.Polygon) {
+          const { points } = options;
+          const svgBCR2 = this._svg.getBoundingClientRect();
+          const adjustedPoints = points.map((p) => ({
+            x: p.x - svgBCR2.left,
+            y: p.y - svgBCR2.top
+          }));
+          const elemSet = new Set();
+          this.queryLargestRectangles(adjustedPoints, elemSet);
+          result = Array.from(elemSet);
         }
         const resultWithSVGGElement = [];
         while (result.length > 0) {
@@ -6292,6 +6376,142 @@ var init_d3Layer = __esm({
         const { attrName, value } = options;
         const result = select_default2(this._graphic).filter((d) => d[attrName] === value).nodes();
         return result;
+      }
+      transformRect(rect, referenceElement) {
+        if (!this._offset)
+          return rect;
+        const transformedRect = this._svg.createSVGRect();
+        transformedRect.x = rect.x - this._offset.x;
+        transformedRect.y = rect.y - this._offset.y;
+        transformedRect.width = rect.width;
+        transformedRect.height = rect.height;
+        return transformedRect;
+      }
+      queryLargestRectangles(points, elemSet) {
+        const boundingBox = this.getBoundingBox(points);
+        if ((boundingBox.maxX - boundingBox.minX) * (boundingBox.maxY - boundingBox.minY) < 100) {
+          this.queryPolygon(points, elemSet);
+          return;
+        }
+        const largestRect = this.findLargestRectangle(points, boundingBox);
+        const rect = this._svg.createSVGRect();
+        rect.x = largestRect.x;
+        rect.y = largestRect.y;
+        rect.width = largestRect.width;
+        rect.height = largestRect.height;
+        const intersectingElements = [
+          ...this._svg.getIntersectionList(rect, this._graphic)
+        ].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName));
+        intersectingElements.forEach((elem) => elemSet.add(elem));
+        const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter((path) => {
+          const computedStyle = window.getComputedStyle(path);
+          return computedStyle.fill === "none";
+        });
+        if (zeroFillPaths.length > 0) {
+          const customIntersectingPaths = zeroFillPaths.filter((path) => {
+            const transformedRect = this.transformRect(rect, this._graphic);
+            return this.pathIntersectsRect(path, transformedRect);
+          });
+          customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+        }
+        const remainingPolygons = this.subtractRectFromPolygon(points, largestRect);
+        remainingPolygons.forEach((polygon) => this.queryLargestRectangles(polygon, elemSet));
+      }
+      getBoundingBox(points) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const point of points) {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x);
+          maxY = Math.max(maxY, point.y);
+        }
+        return { minX, minY, maxX, maxY };
+      }
+      findLargestRectangle(points, boundingBox) {
+        const width = boundingBox.maxX - boundingBox.minX;
+        const height = boundingBox.maxY - boundingBox.minY;
+        let largestArea = 0;
+        let largestRect = { x: 0, y: 0, width: 0, height: 0 };
+        for (let x = boundingBox.minX; x < boundingBox.maxX; x += width / 10) {
+          for (let y = boundingBox.minY; y < boundingBox.maxY; y += height / 10) {
+            for (let w = width / 10; x + w <= boundingBox.maxX; w += width / 10) {
+              for (let h = height / 10; y + h <= boundingBox.maxY; h += height / 10) {
+                if (this.isRectangleInPolygon({ x, y, width: w, height: h }, points)) {
+                  const area = w * h;
+                  if (area > largestArea) {
+                    largestArea = area;
+                    largestRect = { x, y, width: w, height: h };
+                  }
+                }
+              }
+            }
+          }
+        }
+        return largestRect;
+      }
+      isRectangleInPolygon(rect, polygon) {
+        const corners = [
+          { x: rect.x, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y + rect.height },
+          { x: rect.x, y: rect.y + rect.height }
+        ];
+        return corners.every((corner) => this.isPointInPolygon(corner, polygon));
+      }
+      subtractRectFromPolygon(polygon, rect) {
+        const remainingPoints = polygon.filter((point) => !(point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height));
+        const rectCorners = [
+          { x: rect.x, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y + rect.height },
+          { x: rect.x, y: rect.y + rect.height }
+        ];
+        return [remainingPoints.concat(rectCorners)];
+      }
+      queryPolygon(points, elemSet) {
+        const boundingBox = this.getBoundingBox(points);
+        const rect = this._svg.createSVGRect();
+        rect.x = boundingBox.minX;
+        rect.y = boundingBox.minY;
+        rect.width = boundingBox.maxX - boundingBox.minX;
+        rect.height = boundingBox.maxY - boundingBox.minY;
+        const potentialElements = [
+          ...this._svg.getIntersectionList(rect, this._graphic)
+        ].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName));
+        potentialElements.forEach((elem) => {
+          const bbox = elem.getBBox();
+          const elemPoints = [
+            { x: bbox.x, y: bbox.y },
+            { x: bbox.x + bbox.width, y: bbox.y },
+            { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+            { x: bbox.x, y: bbox.y + bbox.height }
+          ];
+          if (elemPoints.some((point) => this.isPointInPolygon(point, points))) {
+            elemSet.add(elem);
+          }
+        });
+        const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter((path) => {
+          const computedStyle = window.getComputedStyle(path);
+          return computedStyle.fill === "none";
+        });
+        if (zeroFillPaths.length > 0) {
+          const customIntersectingPaths = zeroFillPaths.filter((path) => {
+            const transformedRect = this.transformRect(rect, this._graphic);
+            return this.pathIntersectsRect(path, transformedRect);
+          });
+          customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+        }
+      }
+      pathIntersectsPolygon(path, polygon) {
+        const pathLength = path.getTotalLength();
+        const step = pathLength / 100;
+        for (let i = 0; i <= pathLength; i += step) {
+          const point = path.getPointAtLength(i);
+          if (this.isPointInPolygon(point, polygon)) {
+            return true;
+          }
+        }
+        return false;
       }
     };
     Layer.D3Layer = D3Layer;
@@ -8114,26 +8334,30 @@ var init_vegaLayer = __esm({
           rect.y = y0;
           rect.width = absWidth;
           rect.height = absHeight;
-          result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => {
-            if (!this._isElementInLayer(elem))
-              return false;
-            const rect2 = elem.getBoundingClientRect();
-            return !(rect2.right < x0 + svgBCR.left || rect2.left > x0 + absWidth + svgBCR.left || rect2.bottom < y0 + svgBCR.top || rect2.top > y0 + absHeight + svgBCR.top);
+          result = [...this._svg.getIntersectionList(rect, this._graphic)].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName2));
+          const zeroStrokeWidthPaths = [
+            ...this._graphic.querySelectorAll("path")
+          ].filter((path) => {
+            const computedStyle = window.getComputedStyle(path);
+            return computedStyle.fill === "none";
           });
+          if (zeroStrokeWidthPaths.length > 0) {
+            const customIntersectingPaths = zeroStrokeWidthPaths.filter((path) => {
+              const transformedRect = this.transformRect(rect, this._graphic);
+              return this.pathIntersectsRect(path, transformedRect);
+            });
+            result = [...new Set([...result, ...customIntersectingPaths])];
+          }
         } else if (options.type === ShapeQueryType.Polygon) {
           const { points } = options;
-          const x0 = Math.min(...points.map((p) => p.x)) - svgBCR.left, y0 = Math.min(...points.map((p) => p.y)) - svgBCR.top, x1 = Math.max(...points.map((p) => p.x)) - svgBCR.left, y1 = Math.max(...points.map((p) => p.y)) - svgBCR.top;
-          const rect = this._svg.createSVGRect();
-          rect.x = x0;
-          rect.y = y0;
-          rect.width = x1 - x0;
-          rect.height = y1 - y0;
-          result = [...this._svg.getIntersectionList(rect, this._graphic)].filter((elem) => {
-            if (!this._isElementInLayer(elem))
-              return false;
-            const rect2 = elem.getBoundingClientRect();
-            return !(rect2.right < x0 + svgBCR.left || rect2.left > x1 + svgBCR.left || rect2.bottom < y0 + svgBCR.top || rect2.top > y1 + svgBCR.top);
-          });
+          const svgBCR2 = this._svg.getBoundingClientRect();
+          const adjustedPoints = points.map((p) => ({
+            x: p.x - svgBCR2.left,
+            y: p.y - svgBCR2.top
+          }));
+          const elemSet = new Set();
+          this.queryLargestRectangles(adjustedPoints, elemSet);
+          result = Array.from(elemSet);
         }
         const resultWithSVGGElement = [];
         while (result.length > 0) {
@@ -8153,6 +8377,142 @@ var init_vegaLayer = __esm({
       _attrQuery(options) {
         const { attrName, value } = options;
         return [];
+      }
+      transformRect(rect, referenceElement) {
+        if (!this._offset)
+          return rect;
+        const transformedRect = this._svg.createSVGRect();
+        transformedRect.x = rect.x - this._offset.x;
+        transformedRect.y = rect.y - this._offset.y;
+        transformedRect.width = rect.width;
+        transformedRect.height = rect.height;
+        return transformedRect;
+      }
+      queryLargestRectangles(points, elemSet) {
+        const boundingBox = this.getBoundingBox(points);
+        if ((boundingBox.maxX - boundingBox.minX) * (boundingBox.maxY - boundingBox.minY) < 100) {
+          this.queryPolygon(points, elemSet);
+          return;
+        }
+        const largestRect = this.findLargestRectangle(points, boundingBox);
+        const rect = this._svg.createSVGRect();
+        rect.x = largestRect.x;
+        rect.y = largestRect.y;
+        rect.width = largestRect.width;
+        rect.height = largestRect.height;
+        const intersectingElements = [
+          ...this._svg.getIntersectionList(rect, this._graphic)
+        ].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName2));
+        intersectingElements.forEach((elem) => elemSet.add(elem));
+        const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter((path) => {
+          const computedStyle = window.getComputedStyle(path);
+          return computedStyle.fill === "none";
+        });
+        if (zeroFillPaths.length > 0) {
+          const customIntersectingPaths = zeroFillPaths.filter((path) => {
+            const transformedRect = this.transformRect(rect, this._graphic);
+            return this.pathIntersectsRect(path, transformedRect);
+          });
+          customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+        }
+        const remainingPolygons = this.subtractRectFromPolygon(points, largestRect);
+        remainingPolygons.forEach((polygon) => this.queryLargestRectangles(polygon, elemSet));
+      }
+      getBoundingBox(points) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const point of points) {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x);
+          maxY = Math.max(maxY, point.y);
+        }
+        return { minX, minY, maxX, maxY };
+      }
+      findLargestRectangle(points, boundingBox) {
+        const width = boundingBox.maxX - boundingBox.minX;
+        const height = boundingBox.maxY - boundingBox.minY;
+        let largestArea = 0;
+        let largestRect = { x: 0, y: 0, width: 0, height: 0 };
+        for (let x = boundingBox.minX; x < boundingBox.maxX; x += width / 10) {
+          for (let y = boundingBox.minY; y < boundingBox.maxY; y += height / 10) {
+            for (let w = width / 10; x + w <= boundingBox.maxX; w += width / 10) {
+              for (let h = height / 10; y + h <= boundingBox.maxY; h += height / 10) {
+                if (this.isRectangleInPolygon({ x, y, width: w, height: h }, points)) {
+                  const area = w * h;
+                  if (area > largestArea) {
+                    largestArea = area;
+                    largestRect = { x, y, width: w, height: h };
+                  }
+                }
+              }
+            }
+          }
+        }
+        return largestRect;
+      }
+      isRectangleInPolygon(rect, polygon) {
+        const corners = [
+          { x: rect.x, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y + rect.height },
+          { x: rect.x, y: rect.y + rect.height }
+        ];
+        return corners.every((corner) => this.isPointInPolygon(corner, polygon));
+      }
+      subtractRectFromPolygon(polygon, rect) {
+        const remainingPoints = polygon.filter((point) => !(point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height));
+        const rectCorners = [
+          { x: rect.x, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y },
+          { x: rect.x + rect.width, y: rect.y + rect.height },
+          { x: rect.x, y: rect.y + rect.height }
+        ];
+        return [remainingPoints.concat(rectCorners)];
+      }
+      queryPolygon(points, elemSet) {
+        const boundingBox = this.getBoundingBox(points);
+        const rect = this._svg.createSVGRect();
+        rect.x = boundingBox.minX;
+        rect.y = boundingBox.minY;
+        rect.width = boundingBox.maxX - boundingBox.minX;
+        rect.height = boundingBox.maxY - boundingBox.minY;
+        const potentialElements = [
+          ...this._svg.getIntersectionList(rect, this._graphic)
+        ].filter(this._isElementInLayer.bind(this)).filter((elem) => !elem.classList.contains(backgroundClassName2));
+        potentialElements.forEach((elem) => {
+          const bbox = elem.getBBox();
+          const elemPoints = [
+            { x: bbox.x, y: bbox.y },
+            { x: bbox.x + bbox.width, y: bbox.y },
+            { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+            { x: bbox.x, y: bbox.y + bbox.height }
+          ];
+          if (elemPoints.some((point) => this.isPointInPolygon(point, points))) {
+            elemSet.add(elem);
+          }
+        });
+        const zeroFillPaths = [...this._graphic.querySelectorAll("path")].filter((path) => {
+          const computedStyle = window.getComputedStyle(path);
+          return computedStyle.fill === "none";
+        });
+        if (zeroFillPaths.length > 0) {
+          const customIntersectingPaths = zeroFillPaths.filter((path) => {
+            const transformedRect = this.transformRect(rect, this._graphic);
+            return this.pathIntersectsRect(path, transformedRect);
+          });
+          customIntersectingPaths.forEach((elem) => elemSet.add(elem));
+        }
+      }
+      pathIntersectsPolygon(path, polygon) {
+        const pathLength = path.getTotalLength();
+        const step = pathLength / 100;
+        for (let i = 0; i <= pathLength; i += step) {
+          const point = path.getPointAtLength(i);
+          if (this.isPointInPolygon(point, polygon)) {
+            return true;
+          }
+        }
+        return false;
       }
     };
     Layer.VegaLayer = VegaLayer;
@@ -8820,7 +9180,9 @@ var init_builtin3 = __esm({
             const transformers = instrument.transformers;
             transformers.setSharedVars({ cx: event.clientX, cy: event.clientY });
           }
-        ]
+        ],
+        click: [Command2.initialize("Log", { execute() {
+        } })]
       },
       postInitialize: (instrument) => {
         instrument.services.add("SurfacePointSelectionService", {
@@ -8864,7 +9226,9 @@ var init_builtin3 = __esm({
               ...options,
               self: options.instrument
             });
-          }
+          },
+          Command2.initialize("Log", { execute() {
+          } })
         ],
         dragend: [
           async (options) => {
@@ -9002,6 +9366,8 @@ var init_builtin3 = __esm({
             }, { layer });
           }
         ],
+        dragend: [Command2.initialize("Log", { execute() {
+        } })],
         dragabort: [
           async (options) => {
             let { event, layer, instrument } = options;
@@ -9078,6 +9444,8 @@ var init_builtin3 = __esm({
             instrument.emit("brush", options);
           }
         ],
+        dragend: [Command2.initialize("Log", { execute() {
+        } })],
         dragabort: [
           async (options) => {
             let { event, layer, instrument } = options;
@@ -9682,6 +10050,8 @@ var init_builtin3 = __esm({
             });
           }
         ],
+        dragend: [Command2.initialize("Log", { execute() {
+        } })],
         dragabort: [
           ({ layer, event, instrument, transformer }) => {
           }
@@ -10016,24 +10386,20 @@ async function createHistoryTrrack() {
         currentHistoryNode.prev.next = currentHistoryNode;
         const record = currentHistoryNode.prev.record;
         commitLock = true;
-        try {
-          for (let [component, records] of record.entries()) {
-            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records) {
-              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
-            }
+        for (let [component, records] of record.entries()) {
+          let layerHold = null;
+          if ("_sharedVar" in component && component._sharedVar.layer) {
+            layerHold = component._sharedVar.layer;
           }
-          currentHistoryNode = currentHistoryNode.prev;
-        } catch (e) {
-          console.error("Fail to undo history!", e);
-          const record2 = currentHistoryNode.record;
-          for (let [component, records] of record2.entries()) {
-            Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
-            if ("_sharedVar" in records) {
-              await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
-            }
+          Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+          if (layerHold && "_sharedVar" in component && !component._sharedVar.layer) {
+            component._sharedVar.layer = layerHold;
+          }
+          if ("_sharedVar" in records) {
+            await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
           }
         }
+        currentHistoryNode = currentHistoryNode.prev;
         commitLock = false;
       }
     },
@@ -10046,7 +10412,14 @@ async function createHistoryTrrack() {
         commitLock = true;
         try {
           for (let [component, records] of record.entries()) {
+            let layerHold = null;
+            if ("_sharedVar" in component && component._sharedVar.layer) {
+              layerHold = component._sharedVar.layer;
+            }
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if (layerHold && "_sharedVar" in component && !component._sharedVar.layer) {
+              component._sharedVar.layer = layerHold;
+            }
             if ("_sharedVar" in records) {
               await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
@@ -10072,7 +10445,14 @@ async function createHistoryTrrack() {
         commitLock = true;
         try {
           for (let [component, records] of record.entries()) {
+            let layerHold = null;
+            if ("_sharedVar" in component && component._sharedVar.layer) {
+              layerHold = component._sharedVar.layer;
+            }
             Object.entries(records).forEach(([k, v]) => component[k] = deepClone(v));
+            if (layerHold && "_sharedVar" in component && !component._sharedVar.layer) {
+              component._sharedVar.layer = layerHold;
+            }
             if ("_sharedVar" in records) {
               await component.setSharedVar("$LIBRA_FORCE_UPDATE", void 0);
             }
@@ -10384,6 +10764,15 @@ function parseThrottle(s) {
   });
 }
 function deepClone(obj) {
+  if (obj && obj instanceof Object && "copy" in obj && obj.copy instanceof Function) {
+    const nodeCopy = obj.copy();
+    for (let key in Object.getOwnPropertyDescriptors(obj)) {
+      if (!(key in nodeCopy)) {
+        nodeCopy[key] = obj[key];
+      }
+    }
+    return nodeCopy;
+  }
   if (obj instanceof Array) {
     return obj.map(deepClone);
   }
@@ -10402,6 +10791,11 @@ function deepClone(obj) {
     return null;
   if (LibraSymbol in obj && obj[LibraSymbol]) {
     return obj;
+  }
+  if (obj instanceof Node) {
+    const nodeCopy = obj.cloneNode(true);
+    Object.assign(nodeCopy, obj);
+    return nodeCopy;
   }
   const propertyObject = Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, deepClone(v)]));
   return Object.assign(Object.create(Object.getPrototypeOf(obj)), propertyObject);

@@ -49,28 +49,40 @@ export async function createHistoryTrrack() {
                 currentHistoryNode.prev.next = currentHistoryNode;
                 const record = currentHistoryNode.prev.record;
                 commitLock = true;
-                try {
-                    for (let [component, records] of record.entries()) {
-                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
-                        if ("_sharedVar" in records) {
-                            // Invoke update manually
-                            await component.setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
-                        }
+                // try {
+                for (let [component, records] of record.entries()) {
+                    let layerHold = null;
+                    if ("_sharedVar" in component && component._sharedVar.layer) {
+                        layerHold = component._sharedVar.layer;
                     }
-                    currentHistoryNode = currentHistoryNode.prev;
-                }
-                catch (e) {
-                    console.error("Fail to undo history!", e);
-                    // Rollback
-                    const record = currentHistoryNode.record;
-                    for (let [component, records] of record.entries()) {
-                        Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
-                        if ("_sharedVar" in records) {
-                            // Invoke update manually
-                            await component.setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
-                        }
+                    Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                    if (layerHold &&
+                        "_sharedVar" in component &&
+                        !component._sharedVar.layer) {
+                        component._sharedVar.layer = layerHold;
+                    }
+                    if ("_sharedVar" in records) {
+                        // Invoke update manually
+                        await component.setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
                     }
                 }
+                currentHistoryNode = currentHistoryNode.prev;
+                // } catch (e) {
+                //   console.error("Fail to undo history!", e);
+                //   // Rollback
+                //   const record = currentHistoryNode.record;
+                //   for (let [component, records] of record.entries()) {
+                //     Object.entries(records).forEach(
+                //       ([k, v]) => (component[k] = deepClone(v))
+                //     );
+                //     if ("_sharedVar" in records) {
+                //       // Invoke update manually
+                //       await (
+                //         component as RecordingComponentsWithSharedVariables
+                //       ).setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
+                //     }
+                //   }
+                // }
                 commitLock = false;
             }
         },
@@ -85,7 +97,16 @@ export async function createHistoryTrrack() {
                 commitLock = true;
                 try {
                     for (let [component, records] of record.entries()) {
+                        let layerHold = null;
+                        if ("_sharedVar" in component && component._sharedVar.layer) {
+                            layerHold = component._sharedVar.layer;
+                        }
                         Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if (layerHold &&
+                            "_sharedVar" in component &&
+                            !component._sharedVar.layer) {
+                            component._sharedVar.layer = layerHold;
+                        }
                         if ("_sharedVar" in records) {
                             // Invoke update manually
                             await component.setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
@@ -115,7 +136,16 @@ export async function createHistoryTrrack() {
                 commitLock = true;
                 try {
                     for (let [component, records] of record.entries()) {
+                        let layerHold = null;
+                        if ("_sharedVar" in component && component._sharedVar.layer) {
+                            layerHold = component._sharedVar.layer;
+                        }
                         Object.entries(records).forEach(([k, v]) => (component[k] = deepClone(v)));
+                        if (layerHold &&
+                            "_sharedVar" in component &&
+                            !component._sharedVar.layer) {
+                            component._sharedVar.layer = layerHold;
+                        }
                         if ("_sharedVar" in records) {
                             // Invoke update manually
                             await component.setSharedVar("$LIBRA_FORCE_UPDATE", undefined);
