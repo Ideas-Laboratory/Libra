@@ -1,4 +1,5 @@
 import Service from "./service";
+import * as helpers from "../helpers";
 import * as d3 from "d3";
 export default class AnalysisService extends Service {
     constructor(baseName, options) {
@@ -24,6 +25,19 @@ Service.register("FilterService", {
             if (!extents)
                 return [];
             return data;
+        }
+        if (!data) {
+            try {
+                const layerInstances = self._layerInstances;
+                if (layerInstances && layerInstances.length > 0) {
+                    data = [...layerInstances[0].getGraphic().childNodes]
+                        .filter((el) => layerInstances[0].getDatum(el))
+                        .map((el) => Object.assign(layerInstances[0].cloneVisualElements(el), layerInstances[0].getDatum(el)));
+                }
+            }
+            catch (e) {
+                console.error("failed to get data from layerInstances", e);
+            }
         }
         if (extents) {
             Object.entries(extents).forEach(([field, extent]) => {
@@ -82,6 +96,39 @@ Service.register("InterpolationService", {
             }
             return d;
         });
+    },
+});
+Service.register("DataJoinService", {
+    constructor: AnalysisService,
+    evaluate({ data, result, offset, scaleX, scaleY, fieldX, fieldY, replace, self, }) {
+        if (!result || result.length <= 0)
+            return data;
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+            const datum = layerInstances[0].getDatum(result[0]);
+            if (datum) {
+                const datumBackup = helpers.deepClone(datum);
+                if (offset !== undefined && scaleX && scaleX.invert && fieldX) {
+                    datum[fieldX] = scaleX.invert(scaleX(datum[fieldX]) + parseFloat(offset.x));
+                }
+                if (offset !== undefined &&
+                    scaleY &&
+                    scaleY.invert &&
+                    fieldY &&
+                    fieldY !== fieldX) {
+                    datum[fieldY] = scaleY.invert(scaleY(datum[fieldY]) + parseFloat(offset.y));
+                }
+                if (!replace) {
+                    const newData = helpers.deepClone(data);
+                    Object.assign(datum, datumBackup);
+                    return newData;
+                }
+                else {
+                    return data;
+                }
+            }
+        }
+        return data;
     },
 });
 Service.register("AggregateService", {

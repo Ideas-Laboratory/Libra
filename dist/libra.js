@@ -42,7 +42,10 @@ var init_transformer = __esm({
         });
         this._layer = options.layer;
         this._transient = options.transient ?? false;
-        this.redraw();
+        try {
+          this.redraw();
+        } catch (e) {
+        }
       }
       getSharedVar(name) {
         return this._sharedVar[name];
@@ -4631,6 +4634,49 @@ var init_builtin = __esm({
             elems.attr(key, value);
           });
         }
+        const tooltip = transformer.getSharedVar("tooltip");
+        if (tooltip) {
+          if (typeof tooltip === "object" && (tooltip.fields && tooltip.fields.length || tooltip.text)) {
+            const tooltipQueue = [];
+            let shouldDisplay = false;
+            if (typeof tooltip === "object" && tooltip.prefix) {
+              tooltipQueue.push(tooltip.prefix);
+            }
+            if (tooltip.text) {
+              tooltipQueue.push(tooltip.text);
+              shouldDisplay = true;
+            }
+            if (tooltip.fields && tooltip.fields.length) {
+              tooltip.fields.forEach((field) => {
+                const displayContent = layer.getDatum(transformer.getSharedVar("result")?.[0])?.[field] ?? "";
+                if (displayContent) {
+                  tooltipQueue.push(displayContent);
+                  shouldDisplay = true;
+                }
+              });
+            }
+            if (typeof tooltip === "object" && tooltip.suffix) {
+              tooltipQueue.push(tooltip.suffix);
+            }
+            const tooltipText = tooltipQueue.join(" ");
+            if (tooltipText && shouldDisplay) {
+              select_default2(layer.getGraphic()).append("text").attr("x", transformer.getSharedVar("x") - (layer._offset?.x ?? 0) + (tooltip.offset?.x ?? 0)).attr("y", transformer.getSharedVar("y") - (layer._offset?.y ?? 0) + (tooltip.offset?.y ?? 0)).text(tooltipText);
+            }
+          }
+          if (typeof tooltip === "object" && tooltip.image) {
+            if (typeof tooltip.image === "string") {
+              select_default2(layer.getGraphic()).append("image").attr("x", transformer.getSharedVar("x") - (layer._offset?.x ?? 0) + (tooltip.offset?.x ?? 0)).attr("y", transformer.getSharedVar("y") - (layer._offset?.y ?? 0) + (tooltip.offset?.y ?? 0)).attr("width", tooltip.width ?? 100).attr("height", tooltip.height ?? 100).attr("style", "object-fit: contain").attr("xlink:href", tooltip.image);
+            } else if (tooltip.image instanceof Function) {
+              try {
+                const image = tooltip.image(layer.getDatum(transformer.getSharedVar("result")[0]));
+                if (image) {
+                  select_default2(layer.getGraphic()).append("image").attr("x", transformer.getSharedVar("x") - (layer._offset?.x ?? 0) + (tooltip.offset?.x ?? 0)).attr("y", transformer.getSharedVar("y") - (layer._offset?.y ?? 0) + (tooltip.offset?.y ?? 0)).attr("width", tooltip.width ?? 100).attr("height", tooltip.height ?? 100).attr("style", "object-fit: contain").attr("xlink:href", image);
+                }
+              } catch (e) {
+              }
+            }
+          }
+        }
       }
     });
     GraphicalTransformer.register("HelperLineTransformer", {
@@ -4782,6 +4828,7 @@ var init_service = __esm({
         this._computing = null;
         this._result = null;
         this._oldResult = null;
+        this._command = [];
         this[_a2] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName4;
@@ -4792,6 +4839,7 @@ var init_service = __esm({
         this._joinTransformers = options.joinTransformers ?? [];
         this._services = options.services ?? [];
         this._joinServices = options.joinServices ?? [];
+        this._command = options.command ?? [];
         this._layerInstances = [];
         this._resultAlias = options.resultAlias ?? "result";
         this._preInitialize = options.preInitialize ?? null;
@@ -4891,6 +4939,7 @@ var init_service = __esm({
           } else if (!this._initializing) {
             await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias, result)));
           }
+          this.joining = false;
         }
       }
       preUpdate() {
@@ -4904,6 +4953,18 @@ var init_service = __esm({
       }
       postUse(instrument) {
         this._postUse && this._postUse.call(this, this, instrument);
+      }
+      invokeCommand() {
+        this._command.forEach((command) => {
+          command.execute({
+            self: this,
+            ...this._userOptions.params ?? {},
+            ...this._sharedVar
+          });
+        });
+        this._services.forEach((service) => {
+          service.invokeCommand();
+        });
       }
       isInstanceOf(name) {
         return this._baseName === name || this._name === name;
@@ -5026,7 +5087,8 @@ var init_selectionService = __esm({
             [this._resultAlias]: [],
             layer: null,
             highlightColor: options?.sharedVar?.highlightColor,
-            highlightAttrValues: options?.sharedVar?.highlightAttrValues
+            highlightAttrValues: options?.sharedVar?.highlightAttrValues,
+            tooltip: options?.sharedVar?.tooltip
           }
         }));
         this._selectionMapping = new Map();
@@ -5453,6 +5515,7 @@ var AnalysisService;
 var init_algorithmService = __esm({
   "dist/esm/service/algorithmService.js"() {
     init_service();
+    init_helpers();
     init_d3();
     AnalysisService = class extends Service {
       constructor(baseName4, options) {
@@ -5476,6 +5539,16 @@ var init_algorithmService = __esm({
           if (!extents)
             return [];
           return data;
+        }
+        if (!data) {
+          try {
+            const layerInstances = self._layerInstances;
+            if (layerInstances && layerInstances.length > 0) {
+              data = [...layerInstances[0].getGraphic().childNodes].filter((el) => layerInstances[0].getDatum(el)).map((el) => Object.assign(layerInstances[0].cloneVisualElements(el), layerInstances[0].getDatum(el)));
+            }
+          } catch (e) {
+            console.error("failed to get data from layerInstances", e);
+          }
         }
         if (extents) {
           Object.entries(extents).forEach(([field, extent]) => {
@@ -5531,6 +5604,34 @@ var init_algorithmService = __esm({
           }
           return d;
         });
+      }
+    });
+    Service.register("DataJoinService", {
+      constructor: AnalysisService,
+      evaluate({ data, result, offset, scaleX, scaleY, fieldX, fieldY, replace, self }) {
+        if (!result || result.length <= 0)
+          return data;
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+          const datum2 = layerInstances[0].getDatum(result[0]);
+          if (datum2) {
+            const datumBackup = deepClone(datum2);
+            if (offset !== void 0 && scaleX && scaleX.invert && fieldX) {
+              datum2[fieldX] = scaleX.invert(scaleX(datum2[fieldX]) + parseFloat(offset.x));
+            }
+            if (offset !== void 0 && scaleY && scaleY.invert && fieldY && fieldY !== fieldX) {
+              datum2[fieldY] = scaleY.invert(scaleY(datum2[fieldY]) + parseFloat(offset.y));
+            }
+            if (!replace) {
+              const newData = deepClone(data);
+              Object.assign(datum2, datumBackup);
+              return newData;
+            } else {
+              return data;
+            }
+          }
+        }
+        return data;
       }
     });
     Service.register("AggregateService", {
@@ -8841,6 +8942,11 @@ var init_instrument = __esm({
             }
           });
         }
+        if (action.includes("confirm")) {
+          this._serviceInstances.forEach((service) => {
+            service.invokeCommand();
+          });
+        }
       }
       on(action, feedforwardOrCommand) {
         if (action instanceof Array) {
@@ -9189,7 +9295,8 @@ var init_builtin3 = __esm({
           sharedVar: {
             deepClone: instrument.getSharedVar("deepClone"),
             highlightColor: instrument.getSharedVar("highlightColor"),
-            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            tooltip: instrument.getSharedVar("tooltip")
           }
         });
       },
@@ -9199,7 +9306,8 @@ var init_builtin3 = __esm({
           sharedVar: {
             deepClone: instrument.getSharedVar("deepClone"),
             highlightColor: instrument.getSharedVar("highlightColor"),
-            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+            highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+            tooltip: instrument.getSharedVar("tooltip")
           }
         });
       }
@@ -9586,10 +9694,8 @@ var init_builtin3 = __esm({
             instrument.setSharedVar("y", event.offsetY, {});
           }
         ],
-        click: [
-          Command2.initialize("Log", { execute() {
-          } })
-        ]
+        click: [Command2.initialize("Log", { execute() {
+        } })]
       },
       preAttach: function(instrument, layer) {
         instrument.transformers.add("HelperLineTransformer", {
@@ -9858,6 +9964,7 @@ var init_builtin3 = __esm({
               currenty: event.clientY,
               offsetx: event.offsetX,
               offsety: event.offsetY,
+              offset: { x: 0, y: 0 },
               skipPicking: false
             }, { layer });
           }
@@ -9877,6 +9984,7 @@ var init_builtin3 = __esm({
               currenty: event.clientY,
               offsetx: event.offsetX,
               offsety: event.offsetY,
+              offset: { x: offsetX, y: offsetY },
               skipPicking: true
             }, { layer });
           }
@@ -9896,6 +10004,7 @@ var init_builtin3 = __esm({
               endy: event.clientY,
               offsetx: 0,
               offsety: 0,
+              offset: { x: 0, y: 0 },
               skipPicking: false
             }, { layer });
             instrument.setSharedVar("offsetx", offsetX, { layer });
@@ -10991,6 +11100,7 @@ init_transformer2();
 init_interactor();
 init_selectionService();
 init_helpers();
+init_command2();
 var registeredInteractions = {};
 var Interaction = class {
   static build(options) {
@@ -11337,6 +11447,14 @@ var Interaction = class {
             }
             prevComponent = componentOption;
             prevType = "Service";
+          } else if (componentOption instanceof Command) {
+            if (prevType == "Service") {
+              if (prevComponent instanceof Array) {
+                prevComponent.forEach((service) => service._command.push(componentOption));
+              } else {
+                prevComponent._command.push(componentOption);
+              }
+            }
           } else if (componentOption.comp.includes("Transformer")) {
             let transformer;
             if (componentOption.name) {

@@ -19,6 +19,7 @@ type ServiceInitOption = {
   services?: Service[];
   joinServices?: Service[];
   resultAlias?: string;
+  command?: Command[];
   preInitialize?: (service: Service) => void;
   postInitialize?: (service: Service) => void;
   preUpdate?: (service: Service) => void;
@@ -66,6 +67,7 @@ export default class Service {
   _computing: Promise<any> = null;
   _result: any = null;
   _oldResult: any = null;
+  _command: Command[] = [];
 
   [helpers.LibraSymbol] = true;
 
@@ -80,6 +82,7 @@ export default class Service {
     this._joinTransformers = options.joinTransformers ?? [];
     this._services = options.services ?? [];
     this._joinServices = options.joinServices ?? [];
+    this._command = options.command ?? [];
     this._layerInstances = [];
     this._resultAlias = options.resultAlias ?? "result";
     this._preInitialize = options.preInitialize ?? null;
@@ -218,6 +221,7 @@ export default class Service {
           )
         );
       }
+      this.joining = false;
     }
   }
 
@@ -239,6 +243,19 @@ export default class Service {
 
   postUse(instrument: Instrument) {
     this._postUse && this._postUse.call(this, this, instrument);
+  }
+
+  invokeCommand() {
+    this._command.forEach((command) => {
+      command.execute({
+        self: this,
+        ...(this._userOptions.params ?? {}),
+        ...this._sharedVar,
+      });
+    });
+    this._services.forEach((service) => {
+      service.invokeCommand();
+    });
   }
 
   isInstanceOf(name: string): boolean {

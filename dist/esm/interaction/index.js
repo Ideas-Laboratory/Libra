@@ -6,6 +6,7 @@ import { GraphicalTransformer } from "../transformer";
 import Interactor, { transferInteractorInnerAction, } from "../interactor/interactor";
 import SelectionService from "../service/selectionService";
 import { deepClone } from "../helpers";
+import { Command } from "../command";
 const registeredInteractions = {};
 export class Interaction {
     static build(options) {
@@ -412,6 +413,16 @@ export class Interaction {
                         }
                         prevComponent = componentOption;
                         prevType = "Service";
+                    }
+                    else if (componentOption instanceof Command) {
+                        if (prevType == "Service") {
+                            if (prevComponent instanceof Array) {
+                                prevComponent.forEach((service) => service._command.push(componentOption));
+                            }
+                            else {
+                                prevComponent._command.push(componentOption);
+                            }
+                        }
                     }
                     else if (componentOption.comp.includes("Transformer")) {
                         let transformer;

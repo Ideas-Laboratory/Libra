@@ -32,6 +32,7 @@ Instrument.register("HoverInstrument", {
                 deepClone: instrument.getSharedVar("deepClone"),
                 highlightColor: instrument.getSharedVar("highlightColor"),
                 highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+                tooltip: instrument.getSharedVar("tooltip"),
             },
         });
     },
@@ -42,6 +43,7 @@ Instrument.register("HoverInstrument", {
                 deepClone: instrument.getSharedVar("deepClone"),
                 highlightColor: instrument.getSharedVar("highlightColor"),
                 highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+                tooltip: instrument.getSharedVar("tooltip"),
             },
         });
     },
@@ -444,9 +446,7 @@ Instrument.register("HelperLineInstrument", {
                 instrument.setSharedVar("y", event.offsetY, {});
             },
         ],
-        click: [
-            Command.initialize("Log", { execute() { } })
-        ]
+        click: [Command.initialize("Log", { execute() { } })],
     },
     preAttach: function (instrument, layer) {
         instrument.transformers.add("HelperLineTransformer", {
@@ -756,6 +756,7 @@ Instrument.register("DragInstrument", {
                     currenty: event.clientY,
                     offsetx: event.offsetX,
                     offsety: event.offsetY,
+                    offset: { x: 0, y: 0 },
                     skipPicking: false,
                 }, { layer });
             },
@@ -775,6 +776,7 @@ Instrument.register("DragInstrument", {
                     currenty: event.clientY,
                     offsetx: event.offsetX,
                     offsety: event.offsetY,
+                    offset: { x: offsetX, y: offsetY },
                     skipPicking: true,
                 }, { layer });
             },
@@ -794,12 +796,13 @@ Instrument.register("DragInstrument", {
                     endy: event.clientY,
                     offsetx: 0,
                     offsety: 0,
+                    offset: { x: 0, y: 0 },
                     skipPicking: false,
                 }, { layer });
                 instrument.setSharedVar("offsetx", offsetX, { layer });
                 instrument.setSharedVar("offsety", offsetY, { layer });
             },
-            Command.initialize("Log", { execute() { } })
+            Command.initialize("Log", { execute() { } }),
         ],
         dragabort: [
             (options) => {

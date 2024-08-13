@@ -16,6 +16,7 @@ export default class Service {
         this._computing = null;
         this._result = null;
         this._oldResult = null;
+        this._command = [];
         this[_a] = true;
         options.preInitialize && options.preInitialize.call(this, this);
         this._baseName = baseName;
@@ -27,6 +28,7 @@ export default class Service {
         this._joinTransformers = options.joinTransformers ?? [];
         this._services = options.services ?? [];
         this._joinServices = options.joinServices ?? [];
+        this._command = options.command ?? [];
         this._layerInstances = [];
         this._resultAlias = options.resultAlias ?? "result";
         this._preInitialize = options.preInitialize ?? null;
@@ -142,6 +144,7 @@ export default class Service {
             else if (!this._initializing) {
                 await Promise.all(this._transformers.map((t) => t.setSharedVar(this._resultAlias, result)));
             }
+            this.joining = false;
         }
     }
     // watchSharedVar(sharedName: string, handler: Command) {
@@ -158,6 +161,18 @@ export default class Service {
     }
     postUse(instrument) {
         this._postUse && this._postUse.call(this, this, instrument);
+    }
+    invokeCommand() {
+        this._command.forEach((command) => {
+            command.execute({
+                self: this,
+                ...(this._userOptions.params ?? {}),
+                ...this._sharedVar,
+            });
+        });
+        this._services.forEach((service) => {
+            service.invokeCommand();
+        });
     }
     isInstanceOf(name) {
         return this._baseName === name || this._name === name;

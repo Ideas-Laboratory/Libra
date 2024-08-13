@@ -194,6 +194,11 @@ export default class Instrument {
         }
       });
     }
+    if (action.includes("confirm")) {
+      this._serviceInstances.forEach((service) => {
+        service.invokeCommand();
+      });
+    }
   }
 
   on(

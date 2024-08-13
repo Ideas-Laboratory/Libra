@@ -17,6 +17,7 @@ type ServiceInitOption = {
     services?: Service[];
     joinServices?: Service[];
     resultAlias?: string;
+    command?: Command[];
     preInitialize?: (service: Service) => void;
     postInitialize?: (service: Service) => void;
     preUpdate?: (service: Service) => void;
@@ -58,6 +59,7 @@ export default class Service {
     _computing: Promise<any>;
     _result: any;
     _oldResult: any;
+    _command: Command[];
     [helpers.LibraSymbol]: boolean;
     constructor(baseName: string, options: ServiceInitOption);
     getSharedVar(sharedName: string, options?: any): any;
@@ -68,6 +70,7 @@ export default class Service {
     postUpdate(): void;
     preAttach(instrument: Instrument): void;
     postUse(instrument: Instrument): void;
+    invokeCommand(): void;
     isInstanceOf(name: string): boolean;
     get transformers(): import("../transformer").default[] & import("../transformer").default & {
         find(name: string, defaultValue?: string): import("../transformer").default[] & import("../transformer").default & any;

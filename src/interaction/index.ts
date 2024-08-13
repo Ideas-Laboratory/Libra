@@ -12,6 +12,7 @@ import Interactor, {
 } from "../interactor/interactor";
 import SelectionService from "../service/selectionService";
 import { deepClone } from "../helpers";
+import { Command } from "../command";
 
 type InteractionFlowOption = {
   comp: string;
@@ -404,17 +405,17 @@ export class Interaction {
                     ...(prevComponent
                       ? prevType == "Transformer"
                         ? {
-                          transformers:
-                            prevComponent instanceof Array
-                              ? (prevComponent as GraphicalTransformer[])
-                              : [prevComponent as GraphicalTransformer],
-                        }
+                            transformers:
+                              prevComponent instanceof Array
+                                ? (prevComponent as GraphicalTransformer[])
+                                : [prevComponent as GraphicalTransformer],
+                          }
                         : {
-                          services:
-                            prevComponent instanceof Array
-                              ? (prevComponent as Service[])
-                              : [prevComponent as Service],
-                        }
+                            services:
+                              prevComponent instanceof Array
+                                ? (prevComponent as Service[])
+                                : [prevComponent as Service],
+                          }
                       : {}),
                     sharedVar: {
                       ...(options.sharedVar || {}),
@@ -503,17 +504,17 @@ export class Interaction {
                     ...(prevComponent
                       ? prevType == "Transformer"
                         ? {
-                          transformers:
-                            prevComponent instanceof Array
-                              ? (prevComponent as GraphicalTransformer[])
-                              : [prevComponent as GraphicalTransformer],
-                        }
+                            transformers:
+                              prevComponent instanceof Array
+                                ? (prevComponent as GraphicalTransformer[])
+                                : [prevComponent as GraphicalTransformer],
+                          }
                         : {
-                          services:
-                            prevComponent instanceof Array
-                              ? (prevComponent as Service[])
-                              : [prevComponent as Service],
-                        }
+                            services:
+                              prevComponent instanceof Array
+                                ? (prevComponent as Service[])
+                                : [prevComponent as Service],
+                          }
                       : {}),
                     sharedVar: {
                       ...(options.sharedVar || {}),
@@ -559,6 +560,16 @@ export class Interaction {
             }
             prevComponent = componentOption;
             prevType = "Service";
+          } else if (componentOption instanceof Command) {
+            if (prevType == "Service") {
+              if (prevComponent instanceof Array) {
+                (prevComponent as Service[]).forEach((service) =>
+                  service._command.push(componentOption)
+                );
+              } else {
+                (prevComponent as Service)._command.push(componentOption);
+              }
+            }
           } else if (componentOption.comp.includes("Transformer")) {
             let transformer: GraphicalTransformer;
             if (componentOption.name) {
@@ -607,17 +618,17 @@ export class Interaction {
                 ...(prevComponent
                   ? prevType == "Transformer"
                     ? {
-                      transformers:
-                        prevComponent instanceof Array
-                          ? (prevComponent as GraphicalTransformer[])
-                          : [prevComponent as GraphicalTransformer],
-                    }
+                        transformers:
+                          prevComponent instanceof Array
+                            ? (prevComponent as GraphicalTransformer[])
+                            : [prevComponent as GraphicalTransformer],
+                      }
                     : {
-                      services:
-                        prevComponent instanceof Array
-                          ? (prevComponent as Service[])
-                          : [prevComponent as Service],
-                    }
+                        services:
+                          prevComponent instanceof Array
+                            ? (prevComponent as Service[])
+                            : [prevComponent as Service],
+                      }
                   : {}),
                 sharedVar: {
                   ...(options.sharedVar || {}),

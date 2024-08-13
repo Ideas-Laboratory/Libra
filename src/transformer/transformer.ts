@@ -59,7 +59,11 @@ export default class GraphicalTransformer {
     this._layer = options.layer;
     this._transient = options.transient ?? false;
 
-    this.redraw();
+    try {
+      this.redraw();
+    } catch (e) {
+      // ignore
+    }
   }
 
   getSharedVar(name: string) {

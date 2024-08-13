@@ -78,6 +78,106 @@ GraphicalTransformer.register("SelectionTransformer", {
         elems.attr(key, value as string);
       });
     }
+    const tooltip = transformer.getSharedVar("tooltip");
+    if (tooltip) {
+      if (
+        typeof tooltip === "object" &&
+        ((tooltip.fields && tooltip.fields.length) || tooltip.text)
+      ) {
+        const tooltipQueue = [];
+        let shouldDisplay = false;
+        if (typeof tooltip === "object" && tooltip.prefix) {
+          tooltipQueue.push(tooltip.prefix);
+        }
+        if (tooltip.text) {
+          tooltipQueue.push(tooltip.text);
+          shouldDisplay = true;
+        }
+        if (tooltip.fields && tooltip.fields.length) {
+          tooltip.fields.forEach((field) => {
+            const displayContent =
+              layer.getDatum(transformer.getSharedVar("result")?.[0])?.[
+                field
+              ] ?? "";
+            if (displayContent) {
+              tooltipQueue.push(displayContent);
+              shouldDisplay = true;
+            }
+          });
+        }
+        if (typeof tooltip === "object" && tooltip.suffix) {
+          tooltipQueue.push(tooltip.suffix);
+        }
+        const tooltipText = tooltipQueue.join(" ");
+        if (tooltipText && shouldDisplay) {
+          d3.select(layer.getGraphic())
+            .append("text")
+            .attr(
+              "x",
+              transformer.getSharedVar("x") -
+                (layer._offset?.x ?? 0) +
+                (tooltip.offset?.x ?? 0)
+            )
+            .attr(
+              "y",
+              transformer.getSharedVar("y") -
+                (layer._offset?.y ?? 0) +
+                (tooltip.offset?.y ?? 0)
+            )
+            .text(tooltipText);
+        }
+      }
+      if (typeof tooltip === "object" && tooltip.image) {
+        if (typeof tooltip.image === "string") {
+          d3.select(layer.getGraphic())
+            .append("image")
+            .attr(
+              "x",
+              transformer.getSharedVar("x") -
+                (layer._offset?.x ?? 0) +
+                (tooltip.offset?.x ?? 0)
+            )
+            .attr(
+              "y",
+              transformer.getSharedVar("y") -
+                (layer._offset?.y ?? 0) +
+                (tooltip.offset?.y ?? 0)
+            )
+            .attr("width", tooltip.width ?? 100)
+            .attr("height", tooltip.height ?? 100)
+            .attr("style", "object-fit: contain")
+            .attr("xlink:href", tooltip.image);
+        } else if (tooltip.image instanceof Function) {
+          try {
+            const image = tooltip.image(
+              layer.getDatum(transformer.getSharedVar("result")[0])
+            );
+            if (image) {
+              d3.select(layer.getGraphic())
+                .append("image")
+                .attr(
+                  "x",
+                  transformer.getSharedVar("x") -
+                    (layer._offset?.x ?? 0) +
+                    (tooltip.offset?.x ?? 0)
+                )
+                .attr(
+                  "y",
+                  transformer.getSharedVar("y") -
+                    (layer._offset?.y ?? 0) +
+                    (tooltip.offset?.y ?? 0)
+                )
+                .attr("width", tooltip.width ?? 100)
+                .attr("height", tooltip.height ?? 100)
+                .attr("style", "object-fit: contain")
+                .attr("xlink:href", image);
+            }
+          } catch (e) {
+            // Do nothing
+          }
+        }
+      }
+    }
   },
 });
 

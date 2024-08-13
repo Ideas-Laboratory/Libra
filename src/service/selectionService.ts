@@ -20,6 +20,7 @@ export default class SelectionService extends Service {
           layer: null,
           highlightColor: options?.sharedVar?.highlightColor,
           highlightAttrValues: options?.sharedVar?.highlightAttrValues,
+          tooltip: options?.sharedVar?.tooltip,
         },
       })
     );

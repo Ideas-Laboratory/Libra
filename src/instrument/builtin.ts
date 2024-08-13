@@ -27,7 +27,7 @@ Instrument.register("HoverInstrument", {
         transformers.setSharedVars({ cx: event.clientX, cy: event.clientY });
       },
     ],
-    click: [Command.initialize("Log", { execute() { } })],
+    click: [Command.initialize("Log", { execute() {} })],
   },
   postInitialize: (instrument) => {
     instrument.services.add("SurfacePointSelectionService", {
@@ -36,6 +36,7 @@ Instrument.register("HoverInstrument", {
         deepClone: instrument.getSharedVar("deepClone"),
         highlightColor: instrument.getSharedVar("highlightColor"),
         highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+        tooltip: instrument.getSharedVar("tooltip"),
       },
     });
   },
@@ -46,6 +47,7 @@ Instrument.register("HoverInstrument", {
         deepClone: instrument.getSharedVar("deepClone"),
         highlightColor: instrument.getSharedVar("highlightColor"),
         highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+        tooltip: instrument.getSharedVar("tooltip"),
       },
     });
   },
@@ -77,7 +79,7 @@ Instrument.register("ClickInstrument", {
           self: options.instrument,
         });
       },
-      Command.initialize("Log", { execute() { } }),
+      Command.initialize("Log", { execute() {} }),
     ],
     dragend: [
       async (options) => {
@@ -243,7 +245,7 @@ Instrument.register("BrushInstrument", {
         );
       },
     ],
-    dragend: [Command.initialize("Log", { execute() { } })],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       async (options) => {
         let { event, layer, instrument } = options;
@@ -339,7 +341,7 @@ Instrument.register("BrushXInstrument", {
         instrument.emit("brush", options as any);
       },
     ],
-    dragend: [Command.initialize("Log", { execute() { } })],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       async (options) => {
         let { event, layer, instrument } = options;
@@ -503,9 +505,7 @@ Instrument.register("HelperLineInstrument", {
         instrument.setSharedVar("y", event.offsetY, {});
       },
     ],
-    click: [
-      Command.initialize("Log", { execute() { } })
-    ]
+    click: [Command.initialize("Log", { execute() {} })],
   },
   preAttach: function (instrument, layer) {
     instrument.transformers.add("HelperLineTransformer", {
@@ -845,6 +845,7 @@ Instrument.register("DragInstrument", {
             currenty: event.clientY,
             offsetx: event.offsetX,
             offsety: event.offsetY,
+            offset: { x: 0, y: 0 },
             skipPicking: false,
           },
           { layer }
@@ -868,6 +869,7 @@ Instrument.register("DragInstrument", {
             currenty: event.clientY,
             offsetx: event.offsetX,
             offsety: event.offsetY,
+            offset: { x: offsetX, y: offsetY },
             skipPicking: true,
           },
           { layer }
@@ -891,6 +893,7 @@ Instrument.register("DragInstrument", {
             endy: event.clientY,
             offsetx: 0,
             offsety: 0,
+            offset: { x: 0, y: 0 },
             skipPicking: false,
           },
           { layer }
@@ -898,7 +901,7 @@ Instrument.register("DragInstrument", {
         instrument.setSharedVar("offsetx", offsetX, { layer });
         instrument.setSharedVar("offsety", offsetY, { layer });
       },
-      Command.initialize("Log", { execute() { } })
+      Command.initialize("Log", { execute() {} }),
     ],
     dragabort: [
       (options) => {
@@ -1081,7 +1084,7 @@ Instrument.register("PanInstrument", {
         });
       },
     ],
-    dragend: [Command.initialize("Log", { execute() { } })],
+    dragend: [Command.initialize("Log", { execute() {} })],
     dragabort: [
       ({ layer, event, instrument, transformer }) => {
         // if (event.changedTouches) event = event.changedTouches[0];
