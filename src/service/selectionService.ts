@@ -167,15 +167,6 @@ export default class SelectionService extends Service {
           [this._resultAlias]: resultNodes,
         });
       });
-      this._transformers
-        .filter((t) => !t.isInstanceOf("draw-shape"))
-        .forEach((transformer) => {
-          transformer.setSharedVars({
-            ...this._sharedVar,
-            layer: layer.getLayerFromQueue("selectionLayer"),
-            [this._resultAlias]: resultNodes,
-          });
-        });
     } else {
       this._services.forEach((service) => {
         service.setSharedVars({
@@ -190,6 +181,8 @@ export default class SelectionService extends Service {
         .forEach((transformer) => {
           transformer.setSharedVars({
             ...this._sharedVar,
+            x: this._sharedVar.offsetx ?? this._sharedVar.x,
+            y: this._sharedVar.offsety ?? this._sharedVar.y,
             layer: layer.getLayerFromQueue("selectionLayer"),
             [this._resultAlias]: this._result
               ? this._result.map((node) =>

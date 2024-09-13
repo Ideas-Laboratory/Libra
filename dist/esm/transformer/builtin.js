@@ -146,7 +146,7 @@ GraphicalTransformer.register("SelectionTransformer", {
         }
     },
 });
-GraphicalTransformer.register("HelperLineTransformer", {
+GraphicalTransformer.register("LineTransformer", {
     constructor: GraphicalTransformer,
     transient: true,
     sharedVar: {

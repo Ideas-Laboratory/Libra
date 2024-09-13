@@ -4679,7 +4679,7 @@ var init_builtin = __esm({
         }
       }
     });
-    GraphicalTransformer.register("HelperLineTransformer", {
+    GraphicalTransformer.register("LineTransformer", {
       constructor: GraphicalTransformer,
       transient: true,
       sharedVar: {
@@ -5196,13 +5196,6 @@ var init_selectionService = __esm({
               [this._resultAlias]: resultNodes
             });
           });
-          this._transformers.filter((t) => !t.isInstanceOf("draw-shape")).forEach((transformer) => {
-            transformer.setSharedVars({
-              ...this._sharedVar,
-              layer: layer.getLayerFromQueue("selectionLayer"),
-              [this._resultAlias]: resultNodes
-            });
-          });
         } else {
           this._services.forEach((service) => {
             service.setSharedVars({
@@ -5213,6 +5206,8 @@ var init_selectionService = __esm({
           this._transformers.filter((t) => !t.isInstanceOf("draw-shape")).forEach((transformer) => {
             transformer.setSharedVars({
               ...this._sharedVar,
+              x: this._sharedVar.offsetx ?? this._sharedVar.x,
+              y: this._sharedVar.offsety ?? this._sharedVar.y,
               layer: layer.getLayerFromQueue("selectionLayer"),
               [this._resultAlias]: this._result ? this._result.map((node) => layer.cloneVisualElements(node, false)) : []
             });
