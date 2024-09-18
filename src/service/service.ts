@@ -320,6 +320,10 @@ export default class Service {
     return this._internalResults;
   }
 
+  get oldCachedResults() {
+    return this._oldResult;
+  }
+
   get oldResults() {
     if (this._initializing) {
       return this._initializing.then(() => {

@@ -5011,6 +5011,9 @@ var init_service = __esm({
         }
         return this._internalResults;
       }
+      get oldCachedResults() {
+        return this._oldResult;
+      }
       get oldResults() {
         if (this._initializing) {
           return this._initializing.then(() => {
@@ -10474,7 +10477,7 @@ async function createHistoryTrrack() {
       for (let { component, fields } of [
         { list: instanceInteractors2, fields: ["_state", "_modalities"] },
         { list: instanceInstruments2, fields: ["_sharedVar"] },
-        { list: instanceServices2, fields: ["_sharedVar"] },
+        { list: instanceServices2, fields: ["_sharedVar", "_result", "_oldResult"] },
         { list: instanceTransformers2, fields: ["_sharedVar"] }
       ].flatMap(({ list, fields: fields2 }) => list.filter((component2) => tryGetHistoryTrrackInstance(component2) === HistoryManager).map((component2) => ({ component: component2, fields: fields2 })))) {
         await component.results;

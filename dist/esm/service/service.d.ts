@@ -88,6 +88,7 @@ export default class Service {
     };
     get _internalResults(): any;
     get results(): any;
+    get oldCachedResults(): any;
     get oldResults(): any;
     static register(baseName: string, options: ServiceInitTemplate): void;
     static unregister(baseName: string): boolean;

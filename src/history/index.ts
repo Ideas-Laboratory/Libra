@@ -67,7 +67,7 @@ export async function createHistoryTrrack() {
       for (let { component, fields } of [
         { list: instanceInteractors, fields: ["_state", "_modalities"] },
         { list: instanceInstruments, fields: ["_sharedVar"] },
-        { list: instanceServices, fields: ["_sharedVar"] },
+        { list: instanceServices, fields: ["_sharedVar", "_result", "_oldResult"] },
         { list: instanceTransformers, fields: ["_sharedVar"] },
       ].flatMap(
         ({
