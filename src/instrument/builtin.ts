@@ -280,8 +280,16 @@ Instrument.register("BrushInstrument", {
       layer,
       sharedVar: {
         deepClone: instrument.getSharedVar("deepClone"),
-        highlightColor: instrument.getSharedVar("highlightColor"),
-        highlightAttrValues: instrument.getSharedVar("highlightAttrValues"),
+        ...(instrument.getSharedVar("highlightColor")
+          ? { highlightColor: instrument.getSharedVar("highlightColor") }
+          : {}),
+        ...(instrument.getSharedVar("highlightAttrValues")
+          ? {
+              highlightAttrValues: instrument.getSharedVar(
+                "highlightAttrValues"
+              ),
+            }
+          : {}),
       },
     });
   },

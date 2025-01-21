@@ -129,9 +129,61 @@ var init_package = __esm({
   }
 });
 
+// node_modules/d3/node_modules/d3-array/src/mean.js
+function mean(values, valueof) {
+  let count = 0;
+  let sum2 = 0;
+  if (valueof === void 0) {
+    for (let value of values) {
+      if (value != null && (value = +value) >= value) {
+        ++count, sum2 += value;
+      }
+    }
+  } else {
+    let index = -1;
+    for (let value of values) {
+      if ((value = valueof(value, ++index, values)) != null && (value = +value) >= value) {
+        ++count, sum2 += value;
+      }
+    }
+  }
+  if (count)
+    return sum2 / count;
+}
+var init_mean = __esm({
+  "node_modules/d3/node_modules/d3-array/src/mean.js"() {
+  }
+});
+
+// node_modules/d3/node_modules/d3-array/src/sum.js
+function sum(values, valueof) {
+  let sum2 = 0;
+  if (valueof === void 0) {
+    for (let value of values) {
+      if (value = +value) {
+        sum2 += value;
+      }
+    }
+  } else {
+    let index = -1;
+    for (let value of values) {
+      if (value = +valueof(value, ++index, values)) {
+        sum2 += value;
+      }
+    }
+  }
+  return sum2;
+}
+var init_sum = __esm({
+  "node_modules/d3/node_modules/d3-array/src/sum.js"() {
+  }
+});
+
 // node_modules/d3/node_modules/d3-array/src/index.js
 var init_src = __esm({
   "node_modules/d3/node_modules/d3-array/src/index.js"() {
+    init_mean();
+    init_sum();
   }
 });
 
@@ -4620,7 +4672,7 @@ var init_builtin = __esm({
     GraphicalTransformer.register("SelectionTransformer", {
       constructor: GraphicalTransformer,
       redraw: ({ layer, transformer }) => {
-        transformer.getSharedVar("result").forEach((resultNode) => {
+        transformer.getSharedVar("result")?.forEach((resultNode) => {
           layer.getGraphic().appendChild(resultNode);
         });
         const highlightColor = transformer.getSharedVar("highlightColor");
@@ -4647,20 +4699,60 @@ var init_builtin = __esm({
               shouldDisplay = true;
             }
             if (tooltip.fields && tooltip.fields.length) {
-              tooltip.fields.forEach((field) => {
-                const displayContent = layer.getDatum(transformer.getSharedVar("result")?.[0])?.[field] ?? "";
-                if (displayContent) {
-                  tooltipQueue.push(displayContent);
-                  shouldDisplay = true;
-                }
-              });
+              const result = transformer.getSharedVar("result");
+              if (result && result.length <= 1) {
+                tooltip.fields.forEach((field) => {
+                  const displayContent = layer.getDatum(result?.[0])?.[field] ?? "";
+                  if (displayContent) {
+                    tooltipQueue.push(displayContent);
+                    shouldDisplay = true;
+                  }
+                });
+              } else if (result && result.length > 1) {
+                const queueArray = [];
+                result.forEach((el) => {
+                  const datum2 = layer.getDatum(el);
+                  if (datum2) {
+                    const subArray = [el];
+                    tooltip.fields.forEach((field) => {
+                      const displayContent = datum2?.[field] ?? "";
+                      if (displayContent) {
+                        subArray.push(displayContent);
+                      }
+                    });
+                    queueArray.push(subArray);
+                  }
+                });
+                shouldDisplay = true;
+                tooltipQueue.push(queueArray);
+              }
             }
             if (typeof tooltip === "object" && tooltip.suffix) {
               tooltipQueue.push(tooltip.suffix);
             }
             const tooltipText = tooltipQueue.join(" ");
             if (tooltipText && shouldDisplay) {
-              select_default2(layer.getGraphic()).append("text").attr("x", transformer.getSharedVar("x") - (layer._offset?.x ?? 0) + (tooltip.offset?.x ?? 0)).attr("y", transformer.getSharedVar("y") - (layer._offset?.y ?? 0) + (tooltip.offset?.y ?? 0)).text(tooltipText);
+              if (tooltip.position == "absolute") {
+                const tooltipArrayIndex = tooltipQueue.findIndex((item) => item instanceof Array);
+                if (tooltipArrayIndex !== -1) {
+                  const tooltipPrefix = tooltipQueue.slice(0, tooltipArrayIndex);
+                  const tooltipArray = tooltipQueue[tooltipArrayIndex];
+                  const tooltipSuffix = tooltipQueue.slice(tooltipArrayIndex + 1);
+                  tooltipArray.forEach((subArray) => {
+                    const el = subArray[0];
+                    const str = [
+                      ...tooltipPrefix,
+                      ...subArray.slice(1),
+                      ...tooltipSuffix
+                    ].join(" ");
+                    const offsetX = (el.getBBox()?.x ?? 0) + (tooltip.offset?.x ?? 0);
+                    const offsetY = (el.getBBox()?.y ?? 0) + (tooltip.offset?.y ?? 0);
+                    select_default2(layer.getGraphic()).append("text").attr("x", offsetX).attr("y", offsetY).text(str);
+                  });
+                }
+              } else {
+                select_default2(layer.getGraphic()).append("text").attr("x", transformer.getSharedVar("x") - (layer._offset?.x ?? 0) + (tooltip.offset?.x ?? 0)).attr("y", transformer.getSharedVar("y") - (layer._offset?.y ?? 0) + (tooltip.offset?.y ?? 0)).text(tooltipText);
+              }
             }
           }
           if (typeof tooltip === "object" && tooltip.image) {
@@ -4695,6 +4787,16 @@ var init_builtin = __esm({
         const tooltipConfig = transformer.getSharedVar("tooltip");
         const scaleX = transformer.getSharedVar("scaleX");
         const scaleY = transformer.getSharedVar("scaleY");
+        const result = transformer.getSharedVar("result");
+        if (result && result.slope !== void 0 && result.intercept !== void 0) {
+          orientation.splice(0, orientation.length);
+          const line = select_default2(layer.getGraphic()).append("line").attr("x1", 0).attr("x2", mainLayer.getGraphic().getBoundingClientRect().width).attr("y1", result.intercept).attr("y2", result.slope * mainLayer.getGraphic().getBoundingClientRect().width + result.intercept).attr("stroke-width", 1).attr("stroke", "#000");
+          if (style) {
+            Object.entries(style).forEach(([key, value]) => {
+              line.attr(key, value);
+            });
+          }
+        }
         const tooltipQueue = [];
         let tooltipOffsetX = 0;
         let tooltipOffsetY = 0;
@@ -5634,10 +5736,65 @@ var init_algorithmService = __esm({
     });
     Service.register("AggregateService", {
       constructor: AnalysisService,
-      evaluate({ result }) {
+      evaluate({ result, operation, fields }) {
         if (!(result instanceof Array))
           return 0;
+        if (operation === "average") {
+          return Object.fromEntries(fields.map((field) => [
+            field,
+            result.reduce((sum2, d) => sum2 + d[field], 0) / result.length
+          ]));
+        }
         return result.length;
+      }
+    });
+    Service.register("ReverseSelectionService", {
+      constructor: AnalysisService,
+      evaluate({ result, self }) {
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+          const graphic = layerInstances[0].getGraphic();
+          const doms = [...graphic.childNodes].filter((el) => layerInstances[0].getDatum(el));
+          const domData = doms.map((el) => layerInstances[0].getDatum(el));
+          const data = (result || []).map((el) => layerInstances[0].getDatum(el));
+          return doms.filter((_, i) => !data.includes(domData[i])).map((d) => layerInstances[0].cloneVisualElements(d, true));
+        }
+        return [];
+      }
+    });
+    Service.register("RegressionService", {
+      constructor: AnalysisService,
+      evaluate({ result, xField, yField, self }) {
+        if (!result || result.length <= 1 || !(result instanceof Array))
+          return null;
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+          const datum2 = layerInstances[0].getDatum(result[0]);
+          if (datum2) {
+            result = result.map((d) => layerInstances[0].getDatum(d)).filter((x) => x !== void 0);
+          }
+        }
+        let xValues, yValues;
+        if (xField instanceof Function) {
+          xValues = result.map((d) => xField(d));
+        } else if (xField) {
+          xValues = result.map((d) => d[xField]);
+        }
+        if (yField instanceof Function) {
+          yValues = result.map((d) => yField(d));
+        } else if (yField) {
+          yValues = result.map((d) => d[yField]);
+        }
+        const xMean = mean(xValues);
+        const yMean = mean(yValues);
+        const numerator = sum(xValues.map((x, i) => (x - xMean) * (yValues[i] - yMean)));
+        const denominator = sum(xValues.map((x) => Math.pow(x - xMean, 2)));
+        const slope = numerator / denominator;
+        const intercept = yMean - slope * xMean;
+        return {
+          slope,
+          intercept
+        };
       }
     });
   }
@@ -9502,8 +9659,10 @@ var init_builtin3 = __esm({
           layer,
           sharedVar: {
             deepClone: instrument.getSharedVar("deepClone"),
-            highlightColor: instrument.getSharedVar("highlightColor"),
-            highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+            ...instrument.getSharedVar("highlightColor") ? { highlightColor: instrument.getSharedVar("highlightColor") } : {},
+            ...instrument.getSharedVar("highlightAttrValues") ? {
+              highlightAttrValues: instrument.getSharedVar("highlightAttrValues")
+            } : {}
           }
         });
       }

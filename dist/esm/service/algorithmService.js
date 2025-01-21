@@ -133,9 +133,76 @@ Service.register("DataJoinService", {
 });
 Service.register("AggregateService", {
     constructor: AnalysisService,
-    evaluate({ result }) {
+    evaluate({ result, operation, fields }) {
         if (!(result instanceof Array))
             return 0;
+        if (operation === "average") {
+            return Object.fromEntries(fields.map((field) => [
+                field,
+                result.reduce((sum, d) => sum + d[field], 0) / result.length,
+            ]));
+        }
         return result.length;
+    },
+});
+Service.register("ReverseSelectionService", {
+    constructor: AnalysisService,
+    evaluate({ result, self }) {
+        // Get all DOM on the layer
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+            const graphic = layerInstances[0].getGraphic();
+            const doms = [...graphic.childNodes].filter((el) => layerInstances[0].getDatum(el));
+            const domData = doms.map((el) => layerInstances[0].getDatum(el));
+            // As the result is the copied DOM, we need to convert it to data and then filter
+            const data = (result || []).map((el) => layerInstances[0].getDatum(el));
+            return doms
+                .filter((_, i) => !data.includes(domData[i]))
+                .map((d) => layerInstances[0].cloneVisualElements(d, true));
+        }
+        return [];
+    },
+});
+Service.register("RegressionService", {
+    constructor: AnalysisService,
+    evaluate({ result, xField, yField, self }) {
+        if (!result || result.length <= 1 || !(result instanceof Array))
+            return null;
+        // Need to convert DOM list to data
+        const layerInstances = self._layerInstances;
+        if (layerInstances && layerInstances.length > 0) {
+            const datum = layerInstances[0].getDatum(result[0]);
+            if (datum) {
+                result = result
+                    .map((d) => layerInstances[0].getDatum(d))
+                    .filter((x) => x !== undefined);
+            }
+        }
+        let xValues, yValues;
+        if (xField instanceof Function) {
+            xValues = result.map((d) => xField(d));
+        }
+        else if (xField) {
+            xValues = result.map((d) => d[xField]);
+        }
+        if (yField instanceof Function) {
+            yValues = result.map((d) => yField(d));
+        }
+        else if (yField) {
+            yValues = result.map((d) => d[yField]);
+        }
+        const xMean = d3.mean(xValues);
+        const yMean = d3.mean(yValues);
+        // Calculate slope of the regression line
+        // Calculate slope using least squares method
+        const numerator = d3.sum(xValues.map((x, i) => (x - xMean) * (yValues[i] - yMean)));
+        const denominator = d3.sum(xValues.map((x) => Math.pow(x - xMean, 2)));
+        const slope = numerator / denominator;
+        // Calculate y-intercept using point-slope form
+        const intercept = yMean - slope * xMean;
+        return {
+            slope,
+            intercept,
+        };
     },
 });

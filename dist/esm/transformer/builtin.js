@@ -53,7 +53,7 @@ GraphicalTransformer.register("TransientRectangleTransformer", {
 GraphicalTransformer.register("SelectionTransformer", {
     constructor: GraphicalTransformer,
     redraw: ({ layer, transformer }) => {
-        transformer.getSharedVar("result").forEach((resultNode) => {
+        transformer.getSharedVar("result")?.forEach((resultNode) => {
             layer.getGraphic().appendChild(resultNode);
         });
         const highlightColor = transformer.getSharedVar("highlightColor");
@@ -81,28 +81,75 @@ GraphicalTransformer.register("SelectionTransformer", {
                     shouldDisplay = true;
                 }
                 if (tooltip.fields && tooltip.fields.length) {
-                    tooltip.fields.forEach((field) => {
-                        const displayContent = layer.getDatum(transformer.getSharedVar("result")?.[0])?.[field] ?? "";
-                        if (displayContent) {
-                            tooltipQueue.push(displayContent);
-                            shouldDisplay = true;
-                        }
-                    });
+                    const result = transformer.getSharedVar("result");
+                    if (result && result.length <= 1) {
+                        tooltip.fields.forEach((field) => {
+                            const displayContent = layer.getDatum(result?.[0])?.[field] ?? "";
+                            if (displayContent) {
+                                tooltipQueue.push(displayContent);
+                                shouldDisplay = true;
+                            }
+                        });
+                    }
+                    else if (result && result.length > 1) {
+                        const queueArray = [];
+                        result.forEach((el) => {
+                            const datum = layer.getDatum(el);
+                            if (datum) {
+                                const subArray = [el];
+                                tooltip.fields.forEach((field) => {
+                                    const displayContent = datum?.[field] ?? "";
+                                    if (displayContent) {
+                                        subArray.push(displayContent);
+                                    }
+                                });
+                                queueArray.push(subArray);
+                            }
+                        });
+                        shouldDisplay = true;
+                        tooltipQueue.push(queueArray);
+                    }
                 }
                 if (typeof tooltip === "object" && tooltip.suffix) {
                     tooltipQueue.push(tooltip.suffix);
                 }
                 const tooltipText = tooltipQueue.join(" ");
                 if (tooltipText && shouldDisplay) {
-                    d3.select(layer.getGraphic())
-                        .append("text")
-                        .attr("x", transformer.getSharedVar("x") -
-                        (layer._offset?.x ?? 0) +
-                        (tooltip.offset?.x ?? 0))
-                        .attr("y", transformer.getSharedVar("y") -
-                        (layer._offset?.y ?? 0) +
-                        (tooltip.offset?.y ?? 0))
-                        .text(tooltipText);
+                    if (tooltip.position == "absolute") {
+                        const tooltipArrayIndex = tooltipQueue.findIndex((item) => item instanceof Array);
+                        if (tooltipArrayIndex !== -1) {
+                            const tooltipPrefix = tooltipQueue.slice(0, tooltipArrayIndex);
+                            const tooltipArray = tooltipQueue[tooltipArrayIndex];
+                            const tooltipSuffix = tooltipQueue.slice(tooltipArrayIndex + 1);
+                            tooltipArray.forEach((subArray) => {
+                                const el = subArray[0];
+                                const str = [
+                                    ...tooltipPrefix,
+                                    ...subArray.slice(1),
+                                    ...tooltipSuffix,
+                                ].join(" ");
+                                // Make the tooltip offset relative to the element
+                                const offsetX = (el.getBBox()?.x ?? 0) + (tooltip.offset?.x ?? 0);
+                                const offsetY = (el.getBBox()?.y ?? 0) + (tooltip.offset?.y ?? 0);
+                                d3.select(layer.getGraphic())
+                                    .append("text")
+                                    .attr("x", offsetX)
+                                    .attr("y", offsetY)
+                                    .text(str);
+                            });
+                        }
+                    }
+                    else {
+                        d3.select(layer.getGraphic())
+                            .append("text")
+                            .attr("x", transformer.getSharedVar("x") -
+                            (layer._offset?.x ?? 0) +
+                            (tooltip.offset?.x ?? 0))
+                            .attr("y", transformer.getSharedVar("y") -
+                            (layer._offset?.y ?? 0) +
+                            (tooltip.offset?.y ?? 0))
+                            .text(tooltipText);
+                    }
                 }
             }
             if (typeof tooltip === "object" && tooltip.image) {
@@ -162,6 +209,28 @@ GraphicalTransformer.register("LineTransformer", {
         const tooltipConfig = transformer.getSharedVar("tooltip");
         const scaleX = transformer.getSharedVar("scaleX");
         const scaleY = transformer.getSharedVar("scaleY");
+        const result = transformer.getSharedVar("result");
+        if (result &&
+            result.slope !== undefined &&
+            result.intercept !== undefined) {
+            // Draw regression line, will ignore orientation
+            orientation.splice(0, orientation.length);
+            const line = d3
+                .select(layer.getGraphic())
+                .append("line")
+                .attr("x1", 0)
+                .attr("x2", mainLayer.getGraphic().getBoundingClientRect().width)
+                .attr("y1", result.intercept)
+                .attr("y2", result.slope * mainLayer.getGraphic().getBoundingClientRect().width +
+                result.intercept)
+                .attr("stroke-width", 1)
+                .attr("stroke", "#000");
+            if (style) {
+                Object.entries(style).forEach(([key, value]) => {
+                    line.attr(key, value);
+                });
+            }
+        }
         const tooltipQueue = [];
         let tooltipOffsetX = 0;
         let tooltipOffsetY = 0;
