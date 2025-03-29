@@ -2,7 +2,7 @@
 
 _Yue Zhao, Yunhai Wang, Xu Luo, Yanyan Wang, Jean-Daniel Fekete_
 
-![teaser](src/asset/logo.png)
+![teaser](src/asset/teaser.png)
 ___Figure 1:__ Libra facilitates efficient interaction modeling by enabling the reuse, extension, and combination of built-in interactions. Its prototype, Libra.js, supports seamless exploration of the t-SNE projection of the MNIST dataset with various interactions: (a) hovering a point to show the corresponding image, (b) clicking a data point to highlight the whole class, and (c) dragging cluster centroids to interactively refine k-means clustering while seamlessly integrating with point hovering from (a). (d,e,f) The corresponding Libra.js code snippets for the interactions in (a,b,c), respectively._
 
 __Abstract -__
